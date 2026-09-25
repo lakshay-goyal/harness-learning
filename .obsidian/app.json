@@ -2,5 +2,11 @@
   "alwaysUpdateLinks": true,
   "newLinkFormat": "shortest",
   "useMarkdownLinks": false,
-  "attachmentFolderPath": "_attachments"
+  "attachmentFolderPath": "_attachments",
+  "userIgnoreFilters": [
+    ".agents/",
+    ".meta/",
+    ".templates/",
+    "*.gitkeep"
+  ]
 }
