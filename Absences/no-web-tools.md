@@ -26,4 +26,6 @@ harnesses: [pi]
 - The web is the largest prompt-injection surface. pi neither adds it by default nor defends it once it is added ([[no-prompt-injection-defense]]).
 - Models trained with built-in web tools may try to call them. pi relies on the declared toolset to steer them.
 
+**opencode contrast**: implements it: `webfetch` always; `websearch` via hosted Exa/Parallel MCP for opencode providers or flags (`packages/opencode/src/tool/registry.ts:58-65`; `packages/opencode/src/tool/webfetch.ts:9-11`) — see [[web-tools]] / [[web-tools-vs-none]].
+
 Related: [[minimal-default-toolset]] · [[mcp-integration]] · [[skill-progressive-disclosure]] · [[provider-identity-shim]] · [[no-builtin-mcp-reversed]] · [[no-prompt-injection-defense]] · [[Absences]]

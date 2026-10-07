@@ -2,8 +2,8 @@
 type: concept
 stage: tools
 tier: candidate
-aliases: [tool_result event, afterToolCall, afterTool, tool-result patch chain]
-harnesses: [pi]
+aliases: [tool_result event, afterToolCall, afterTool, tool-result patch chain, tool.execute.after]
+harnesses: [pi, opencode]
 ---
 Post-execution hooks that patch a tool's result (content, details, structured content, error flag, usage, terminate) before it is appended — for redaction, augmentation, normalization — composed as a chain.
 
@@ -19,13 +19,19 @@ Post-execution hooks that patch a tool's result (content, details, structured co
 - Hook errors → error result (pi) vs propagate.
 - Hooks see errors too (pi) vs success only.
 - Harness-owned normalizations live in the same hook (pi: tool-result image normalization) → [[image-normalization]].
+- One shared mutable output object passed through plugins in order (opencode) vs field-level patches (pi).
 
 ## Implementations
 - [[pi--tool-result-rewriting|pi]] — agent-core `afterToolCall` field-level merge; coding-agent maps it to chained extension `tool_result` handlers + image normalization.
+- [[opencode--tool-result-rewriting|opencode]] — plugin `tool.execute.before/after` mutate args/output in place around every tool, MCP tool and code-mode child call.
 
 ## Failures
+- [[side-door-input-bypasses-hooks]]
 - [[tool-result-hook-patches-lost]]
 - [[hook-throw-aborts-parallel-batch]]
+
+## Tradeoffs
+- [[lsp-feedback-vs-none]]
 
 ## Related
 [[tool-call-gate]] · [[extension-event-hooks]] · [[tool-error-as-result]] · [[structured-tool-output]] · [[image-normalization]] · [[context-transform-hook]]

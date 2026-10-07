@@ -34,6 +34,7 @@ Failures whose first concept is in [[Model Interface]].
 - [[stop-reason-mapping-gaps]] — Unknown, refusal, safety or `end` stop reasons crash, look like normal stops, or a truncation is masked as toolUse.
 - [[empty-payload-rejections]] — Empty tools arrays, text parts, content, beta headers or instructions get 400s.
 - [[endpoint-rejects-request-field]] — Temperature, betas, display, too-small max_output_tokens or cache params are rejected by specific models or endpoints.
+- [[placeholder-tool-gets-called]] — A no-op compatibility tool added for Copilot/LiteLLM got called by the model.
 
 ## Usage and cost
 - [[usage-double-counting]] — Reasoning tokens or cached tokens are counted twice, or cache reads are under-reported.
@@ -71,6 +72,7 @@ Failures whose first concept is in [[Model Interface]].
 - [[provider-reregistration-replaces-config]] — Re-registering a provider with only overrides loses its models; overrides or baseUrl are ignored for plugin providers.
 - [[model-reference-ambiguity]] — `--model` picks an unauthenticated provider, a slashed gateway id, or mis-splits a colon id.
 - [[unusable-default-model-selected]] — The saved default model has no credentials and blocks a usable local model.
+- [[sdk-enum-lags-provider-options]] — Typed SDK enums/allow-lists rejected or stripped effort and service-tier values the provider accepted.
 
 ## Auth and credentials
 - [[tool-name-mapping-not-invertible]] — Subscription tool-name mapping does not round-trip (find→Glob), so the model calls unknown tools.
@@ -88,6 +90,12 @@ Failures whose first concept is in [[Model Interface]].
 - [[config-value-indirection-ambiguity]] — Literal keys are treated as env names on Windows; command keys are cached forever.
 - [[credential-scoped-config-dropped]] — An endpoint or account config carried by the credential is lost between layers.
 - [[bedrock-credential-and-endpoint-precedence]] — Profile ignored, inference profiles broken, or duplicate Authorization header on Bedrock.
+- [[vendor-prompt-copy-legal-exposure]] — Impersonating the vendor's client (identity line, copied prompt, beta header) to ride a subscription drew legal requests.
+
+## Auxiliary model calls
+- [[title-from-tool-narration]] — Titles described tool narration or were missing for shell/@file/subtask-first sessions.
+- [[small-model-format-noncompliance]] — Small title models emitted multi-line, quoted, `<think>` or monotonous output.
+- [[summary-drops-pending-user-request]] — A turn summary hid the agent's final question or instruction to the user.
 
 ## Transport
 - [[proxied-request-hang-after-upgrade]] — After a dependency upgrade, proxied HTTP requests hang or responses fail to decode.

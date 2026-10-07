@@ -3,7 +3,7 @@ type: concept
 stage: messages
 tier: candidate
 aliases: [normalizeToolCallId, toolCallIdMap, toolCallCounter, tool-call-id-synthesis, requiresToolCallId, MISTRAL_TOOL_CALL_ID_LENGTH, "call_id|item_id", "fc_<hash>", shortHash]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 Rewrite or synthesize tool-call ids so they satisfy the target provider's character set, length, prefix and uniqueness rules, while the pairing between each call and its result is kept.
 
@@ -38,9 +38,11 @@ Rewrite or synthesize tool-call ids so they satisfy the target provider's charac
 - **When ids are required**
   - Gate by provider.
   - Gate by parsed model version, e.g. Gemini ≥3. *pi chose this:* cbaca6038.
+- **Truncate-and-pad**: Mistral ids stripped to alphanumerics and cut/padded to 9 chars without hashing (opencode).
 
 ## Implementations
 - [[pi--tool-call-id-normalization|pi]] — per-adapter normalizers (Anthropic and Bedrock ≤64 alphanumeric, Completions ≤40 with hash, Responses `fc_` hashing and trailing `_` strip, Mistral 9-char hash, Google when `requiresToolCallId`) plus the `toolCallIdMap` inside `transformMessages`.
+- [[opencode--tool-call-id-normalization|opencode]] — Claude ids scrubbed to `[a-zA-Z0-9_-]`, Mistral family 9 chars + `"Done."` bridge; v2 Gemini ids synthesized `tool_N`.
 
 ## Failures
 - [[cross-provider-tool-call-id-normalization]]

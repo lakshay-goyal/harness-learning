@@ -2,8 +2,8 @@
 type: concept
 stage: tools
 tier: candidate
-aliases: [grep tool, find tool, ls tool, grep.ts, find.ts, ls.ts, ensureTool, tools-manager, PI_OFFLINE, gitignore-aware-search, managed-binary-bootstrap, argv-separator-hardening]
-harnesses: [pi]
+aliases: [grep tool, find tool, ls tool, grep.ts, find.ts, ls.ts, ensureTool, tools-manager, PI_OFFLINE, gitignore-aware-search, managed-binary-bootstrap, argv-separator-hardening, "glob tool", Ripgrep.Service]
+harnesses: [pi, opencode]
 ---
 Dedicated content/file/directory search tools built on fast external binaries (ripgrep, fd): gitignore-aware, result-capped, argv-hardened against flag injection, with the binaries bootstrapped by the harness when missing.
 
@@ -22,9 +22,13 @@ Dedicated content/file/directory search tools built on fast external binaries (r
 - Result caps (matches/results/entries) + byte cap + per-line cap with actionable "use limit=N" notice (pi).
 - `--` end-of-options before untrusted positionals (pi).
 - Hierarchical gitignore incl. nested repos (pi delegates to fd/rg, `--no-require-git` only outside repos).
+- Dedicated tools on by default with shell-search discouraged in the shell description (opencode).
+- Directory listing folded into the read tool (opencode, `list` removed).
+- Hidden path segments excluded from broad search (opencode v2).
 
 ## Implementations
 - [[pi--search-tools|pi]] — `grep` (rg --json, 100 matches, 500-char lines), `find` (fd --glob, 1000 results, full-path for `/` patterns), `ls` (readdir, 500 entries, not gitignore-aware); rg/fd auto-downloaded into pi bin dir.
+- [[opencode--search-tools|opencode]] — `glob` + `grep` on by default over system or downloaded ripgrep 15.1.0, 100-result caps, 2000-char lines; no ls (read lists directories).
 
 ## Failures
 - [[search-tool-argument-injection]]

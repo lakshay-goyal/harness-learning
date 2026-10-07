@@ -20,6 +20,7 @@ Explicit, remembered trust decision per directory that gates whether repo-suppli
 - **Non-interactive default**: deny unless `always`/flag (pi) vs allow.
 - **Plugin-decidable trust** (`project_trust` event from global/CLI extensions only) — pi; project plugins obviously cannot vote.
 - **Action-time trust** (per-command approvals) — out of scope; see [[tool-call-gate]].
+- **No gate, declared out of scope** (opencode: project config, `.opencode/plugin(s)` and `.opencode/tool(s)` execute on open; "Malicious config files … not an attack vector", `SECURITY.md:33`; only lever `OPENCODE_DISABLE_PROJECT_CONFIG`).
 
 ## Implementations
 - [[pi--project-trust-gate|pi]] — `.pi/{settings.json,mcp.json,extensions,skills,prompts,themes,SYSTEM.md,APPEND_SYSTEM.md}` or ancestor `.agents/skills` trigger a trust decision; `~/.pi/agent/trust.json`; `defaultProjectTrust` ask|always|never; AGENTS.md/CLAUDE.md ungated.
@@ -28,6 +29,9 @@ Explicit, remembered trust decision per directory that gates whether repo-suppli
 - [[untrusted-repo-loads-executable-config]]
 - [[trust-scope-includes-agent-config-dir]]
 - [[repo-config-disables-sandbox-plugin]]
+
+## Tradeoffs
+- [[permission-prompts-vs-none]]
 
 ## Related
 [[context-file-hierarchy]] · [[layered-settings]] · [[runtime-plugin-loading]] · [[harness-package-distribution]] · [[mcp-integration]] · [[tool-call-gate]] · [[no-prompt-injection-defense]] · [[supply-chain-pinning]]

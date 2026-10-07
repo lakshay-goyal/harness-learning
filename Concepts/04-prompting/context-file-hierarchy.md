@@ -2,8 +2,8 @@
 type: concept
 stage: context
 tier: candidate
-aliases: [AGENTS.md, CLAUDE.md, AGENTS.override.md, loadProjectContextFiles, "<project_context>", "<project_instructions>"]
-harnesses: [pi]
+aliases: [AGENTS.md, CLAUDE.md, AGENTS.override.md, loadProjectContextFiles, "<project_context>", "<project_instructions>", Instruction.resolve, "Instructions from: <path>", CONTEXT.md, OPENCODE_DISABLE_CLAUDE_CODE_PROMPT]
+harnesses: [pi, opencode]
 ---
 Instruction files (AGENTS.md / CLAUDE.md) discovered from a global dir and every ancestor down to cwd, injected into the prompt in general→specific order with explicit per-file boundaries.
 
@@ -21,14 +21,20 @@ Instruction files (AGENTS.md / CLAUDE.md) discovered from a global dir and every
 - Trust: gate repo instruction files behind project trust (pi tried for 4 days) vs **load regardless, treat as untrusted input** (**pi chose**, `5cb4f597f`).
 - Fencing: markdown headings (pi until May 2026) vs **XML tags with path attribute** (**pi**).
 - Lazy alternative: list rule files and let the model read on demand (pi example `claude-rules.ts`).
+- Lazy nested discovery: attach instruction files from directories the model reads into, once per message (opencode).
+- Filename precedence across the whole walk, never mixing AGENTS.md and CLAUDE.md (opencode).
+- Remote instruction URLs with a timeout (opencode, 5 s, failures silent).
+- Instruction changes delivered as a transcript update ("These instructions replace all previously loaded ambient instructions.") (opencode v2) → [[transcript-carried-system-prompt]].
 
 ## Implementations
 - [[pi--context-file-hierarchy|pi]] — global `~/.pi/agent` + ancestors, worktree shadowing, `<project_instructions path>`; not trust-gated; `--no-context-files`.
+- [[opencode--context-file-hierarchy|opencode]] — global first hit (`~/.config/opencode/AGENTS.md` or `~/.claude/CLAUDE.md`); project: first filename with any match, all its ancestors cwd→worktree; config globs/URLs; nested files attached to read results as `<system-reminder>`.
 
 ## Failures
 - [[markdown-boundaries-ingested-inconsistently]]
 - [[context-file-loaded-twice-in-worktrees]]
 - [[context-file-discovery-filesystem-edge-cases]]
+- [[generic-context-file-bloat]]
 
 ## Related
 [[xml-prompt-boundaries]] · [[system-prompt-override]] · [[skill-progressive-disclosure]] · [[project-trust-gate]] · [[no-prompt-injection-defense]] · [[transcript-carried-system-prompt]]

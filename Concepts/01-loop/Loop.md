@@ -14,6 +14,8 @@ Scope: the agent's control loop — turns, run settlement, mid-run input queues,
 - [[auto-retry-backoff]] — Harness-level retry of transient provider errors with capped exponential backoff; retryable decided by classifier.
 - [[terminal-event-required]] — Streams that end without an explicit terminal event / stop reason are treated as (retryable) errors.
 - [[truncated-tool-call-guard]] — Never execute tool calls from a length-truncated or unfinalized assistant message.
+- [[step-budget-limit]] — A per-agent cap on model steps per run; the last step asks for a final answer and forbids tools by prompt or `toolChoice:none`.
+- [[repeated-tool-call-detection]] — Detect the same tool call with identical input N times in a row and interrupt by asking the user or stopping.
 
 Absence: [[no-turn-cap]].
 Failures: [[Loop Failures]].

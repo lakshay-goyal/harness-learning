@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [runtime-plugin-loading]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — User TypeScript extensions failed to load in the single-file Bun binary (#681) and later in Node SEA hosts (#8237): imports of host packages couldn't resolve and Babel wasn't available.
 
@@ -12,6 +12,8 @@ harnesses: [pi]
 - `50993d743` 2026-05-07 — back to upstream jiti 2.7 once `virtualModules` landed upstream (#4244).
 - `c06132898` 2026-08-18 — Node SEA hosts: `jiti/static` so bundlers embed Babel (`packages/coding-agent/src/core/extensions/jiti-static-loader.ts:1-3`; `packages/coding-agent/src/core/extensions/loader.ts:41-54`); virtual modules registered under both `@earendil-works/*` and legacy `@mariozechner/*` (`packages/coding-agent/src/core/extensions/virtual-modules.ts:18-38`).
 
+**Fix · [[opencode]]** — `1c83ef75a2` 2025-08-11 "prevent compiled binary hang by removing lazy dynamic import" (#1794): a lazy `import()` inside the plugin client hung the single-file Bun binary; replaced by a static import.
+
 **Lesson** — If plugins are uncompiled source, the plugin loader must resolve host packages from the host itself, not from disk — test the compiled distribution, not just the dev install.
 
-Related: [[runtime-plugin-loading]] · [[duplicate-host-module-instances]] · [[pi--runtime-plugin-loading|pi]]
+Related: [[runtime-plugin-loading]] · [[duplicate-host-module-instances]] · [[pi--runtime-plugin-loading|pi]] · [[opencode--runtime-plugin-loading|opencode]]

@@ -28,4 +28,6 @@ Weak absence: an observed gap, not a stated decision. Recorded as a finding.
 - Reading a large binary (sqlite db, tarball, model weights) loads it fully into memory. The model then gets up to 50KB of mojibake, which burns context and can confuse it. Open question: any OOM reports? Issues not searched.
 - MCP results by contrast save non-image binary embedded resources to temp files (`src/extensions/mcp/tools.ts:124-230`). The binary-awareness exists, just not in `read`.
 
+**opencode contrast**: implements it: extension denylist + 4096-byte sniff, binary if NUL or >30% non-printable (`packages/opencode/src/tool/read.ts:18,182-226`) — see [[file-read-tool]].
+
 Related: [[file-read-tool]] · [[tool-output-truncation]] · [[image-normalization]] · [[tool-result-rewriting]] · [[Absences]]

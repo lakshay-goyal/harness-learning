@@ -2,8 +2,8 @@
 type: concept
 stage: messages
 tier: candidate
-aliases: [thinkingSignature, redacted thinking, redacted_thinking, encrypted_content, "store:false", thoughtSignature, textSignature, reasoning_details, block_binding, "prefix_mismatch_behavior: drop_block", providerThinkingLevel, stale-reasoning-drop, signed-empty-block-preservation, stateless-store-false-replay, per-turn-effort-markers, allowEmptySignature]
-harnesses: [pi]
+aliases: [thinkingSignature, redacted thinking, redacted_thinking, encrypted_content, "store:false", thoughtSignature, textSignature, reasoning_details, block_binding, "prefix_mismatch_behavior: drop_block", providerThinkingLevel, stale-reasoning-drop, signed-empty-block-preservation, stateless-store-false-replay, per-turn-effort-markers, allowEmptySignature, ANTHROPIC_BLOCK_BINDING, INCLUDE_ENCRYPTED_REASONING, interleaved.field, hasSignedReasoning]
+harnesses: [pi, opencode]
 ---
 Send provider-signed or encrypted reasoning back verbatim to the model that produced it. For any other model, drop it or convert it. Handle three edge cases: blocks that are signed but empty, signatures that have gone stale because the prompt changed, and per-turn effort settings that are bound to the signature.
 
@@ -41,6 +41,8 @@ Send provider-signed or encrypted reasoning back verbatim to the model that prod
   - Replay `signature:""` behind a per-model compat flag.
 - **Distinguishing reasoning from carriers of reasoning state**
   - Gemini signatures can appear on any part. Only `thought: true` marks reasoning.
+- **Where ids are stripped**: in the message transform before serialization and request signing (opencode `a86ecf3bba`); a fetch-hook body rewrite broke signed Bedrock requests.
+- **Required empty field**: some APIs need a reasoning field on every assistant message, even empty (DeepSeek V4, opencode `86715fecc4`).
 
 ## Implementations
 - [[pi--signed-reasoning-replay|pi]] — `thinkingSignature`, `textSignature` and `thoughtSignature` fields, kept only when the model is the same. Per-adapter replay:
@@ -50,6 +52,7 @@ Send provider-signed or encrypted reasoning back verbatim to the model that prod
   - Completions: `reasoning_details` and `reasoning_content`.
   - Gemini: `thoughtSignature` on any part.
   - Mistral: native thinking chunks.
+- [[opencode--signed-reasoning-replay|opencode]] — `store:false` + encrypted reasoning with item ids stripped, Anthropic `drop_block` binding via SDK patch, DeepSeek/interleaved reasoning padding; re-implemented in `packages/llm`.
 
 ## Failures
 - [[thinking-tag-mimicry]]

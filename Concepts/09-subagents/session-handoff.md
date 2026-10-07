@@ -24,5 +24,8 @@ Transfer distilled context into a fresh session/context (new thread seeded by a 
 ## Failures
 none recorded.
 
+## Tradeoffs
+- [[builtin-subagents-vs-none]]
+
 ## Related
 [[auto-compaction]] · [[structured-compaction-summary]] · [[transcript-serialization-for-summary]] · [[session-fork]] · [[subagent-as-subprocess]] · [[cache-retention-control]]

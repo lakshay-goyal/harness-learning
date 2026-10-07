@@ -30,4 +30,6 @@ harnesses: [pi]
 - A model mistake or an injected instruction can touch any file the user can. Mitigation is entirely external.
 - Path-quirk tolerance (normalize instead of reject) is cheap UX precisely because there is no boundary to enforce.
 
+**opencode contrast**: implements a soft version: `external_directory` permission ask for paths outside project/worktree, lexical in legacy, realpath in v2 (`packages/opencode/src/tool/external-directory.ts:13-44`; `packages/core/src/location-mutation.ts:84-103`) — see [[workspace-boundary-check]] / [[cwd-confinement-vs-none]].
+
 Related: [[path-normalization]] · [[tool-call-gate]] · [[tool-only-isolation]] · [[pluggable-tool-backends]] · [[no-sandbox]] · [[no-permission-prompts]] · [[Absences]]

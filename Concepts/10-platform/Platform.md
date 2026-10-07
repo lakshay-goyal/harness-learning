@@ -22,6 +22,10 @@ How a harness is extended, embedded, presented, distributed, operated remotely a
 - [[remote-execution-env]] — Small native daemon on remote host performs fs/exec for local agent over framed stdio (SSH).
 - [[harness-evals]] — How the harness evaluates itself: harness adapter, paired A/B arms, state-oracle grading, sandboxed runner, conformance suites.
 - [[spec-driven-agentic-development]] — Normative spec + ordered package handoff implemented by agents, reviewed per package.
+- [[git-worktree-isolation]] — Separate git worktree and branch per parallel work stream so agents do not share a checkout.
+- [[ci-agent-integration]] — Run the harness in CI on repository events; check the actor; post results back.
+- [[self-update]] — CLI detects its own install method and upgrades itself in place.
+- [[location-scoped-runtime]] — One process hosts many directories/workspaces, each with a lazily built, cached service graph.
 
 Failures: [[Platform Failures]]
 

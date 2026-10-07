@@ -2,8 +2,8 @@
 type: concept
 stage: tool-design
 tier: candidate
-aliases: [constrainedSampling, makeStrictJsonSchema, CODEMODE_SOURCE_GRAMMAR, strict-schema-fallback, strict-schema-transformation, grammar-tool-json-bridge, "strict: prefer", "strict: require", resolveJsonSchemaStrictSampling, VALIDATED]
-harnesses: [pi]
+aliases: [constrainedSampling, makeStrictJsonSchema, CODEMODE_SOURCE_GRAMMAR, strict-schema-fallback, strict-schema-transformation, grammar-tool-json-bridge, "strict: prefer", "strict: require", resolveJsonSchemaStrictSampling, VALIDATED, StructuredOutput tool, STRUCTURED_OUTPUT_SYSTEM_PROMPT]
+harnesses: [pi, opencode]
 ---
 Ask the provider to enforce tool-argument structure while decoding, through a strict JSON schema or a grammar. The schema is rewritten into each provider's supported subset, and the request degrades gracefully when the provider or the schema can't support it.
 
@@ -30,9 +30,12 @@ Ask the provider to enforce tool-argument structure while decoding, through a st
   - Otherwise fall back to a normal function tool.
 - **Mode coupling**
   - Gemini strict forces the `VALIDATED` calling mode, even over an explicit `auto`. This is a quirk.
+- **Strict off + lowering**: force `strict: false` on Responses-family tools for MCP compatibility and rewrite schemas instead (opencode, [[tool-schema-lowering]]).
+- **Structured output**: dedicated `StructuredOutput` tool + `toolChoice: required` + system rule (opencode).
 
 ## Implementations
 - [[pi--constrained-tool-sampling|pi]] — `packages/ai/src/api/constrained-sampling.ts`: `makeStrictJsonSchema`, `resolveJsonSchemaStrictSampling`, and the grammar bridge. Each adapter gates it with compat flags (Anthropic `supportsStrictTools` plus keyword veto, Completions/Responses `supportsStrictMode`, Gemini ≥3, Mistral always on).
+- [[opencode--constrained-tool-sampling|opencode]] — `strict: false` (Codex parity); structured output via forced tool.
 
 ## Failures
 - [[strict-tool-schema-rejections]]

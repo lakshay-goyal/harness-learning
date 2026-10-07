@@ -20,12 +20,20 @@ Keep the agent process (model client, credentials, plugins) on the host but rout
 - **Bash-only OS sandbox**: sandbox-exec / bubblewrap around the shell (pi `sandbox/` example); read/write/edit tools unwrapped.
 - **Language-level sandbox for model-written code** (QuickJS code-mode): isolates script logic, not tool effects.
 - Enabler: tools delegate to swappable `*Operations` backends ([[pluggable-tool-backends]]).
+- **None, stated as policy** (opencode: "OpenCode does **not** sandbox the agent … run OpenCode inside a Docker container or VM", `SECURITY.md:15-19`).
+- **Whole-agent remote targets via pluggable adapters** with the credential store forwarded (opencode control-plane workspaces, [[remote-execution-env]]).
 
 ## Implementations
 - [[pi--tool-only-isolation|pi]] — no built-in sandbox; `*Operations` seams; examples Gondolin/ssh/sandbox; `containerization.md` 4-pattern table; pi-env as unlisted 5th pattern.
 
 ## Failures
+- [[read-path-traversal]]
 - [[repo-config-disables-sandbox-plugin]]
+- [[credentials-forwarded-to-execution-target]]
+
+## Tradeoffs
+- [[permission-prompts-vs-none]]
+- [[cwd-confinement-vs-none]]
 
 ## Related
-[[pluggable-tool-backends]] · [[remote-execution-env]] · [[remote-host-trust]] · [[process-tree-kill]] · [[code-mode]] · [[tool-call-gate]] · [[no-sandbox]] · [[no-cwd-confinement]] · [[credential-resolution]]
+[[pluggable-tool-backends]] · [[remote-execution-env]] · [[remote-host-trust]] · [[process-tree-kill]] · [[code-mode]] · [[tool-call-gate]] · [[no-sandbox]] · [[no-cwd-confinement]] · [[credential-resolution]] · [[permission-ruleset]]

@@ -2,8 +2,8 @@
 type: concept
 stage: cost
 tier: candidate
-aliases: [calculateCost, Usage.cost, cacheWrite1h, applyServiceTierPricing, usage-normalization, request-cost-accounting, service-tier-pricing, parseChunkUsage, early-usage-capture, bill-before-parse]
-harnesses: [pi]
+aliases: [calculateCost, Usage.cost, cacheWrite1h, applyServiceTierPricing, usage-normalization, request-cost-accounting, service-tier-pricing, parseChunkUsage, early-usage-capture, bill-before-parse, Session.getUsage, experimentalOver200K, total_nano_aiu]
+harnesses: [pi, opencode]
 ---
 Normalize every provider's usage report into one disjoint partition (input, output, cacheRead, cacheWrite with a TTL split, reasoning as a subset of output). Then price each message with the per-model rates:
 - request-wide context tiers,
@@ -49,9 +49,12 @@ Normalize every provider's usage report into one disjoint partition (input, outp
   - Price as the server-reported fallback model, from configured fallback costs. *pi chose this.*
 - **Cost data source**
   - Generated catalog rates in $/M tokens, with hand-curated authoritative prices for some vendors.
+- **Provider-billed cost**: prefer the provider's streamed billed amount (Copilot nano-AIU) over computed cost (opencode).
+- **Unpriced steps**: record tokens with `cost: 0` (opencode v2, contradicting its own design doc).
 
 ## Implementations
 - [[pi--usage-cost-accounting|pi]] — `Usage`, plus `calculateCost` in `packages/ai/src/models.ts:1200-1220`. Per-adapter usage parsers, service-tier multipliers and fallback pricing; the coding-agent aggregates by `responseModel`.
+- [[opencode--usage-cost-accounting|opencode]] — `Session.getUsage` normalizes cache/reasoning, >200 k tier from models.dev; v2 writes `cost: 0`.
 
 ## Failures
 - [[usage-double-counting]]

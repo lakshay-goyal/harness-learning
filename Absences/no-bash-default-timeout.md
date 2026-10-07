@@ -39,4 +39,6 @@ harnesses: [pi]
 - Builds, test suites and installs finish without the model guessing a duration. The cost is that a hung command (server, watcher, prompt waiting on stdin, though stdin is ignored) blocks the turn until Esc. Unattended runs need an external watchdog.
 - Together with [[no-turn-cap]], pi has no wall-clock bound anywhere in the default path.
 
+**opencode contrast**: implements it: 2-min default (`packages/opencode/src/tool/shell.ts:347`), no max in legacy, 10-min max in v2 (`packages/core/src/tool/bash.ts:19-20`) — see [[shell-execution]] / [[bash-timeout-default-vs-none]].
+
 Related: [[shell-execution]] · [[process-tree-kill]] · [[abort-propagation]] · [[no-background-bash]] · [[no-turn-cap]] · [[Constants]] · [[Absences]]

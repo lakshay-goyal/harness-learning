@@ -2,8 +2,8 @@
 type: concept
 stage: architecture
 tier: candidate
-aliases: [pi.registerProvider, ProviderConfigInput, provider-extension-registration, extension-provider-registration, unregisterProvider, refreshModels, native Provider]
-harnesses: [pi]
+aliases: [pi.registerProvider, ProviderConfigInput, provider-extension-registration, extension-provider-registration, unregisterProvider, refreshModels, native Provider, BUNDLED_PROVIDERS, Npm.add, api.npm, Catalog.transform]
+harnesses: [pi, opencode]
 ---
 A plugin API that adds or overrides a model provider at runtime. A registration can supply:
 - endpoint and headers,
@@ -32,9 +32,11 @@ A plugin API that adds or overrides a model provider at runtime. A registration 
 - **Overrides**
   - `modelOverrides` and per-model `baseUrl` apply to plugin providers too.
   - Stored credentials satisfy custom providers.
+- **Declarative npm provider**: config names an npm SDK package, installed at runtime and called via its first `create*` export (opencode).
 
 ## Implementations
 - [[pi--custom-provider-registration|pi]] — `pi.registerProvider` (legacy `ProviderConfigInput` or native `Provider`) and `unregisterProvider`. Provider-composer layering, an OAuth callback adaptor, and lower-level provider hooks (`before_provider_request/headers`, `after_provider_response`, `provider_stream_event`).
+- [[opencode--custom-provider-registration|opencode]] — config + `api.npm` (bundled or runtime-installed), plugin auth loaders; v2 replayable `Catalog.transform()`.
 
 ## Failures
 - [[provider-reregistration-replaces-config]]

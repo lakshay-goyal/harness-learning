@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [follow-up-queue, steering-queue, run-settlement]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — Queued steering/follow-up messages stayed stuck: after a threshold auto-compaction ended the run nothing restarted it (#1312); follow-ups queued by `agent_end` handlers (e.g. extension `sendUserMessage`) waited until the next user message (#5115).
 
@@ -12,6 +12,8 @@ harnesses: [pi]
 - `a29a7902e` 2026-05-28 (PR #5115, merge `8e77f8797`) — drain follow-ups queued during `agent_end`: `_handlePostAgentRun` ends with `hasQueuedMessages()` (`packages/coding-agent/src/core/agent-session.ts:1887-1889`).
 - `32bcdc973` 2026-05-19 — timer replaced by awaited driver loop; before-settle boundary also continues when queued (`agent-session.ts:1893,1905`).
 
+**Fix · [[opencode]]** `def907ae4b` 2026-02-07: a user `!cmd` shell (`SessionPrompt.shell()`) did not trigger the loop when prompts were queued, so they never ran. `0a7cb20e66` 2026-06-08: `opencode run` exited before the event loop drained. v2 design answer: the outer drain loop re-checks the durable queue after every inner settle (`packages/core/src/session/runner/llm.ts:412-413`).
+
 **Lesson** — Every "agent would stop" exit must re-check input queues *after* running end-of-run hooks.
 
-Related: [[follow-up-queue]] · [[steering-queue]] · [[run-settlement]] · [[side-phase-input-lost]] · [[pi--follow-up-queue|pi]]
+Related: [[follow-up-queue]] · [[steering-queue]] · [[run-settlement]] · [[side-phase-input-lost]] · [[pi--follow-up-queue|pi]] · [[opencode--follow-up-queue|opencode]]

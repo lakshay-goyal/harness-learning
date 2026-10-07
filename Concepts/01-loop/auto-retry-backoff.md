@@ -2,8 +2,8 @@
 type: concept
 stage: failure-handling
 tier: candidate
-aliases: [_prepareRetry, settings.retry, isRetryableAssistantError, RETRYABLE_PROVIDER_ERROR_PATTERN, retryProviderRequest, auto_retry_start, auto_retry_end, maxAgentDelayMs, maxRetryDelayMs, two-layer-retry, transient-error-classification]
-harnesses: [pi]
+aliases: [_prepareRetry, settings.retry, isRetryableAssistantError, RETRYABLE_PROVIDER_ERROR_PATTERN, retryProviderRequest, auto_retry_start, auto_retry_end, maxAgentDelayMs, maxRetryDelayMs, two-layer-retry, transient-error-classification, SessionRetry.policy, RETRY_MAX_RETRIES, RETRYABLE_MESSAGE_PATTERNS, RequestExecutor, retryStatusFailures]
+harnesses: [pi, opencode]
 ---
 Harness-level retry of transient provider failures with capped exponential backoff; a classifier decides retryable vs terminal (quota, overflow, deterministic errors).
 
@@ -21,9 +21,14 @@ Harness-level retry of transient provider failures with capped exponential backo
 - **Exclusions**: context overflow → compaction instead (pi) · quota/billing → terminal (pi).
 - **Context hygiene**: delete failed attempt · hide via append-only edit (pi `context_edit`) · keep.
 - **Durability**: in-memory sleep (pi stable) · checkpointed retry phase with absolute deadline (pi-durable).
+- **Layer placement**: session-level retry wrapping the whole step stream with SDK retries 0 (opencode legacy) · transport-only retry before the first byte, none at runner level (opencode v2).
+- **Attempt bound**: none (opencode legacy until `c78986831c`, ~10 months) · 5 attempts with positive 0–25 % jitter (opencode legacy HEAD) · 2 attempts ±20 % (opencode v2).
+- **Server delay**: honor any `retry-after` up to int32 ms (opencode legacy) · clamp to 10 s (opencode v2).
+- **Classifier order**: structured mid-stream error codes, then status ≥ 500, then 7 regexes over message and body (opencode legacy).
 
 ## Implementations
 - [[pi--auto-retry-backoff|pi]] — `settings.retry` 3 × 2s/4s/8s capped 60 s; regex classifier in pi-ai; abortable adapter retry with 60 s server-delay escalation; failed attempts omitted via `context_edit`.
+- [[opencode--auto-retry-backoff|opencode]] — legacy `SessionRetry.policy` 2 s·2^n + jitter, cap 30 s, 5 attempts (unbounded until 2026-08); v2 `RequestExecutor` 2 retries pre-output only.
 
 ## Failures
 - [[retry-wait-race-prompt-returns-early]]

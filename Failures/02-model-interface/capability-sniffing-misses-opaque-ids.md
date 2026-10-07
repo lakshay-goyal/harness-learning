@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [model-catalog]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom**
 - Bedrock prompt caching was enabled for non-Claude models that merely had cache pricing, which returned errors.
@@ -19,6 +19,8 @@ harnesses: [pi]
 - `114bacf34` 2026-07-02 — Claude 5 ids (#6235).
 - HEAD `supportsPromptCaching` (`bedrock-converse-stream.ts:861-892`): requires "claude" in id or name, else FORCE_CACHE.
 
+**Fix · [[opencode]]** `ea2d59d7ca` 2026-09-06: the OpenAI SDK's hard-coded model allow-list silently stripped explicit `service_tier` flex/priority for newer models; the check was patched out of `@ai-sdk/openai`.
+
 **Lesson** — Capability sniffing needs a user-controlled fallback (name metadata, env override). Prefer explicit catalog flags; see [[thinking-config-per-model-drift]].
 
-Related: [[model-catalog]] · [[pi--model-catalog|pi]] · [[thinking-level-abstraction]]
+Related: [[model-catalog]] · [[pi--model-catalog|pi]] · [[thinking-level-abstraction]] · [[opencode--unified-provider-api|opencode]]

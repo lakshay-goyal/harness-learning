@@ -11,6 +11,12 @@ Failures whose first concept is in [[Loop]].
 - [[proxied-stream-option-loss]] — Proxied/side model calls dropped session, cache, thinking options and namespaces.
 - [[retry-wait-race-prompt-returns-early]] — `prompt()` resolved while an auto-retry (with tool calls) was still running.
 - [[tool-loadout-stale-within-run]] — Tool changes mid-run not applied to the next request; forced prompt dropped on refresh.
+- [[interrupted-message-never-finalized]] — Abort/error left the assistant record open; session stuck "Working…" or busy.
+
+## Step budget & repetition
+- [[identical-tool-call-loop]] — The model re-issued the same tool call with identical arguments until aborted.
+- [[step-budget-not-reset-on-new-input]] — A steered/queued prompt inherited the used step budget and lost its tools immediately.
+- [[rewrite-introduces-unrequested-limits]] — A runtime port invented a 25-step hard cap that failed long tasks.
 
 ## Queues
 - [[steering-skips-pending-tool-calls]] — A mid-run user message skipped the rest of the model's tool batch with fake error results.
@@ -37,3 +43,4 @@ Failures whose first concept is in [[Loop]].
 - [[length-stop-recovery]] — Context-ceiling truncation ended the run silently or was mislabeled overflow.
 
 Related cross-group: [[error-text-breaks-retry-classification]] · [[foreign-sdk-error-shape-skips-retry]] · [[stop-reason-mapping-gaps]] · [[hook-throw-aborts-parallel-batch]] · [[parallel-tool-results-order]] · [[interactive-tool-in-parallel-batch]] · [[non-idempotent-tool-replayed-after-crash]].
+- [[step-limit-enforced-only-by-prompt]] — legacy last step says "Tools are disabled" but still sends tools; `toolChoice:"none"` dropped in a refactor (v2 restores it).

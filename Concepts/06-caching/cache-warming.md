@@ -26,5 +26,8 @@ Cost-aware keep-alive: shortly before the provider's cache TTL expires, replay t
 ## Failures
 - [[late-cache-warming-is-a-full-write]]
 
+## Tradeoffs
+- [[prompt-cache-strategy]]
+
 ## Related
 [[cache-retention-control]] · [[cache-miss-accounting]] · [[usage-cost-accounting]] · [[model-catalog]] · [[virtual-model-router]]

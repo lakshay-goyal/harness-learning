@@ -19,6 +19,7 @@ Mechanically extract which files were read and modified from tool calls, carry t
 - Rendering: XML tags appended after summary ✔ pi vs a section inside the LLM template vs separate system note.
 - Branch summaries carry their own lists from nested branch summaries (not from compaction details).
 - Dropped entirely in pi durable (no file-op tracking).
+- **LLM-written mandatory section instead of mechanical lists**: `## Relevant Files` in the summary template, added after paths kept vanishing across compactions (opencode `78f85b1cd6`; not an implementation of this concept) → [[summary-template-drops-goals]].
 
 ## Implementations
 - [[pi--file-op-tracking|pi]] — `FileOperations{read,written,edited}` from tool calls + nested calls; `CompactionDetails{readFiles,modifiedFiles}` carried if not extension-generated; appended as `<read-files>`/`<modified-files>`.

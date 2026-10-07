@@ -2,8 +2,8 @@
 type: concept
 stage: tool-design
 tier: candidate
-aliases: [description, single-shape-tool-schema, docs-offload-from-description]
-harnesses: [pi]
+aliases: [description, single-shape-tool-schema, docs-offload-from-description, shell.txt, renderPrompt, tool.definition]
+harnesses: [pi, opencode]
 ---
 Tool descriptions state their limits (interpolated from the same constants the code uses), the recovery path when output is cut, and exactly one input shape; long reference material is offloaded to docs the model reads on demand.
 
@@ -23,16 +23,27 @@ Tool descriptions state their limits (interpolated from the same constants the c
 - Separate prompt channels: API description vs system-prompt snippet/guideline (pi: three channels, snippets opt-in) → [[dynamic-tool-guidelines]].
 - Out-of-band harness diagnostics instead of in-content notices (pi durable) → [[harness-diagnostics-channel]].
 - Telling the model which foreign tools don't exist (pi's short-lived Codex bridge prompt) vs aliasing them.
+- Habit-replacing parameter plus a named ban (opencode `workdir` vs `cd &&`).
+- Quantize volatile facts to the coarsest useful unit (opencode websearch: year only).
+- Plugin hook that rewrites any description/schema per request (opencode `tool.definition`).
 
 ## Implementations
 - [[pi--tool-description-design|pi]] — short descriptions with interpolated 2000-line/50KB limits, continuation protocol in description and notices, edits[]-only schema, docs-offloaded codemode reference, stable discovery-tool descriptions.
+- [[opencode--tool-description-design|opencode]] — per-shell templated description with interpolated limits and a dedicated-tool mapping; byte-stability fixes (no `${directory}`, year-only date, static skill text); stale promises remain at HEAD.
 
 ## Failures
+- [[ambiguous-tool-parameter-name]]
+- [[amend-after-failed-commit]]
 - [[edit-tool-dual-mode-confusion]]
 - [[partial-file-read-acted-on]]
 - [[tool-result-misreports-facts]]
 - [[tool-description-lies-about-async]]
 - [[foreign-harness-tool-hallucination]]
+- [[tool-description-drifts-from-implementation]]
+- [[model-distrusts-preprovisioned-resource]]
+- [[unrequested-git-commits]]
+- [[shell-cd-chaining]]
+- [[borrowed-prompt-foreign-references]]
 
 ## Related
 [[tool-argument-repair]] · [[dynamic-tool-guidelines]] · [[guideline-softening]] · [[tool-output-truncation]] · [[cache-stable-prompt-prefix]] · [[harness-diagnostics-channel]] · [[self-documentation-pointer]] · [[constrained-tool-sampling]] · [[provider-identity-shim]]

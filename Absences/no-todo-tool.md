@@ -29,4 +29,6 @@ harnesses: [pi]
 - File-based plans survive compaction verbatim. A todo tool's state would need its own re-injection after compaction (unverified as a stated reason).
 - The claim "todos confuse models" is anecdotal ("In my experience"). There is no eval in `packages/evals` backing it (unverified beyond grep).
 
+**opencode contrast**: implements it: write-only `todowrite` (`todoread` removed `77fc88c8ad`), denied to subagents by default (`packages/opencode/src/tool/todo.ts:1-46`) — see [[task-list-tool]] / [[todo-tool-vs-none]].
+
 Related: [[branch-scoped-extension-state]] · [[plugin-tools]] · [[provider-identity-shim]] · [[no-plan-mode]] · [[minimal-default-toolset]] · [[Absences]]

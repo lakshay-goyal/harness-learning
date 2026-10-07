@@ -17,6 +17,9 @@ Scope: everything the harness *says* to the model outside the conversation — s
 - [[guideline-softening]] — Downgrade imperative rules to permissive wording to stop over-compliance.
 - [[env-vars-as-context]] — Expose session facts via env vars readable by tools rather than prompt text.
 - [[harness-diagnostics-channel]] — Out-of-band harness remarks to the model in a delimited block separate from tool content.
+- [[per-model-system-prompt]] — Several base prompts shipped; one picked per request from model id or provider.
+- [[ephemeral-reminder-injection]] — Harness `<system-reminder>` text attached to the newest user message for mode changes, leaving the prefix stable.
+- [[mention-expansion]] — `@file`/`@agent`/MCP-resource mentions resolved at message creation and stored as synthetic parts.
 
 Key pi artifact: the full system-prompt timeline (45 changes, 19 removed rules, current full text) lives in [[pi--minimal-system-prompt]].
 

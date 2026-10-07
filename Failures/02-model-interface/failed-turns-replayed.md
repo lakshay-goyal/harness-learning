@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [transcript-replay-repair]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — Three errors after a failed or aborted turn:
 - Claude and Gemini returned 400s after a 429 or 500 hit in the middle of tool execution.
@@ -18,6 +18,10 @@ harnesses: [pi]
   - Completions skips an assistant with no content and no tool_calls (`openai-completions.ts:1393-1404`).
   - Bedrock skips an empty assistant message (`bedrock-converse-stream.ts:1010-1014`).
 - Durable variant: `aborted`/`error`/`deferred` stop reasons are excluded from requests (`packages/durable/src/harness/context.ts:9`).
+
+**Fix · [[opencode]]**
+- Legacy: `783faf554d` 2025-06-14 "fix issue continuing session after aborted"; `ff6a93f355` 2025-09-17 (#2651) "only keep aborted messages if they have sufficient parts": an assistant message with an error is skipped unless it is an `AbortedError` that has some part other than `step-start`/`reasoning` (`packages/opencode/src/session/message-v2.ts:258-267`). Aborted partial answers are replayed; failed ones dropped.
+- v2: failed turns are replayed but stripped of provider continuation metadata — `reuseProviderMetadata = sameModel && message.error === undefined` (`packages/core/src/session/runner/to-llm-message.ts:73`), so reasoning/tool-call metadata from an errored turn never reaches the provider. See [[opencode--transcript-replay-repair]].
 
 **Lesson** — Incomplete turns are not history. Keep them in the raw log, but resume the provider context from the last valid state.
 

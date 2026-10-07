@@ -51,4 +51,6 @@ The headline reversal: MCP was absent on principle from 2025-11 to 2026-09-28, t
 - Ideological "no X" can flip once a mechanism neutralizes the original cost. Here that was declaration cost → deferred/codemode exposure.
 - pi's pattern for adding a feature without "bloating core": ship it in-box on the public extension API, disable-able by name.
 
+**opencode contrast**: implements it since `37c34fd39c` (2025-06-03, "mcp support"): stdio + StreamableHTTP/SSE + OAuth, tools declared directly as `<server>_<tool>` (code mode optional); MCP is "outside our trust boundary" (`SECURITY.md:32`) — see [[mcp-integration]] / [[mcp-builtin-vs-extension]].
+
 Related: [[mcp-integration]] · [[code-mode]] · [[deferred-tool-loading]] · [[replaceable-builtin-extension]] · [[skill-progressive-disclosure]] · [[cache-stable-prompt-prefix]] · [[no-web-tools]] · [[Absences]]

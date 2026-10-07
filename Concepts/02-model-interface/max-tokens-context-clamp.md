@@ -2,8 +2,8 @@
 type: concept
 stage: model-interface
 tier: candidate
-aliases: [clampMaxTokensToContext, CONTEXT_SAFETY_TOKENS, MIN_MAX_TOKENS, context-aware-output-budget, context-aware-output-cap, adjustMaxTokensForThinking]
-harnesses: [pi]
+aliases: [clampMaxTokensToContext, CONTEXT_SAFETY_TOKENS, MIN_MAX_TOKENS, context-aware-output-budget, context-aware-output-cap, adjustMaxTokensForThinking, OUTPUT_TOKEN_MAX, OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX, ProviderTransform.maxOutputTokens]
+harnesses: [pi, opencode]
 ---
 Derive the requested output-token cap from the context that remains:
 
@@ -33,9 +33,11 @@ The result never goes below the provider's minimum, and when thinking shares the
   - For Bedrock Claude, send the model cap by default. Omitting it saves throughput quota reservation but truncates at 4096: a5fac1ef0 → 11c3da4f7.
 - **Floor**
   - 1 overall, 16 for OpenAI Responses.
+- **Fixed cap kept**: `min(model.limit.output, 32000)` with no context clamp; overflow left to compaction (opencode).
 
 ## Implementations
 - [[pi--max-tokens-context-clamp|pi]] — `clampMaxTokensToContext` in `packages/ai/src/api/simple-options.ts` (`CONTEXT_SAFETY_TOKENS=4096`, floor 1), used by the simple-options base, Anthropic and Bedrock; plus the Responses floor of 16.
+- [[opencode--max-tokens-context-clamp|opencode]] — `OUTPUT_TOKEN_MAX = 32 000`, env override; no context-aware clamp.
 
 ## Failures
 - [[output-token-cap-misbudgeted]]

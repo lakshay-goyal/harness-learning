@@ -2,8 +2,8 @@
 type: concept
 stage: architecture
 tier: candidate
-aliases: ["pi-env", "RemoteExecutionEnv", "Connection", "RemoteWatcher", "connectSsh", "sshConnection", "pi-env serve", "remote-execution-daemon", "file-watch-coverage-contract", "FileSystem.watch", "NodeFileWatcher"]
-harnesses: [pi]
+aliases: ["pi-env", "RemoteExecutionEnv", "Connection", "RemoteWatcher", "connectSsh", "sshConnection", "pi-env serve", "remote-execution-daemon", "file-watch-coverage-contract", "FileSystem.watch", "NodeFileWatcher", control-plane workspace, WorkspaceAdapter, sessionWarp, experimental_workspace.register]
+harnesses: [pi, opencode]
 ---
 Run the agent's tools on another machine: a small native daemon deployed over SSH performs filesystem, exec and watch operations for a local agent over a framed stdio protocol, while the agent, its storage and credentials stay local.
 
@@ -23,9 +23,13 @@ Run the agent's tools on another machine: a small native daemon deployed over SS
 - **Host trust**: user known_hosts vs app-owned pinned known_hosts with explicit fingerprint acceptance ([[remote-host-trust]]).
 - **Sandboxing**: none (pi-env: full SSH-user rights) vs path allowlist/jail.
 - **Watching**: client-side polling over the link (pi-env initial, replaced) vs native watcher next to the files with coverage contract (pi-env now).
+- **Whole remote harness**: remote target is a full opencode server; requests HTTP-proxied, events replicated back via SSE + history backfill (opencode workspaces).
+- **Adapter extension point**: plugins provision targets; only a worktree adapter ships (opencode).
+- **Session move between targets**: claim event ownership + copy the VCS diff (opencode `sessionWarp`).
 
 ## Implementations
 - [[pi--remote-execution-env|pi]] — `@earendil-works/pi-env`: Rust daemon (16-thread pool, control/bulk queues, windowed exec, native watch) + TS `RemoteExecutionEnv` implementing pi-durable's `ExecutionEnv`; hardened SSH bootstrap. No consumer in the monorepo at HEAD.
+- [[opencode--remote-execution-env|opencode]] — experimental control-plane workspaces: local (worktree) or remote (`{url, headers}`) targets, HTTP proxy + event replay, credentials forwarded to adapters.
 
 ## Failures
 - [[bulk-output-starves-control-messages]]
@@ -36,6 +40,7 @@ Run the agent's tools on another machine: a small native daemon deployed over SS
 - [[remote-errno-parity-drift]]
 - [[file-watch-platform-gaps]]
 - [[remote-binary-trusted-by-version-name]]
+- [[credentials-forwarded-to-execution-target]]
 
 ## Related
-[[pluggable-tool-backends]] · [[tool-only-isolation]] · [[remote-host-trust]] · [[process-tree-kill]] · [[supply-chain-pinning]] · [[shell-execution]] · [[file-read-tool]] · [[tool-output-spill]] · [[durable-execution]] · [[client-server-session-split]] · [[harness-evals]] · [[no-sandbox]]
+[[pluggable-tool-backends]] · [[tool-only-isolation]] · [[remote-host-trust]] · [[process-tree-kill]] · [[supply-chain-pinning]] · [[shell-execution]] · [[file-read-tool]] · [[tool-output-spill]] · [[durable-execution]] · [[client-server-session-split]] · [[harness-evals]] · [[no-sandbox]] · [[git-worktree-isolation]] · [[secret-handling]]

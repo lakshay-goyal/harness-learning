@@ -3,7 +3,7 @@ type: concept
 stage: messages
 tier: candidate
 aliases: [system-prompt.ts, buildSystemPrompt, buildSystemPromptSections, "default system prompt"]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 Keep the harness-authored system prompt tiny; push behavior into tool contracts, on-demand docs, and environment rather than standing instructions.
 
@@ -19,9 +19,11 @@ Keep the harness-authored system prompt tiny; push behavior into tool contracts,
 - Provider-specific prompt variants (pi tried a Codex bridge + static allowlisted instructions in Jan 2026, removed within 2 weeks → [[harness-identity]]).
 - Offload long reference to docs read on demand ([[self-documentation-pointer]]; codemode reference moved to `docs/codemode.md`, 5.3k → 3.3k tok request).
 - Volatile facts via env/tools instead of prompt text ([[env-vars-as-context]]).
+- Small shared base + per-family override/append plugins (opencode origin/v2) → [[per-model-system-prompt]].
 
 ## Implementations
 - [[pi--minimal-system-prompt|pi]] — ~680 tok default; preamble + `<tools>/<rules>/<docs>/<project_context>/<skills>/<cwd>` sections; full 45-step timeline + 19 removed rules.
+- [[opencode--minimal-system-prompt|opencode]] — legacy: 46–155-line family prompts joined with env, instructions, MCP and skills into one string; v2 dev build agent is one sentence; origin/v2: 15-line base + tool guidance + per-family plugins.
 
 ## Failures
 - [[model-echoes-work-via-shell]]
@@ -30,6 +32,10 @@ Keep the harness-authored system prompt tiny; push behavior into tool contracts,
 - [[partial-file-read-acted-on]]
 - [[prompt-names-unavailable-tools]]
 - [[volatile-system-prompt-prefix]]
+- [[autonomy-prompt-overreach]]
+
+## Tradeoffs
+- [[single-vs-per-model-system-prompt]]
 
 ## Related
 [[dynamic-tool-guidelines]] · [[transcript-carried-system-prompt]] · [[xml-prompt-boundaries]] · [[guideline-softening]] · [[tool-description-design]] · [[minimal-default-toolset]] · [[no-date-in-prompt]]

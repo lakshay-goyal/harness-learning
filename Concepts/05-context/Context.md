@@ -9,11 +9,14 @@ Scope: what the model sees each request and how it is kept inside the window —
 - [[message-conversion-layer]] — App-level message union converted to provider messages only at request boundary; custom message types.
 - [[context-transform-hook]] — Per-request hook rewriting messages sent to the model without mutating persisted history.
 - [[out-of-band-message-deferral]] — Buffer messages produced during a run (user shell, plugin notes) until turn boundary to keep tool-call adjacency.
+- [[synthetic-tool-call-injection]] — Work the user triggers directly, such as a `!` shell command or a subagent command, is recorded as an assistant tool call plus its result, so the model sees it in its own tool shape.
+- [[project-references]] — Extra named directories outside the workspace advertised to the model (name/path/description) so it can read them on demand.
 ### Bounding inputs
 - [[tool-output-truncation]] — Bound tool output by lines OR bytes (first hit), direction per tool (head/tail/middle), actionable continuation notice.
 - [[tool-output-spill]] — Full output persisted to temp file; path named in result for later reads.
 - [[image-normalization]] — Sniff, convert, resize, cap or block images before they enter history.
 - [[token-estimation]] — Context size = last real provider usage + chars/N heuristic for newer messages.
+- [[tool-output-pruning]] — Old tool-result bodies beyond a recent-token window are erased and replaced with a placeholder, as cheap relief before or instead of summarization.
 ### Compaction
 - [[auto-compaction]] — Summarize old history when estimated tokens exceed window − reserve; keep recent window verbatim; summary re-injected as user message; manual /compact.
 - [[compaction-cut-point]] — Rules for where history splits: never between tool call and result; valid cut entries.

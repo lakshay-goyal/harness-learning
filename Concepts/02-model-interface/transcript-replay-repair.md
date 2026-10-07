@@ -2,8 +2,8 @@
 type: concept
 stage: messages
 tier: candidate
-aliases: ["No result provided", "skip errored/aborted", drop-failed-turns-on-replay, orphaned-tool-call-repair, deferred-system-message-placement, "Tool result unavailable: history ends before this call completed."]
-harnesses: [pi]
+aliases: ["No result provided", "skip errored/aborted", drop-failed-turns-on-replay, orphaned-tool-call-repair, deferred-system-message-placement, "Tool result unavailable: history ends before this call completed.", failInterruptedTools, unsupportedParts, _noop]
+harnesses: [pi, opencode]
 ---
 At the provider boundary, normalize replayed history so it satisfies API invariants:
 - Turns that failed or were aborted are excluded.
@@ -35,15 +35,25 @@ At the provider boundary, normalize replayed history so it satisfies API invaria
 - **Layering**
   - Each adapter repairs independently. This diverged in pi: 0f3a0f78b, where Codex dropped calls that the shared pass had given results.
   - One shared pass plus minimal adapter rules.
+- **Orphaned tool calls (durable)**: fail every `pending|running` call before the next drain, never replay it (opencode v2) · synthesize an error at replay (opencode legacy).
+- **Interrupted partial output**: replay as a successful result (opencode legacy, shell).
+- **History requires a tools field**: inject a no-op placeholder tool when history has tool calls but no tools are enabled (opencode, Copilot/LiteLLM).
+- **Unsupported modality**: replace the part with `ERROR: Cannot read … Inform the user.` text (opencode).
 
 ## Implementations
 - [[pi--transcript-replay-repair|pi]] — `transformMessages` pass 0 normalizes null content and non-vision images; pass 2 skips errored/aborted messages, synthesizes "No result provided" results and defers system messages. The durable variant synthesizes "Tool result unavailable…" and also excludes `deferred` messages.
+- [[opencode--transcript-replay-repair|opencode]] — `toModelMessages` skips errored turns and closes dangling calls; `ProviderTransform.message` filters empty blocks per SDK; v2 fails interrupted tools durably.
 
 ## Failures
+- [[side-channel-message-splits-tool-pair]]
+- [[session-switch-leaves-dangling-tool-calls]]
 - [[orphaned-tool-calls-and-results]]
 - [[failed-turns-replayed]]
 - [[aborted-reasoning-signature-invalid]]
 - [[missing-optional-fields-crash-replay]]
+- [[placeholder-tool-gets-called]]
+- [[empty-payload-rejections]]
+- [[signed-empty-reasoning-dropped]]
 
 ## Related
 [[cross-provider-handoff]] · [[tool-call-id-normalization]] · [[signed-reasoning-replay]] · [[partial-message-persistence]] · [[context-projection]] · [[context-edit-overlay]] · [[out-of-band-message-deferral]] · [[abort-propagation]] · [[truncated-tool-call-guard]]

@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [tool-call-id-normalization]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — Switching provider mid-session failed because of tool-call id shapes:
 - Anthropic and Copilot rejected OpenAI Responses ids, which are 450+ chars and contain `|`.
@@ -23,6 +23,8 @@ harnesses: [pi]
 
 Anthropic at HEAD: `id.replace(/[^a-zA-Z0-9_-]/g,"_").slice(0,64)` (`anthropic-messages.ts:1289-1292`).
 
+**Fix · [[opencode]]** `3033afba51` 2026-07-20: the Mistral 9-char id rule matched only "mistral"/"devstral" and missed codestral, pixtral and mixtral (`packages/opencode/src/provider/transform.ts:255-264`).
+
 **Lesson** — Tool-call ids are provider-shaped. The target adapter should own the grammar, while the shared pass owns the id map so results follow their calls.
 
-Related: [[tool-call-id-normalization]] · [[cross-provider-handoff]] · [[tool-call-id-collision]] · [[responses-reasoning-item-pairing]] · [[pi--tool-call-id-normalization|pi]]
+Related: [[tool-call-id-normalization]] · [[cross-provider-handoff]] · [[tool-call-id-collision]] · [[responses-reasoning-item-pairing]] · [[pi--tool-call-id-normalization|pi]] · [[opencode--tool-call-id-normalization|opencode]]

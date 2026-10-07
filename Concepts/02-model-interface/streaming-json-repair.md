@@ -30,6 +30,7 @@ Parse streamed tool-argument JSON tolerantly. While the call is streaming, the p
   - Per-tool eager input streaming, gated by a compat flag.
 - **Scratch state**
   - Delete `partialJson` and `partialArgs` when the block finalizes and on error paths.
+- **No repair**: strict parse; malformed tool JSON or an undecodable frame fails the whole turn with no per-call error the model could correct (opencode v2 `packages/llm/src/protocols/shared.ts:97-101`).
 
 ## Implementations
 - [[pi--streaming-json-repair|pi]] — `packages/ai/src/utils/json-parse.ts` (`repairJson`, `parseStreamingJson`, `parseJsonWithRepair`), re-parsed on every tool delta in all adapters. The scratch fields are stripped at block stop.

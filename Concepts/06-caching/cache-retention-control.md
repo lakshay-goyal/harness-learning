@@ -2,8 +2,8 @@
 type: concept
 stage: caching
 tier: candidate
-aliases: [cacheRetention, PI_CACHE_RETENTION, "cacheRetention: none", prompt_cache_retention, prompt_cache_options, "ttl: 1h", promptCache]
-harnesses: [pi]
+aliases: [cacheRetention, PI_CACHE_RETENTION, "cacheRetention: none", prompt_cache_retention, prompt_cache_options, "ttl: 1h", promptCache, ttlSeconds, ttlBucket, "cache: none"]
+harnesses: [pi, opencode]
 ---
 A provider-neutral cache retention knob (none / short / long) mapped onto each provider's TTL fields, with one-off side requests (summaries) forced to write nothing.
 
@@ -19,9 +19,11 @@ A provider-neutral cache retention knob (none / short / long) mapped onto each p
 - Explicit-mode opt-out of implicit writes where the provider supports it (**pi** OpenAI GPT-5.6+ `{mode:"explicit"}`).
 - Declared cache lifetimes per model/tier as catalog metadata (feeds [[cache-warming]]), only where expiry behavior is verified (**pi**: direct Anthropic only).
 - Cache-friendly side requests that *reuse* the cached prefix (pi tried "cache-friendly compaction primitives", reverted next day).
+- **Retention as part of the cache policy object**: `ttlSeconds` bucketed to 5m / 1h (≥ 3600 s), `"none"` disables auto placement but keeps manual hints (opencode v2 `packages/llm`); the session never sets it, so everything is 5m and side requests are not isolated (opencode).
 
 ## Implementations
 - [[pi--cache-retention-control|pi]] — `CacheRetention` in pi-ai; per-adapter mapping table; summaries `cacheRetention:"none"` + `uuidv7()`.
+- [[opencode--cache-retention-control|opencode]] — v2 `CachePolicy` `ttlSeconds` → `1h` bucket, `"none"` keeps manual hints; legacy has no knob (always ephemeral 5m, or provider automatic caching via `options.cacheControl`).
 
 ## Failures
 - [[side-request-cache-pollution]]

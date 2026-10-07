@@ -2,8 +2,8 @@
 type: concept
 stage: context
 tier: candidate
-aliases: [truncateHead, truncateTail, truncateMiddle, truncateLine, DEFAULT_MAX_LINES, DEFAULT_MAX_BYTES, GREP_MAX_LINE_LENGTH, MCP_OUTPUT_MAX_BYTES, outputLimits, dual-limit-output-truncation, truncation-direction-by-tool, actionable-truncation-notice]
-harnesses: [pi]
+aliases: [truncateHead, truncateTail, truncateMiddle, truncateLine, DEFAULT_MAX_LINES, DEFAULT_MAX_BYTES, GREP_MAX_LINE_LENGTH, MCP_OUTPUT_MAX_BYTES, outputLimits, dual-limit-output-truncation, truncation-direction-by-tool, actionable-truncation-notice, Truncate.output, "tool_output.max_lines", "Model Tool Output", ToolOutputStore.bound]
+harnesses: [pi, opencode]
 ---
 Bound every tool result by lines OR bytes (whichever hits first), keep the end that matters for that tool (head for reads/searches, tail for shell, middle for opaque remote output), and tell the model exactly how to get the rest.
 
@@ -22,13 +22,20 @@ Bound every tool result by lines OR bytes (whichever hits first), keep the end t
 - Escape hatch: spill full output to file → [[tool-output-spill]].
 - Structured callers (scripts) get more than the model (bash 1 MiB structured output) ✔ pi.
 - Second truncation at summarization time (2000 chars per result) → [[transcript-serialization-for-summary]].
+- **Generic wrapper with opt-out**: every tool result truncated by the tool-definition wrapper unless the tool already marked itself truncated (opencode legacy) vs **tools forbidden from truncating; one bound at the registry settlement** over text parts only, media and structured value untouched (opencode v2).
+- **Head + tail preview with the marker in the middle**, UTF-8-safe, provider-independent (opencode v2).
+- **Agent-dependent notice**: delegate to an explore subagent if the agent may use `task`, else Grep/Read with offset (opencode legacy).
+- **Producer capture limit separate from model-output bound** (opencode v2 bash 1 MiB capture vs 50 KB model output).
+- Config override `tool_output.{max_lines, max_bytes}` (opencode).
 
 ## Implementations
 - [[pi--tool-output-truncation|pi]] — `truncate.ts` head/tail/middle/line helpers, 2000 lines / 50 KB, per-tool direction and notices; durable harness enforces `outputLimits` with tail windows and diagnostics.
+- [[opencode--tool-output-truncation|opencode]] — legacy `Truncate.output` in the `Tool.define` wrapper (2000 lines / 50 KB, head default, spill + delegate hint), also for MCP; v2 `ToolOutputStore.bound` at the tool registry with head+tail preview.
 
 ## Failures
 - [[bash-output-integrity]] (03-tools) — spill missing on line-limit truncation, wrong line counts, durable tail window dependent on commit timing
 - [[partial-file-read-acted-on]] (03-tools) — model stopped at the first truncated chunk
+- [[tool-output-bypasses-truncation]] — MCP output and appended LSP diagnostics skipped the bound (opencode)
 
 ## Related
 [[tool-output-spill]] · [[shell-execution]] · [[file-read-tool]] · [[search-tools]] · [[mcp-integration]] · [[code-mode]] · [[tool-description-design]] · [[harness-diagnostics-channel]] · [[transcript-serialization-for-summary]]

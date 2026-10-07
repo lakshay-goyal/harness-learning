@@ -2,8 +2,8 @@
 type: concept
 stage: failure-handling
 tier: candidate
-aliases: [_overflowRecoveryAttempted, overflow-compact-and-retry, "reason: overflow"]
-harnesses: [pi]
+aliases: [_overflowRecoveryAttempted, overflow-compact-and-retry, "reason: overflow", compactAfterOverflow, ContinueAfterOverflowCompaction, runAfterOverflowCompaction, "Session too large to compact"]
+harnesses: [pi, opencode]
 ---
 When a request overflows (explicit provider error, silent usage > window, or early length stop), hide the failed attempt, compact, and retry exactly once; a second overflow in the same user turn surfaces an error.
 
@@ -23,16 +23,24 @@ When a request overflows (explicit provider error, silent usage > window, or ear
 - **Length stop below intended max**: treat as context pressure, one compact-and-retry ✔ pi (`isRecoverableLength`, `32850ef7c`); durable treats length as an answer.
 - **Model guard**: judge overflow against the model that produced the message ✔ pi; ignore messages older than latest compaction ✔ pi.
 - **If no cut exists** (nothing to summarize): durable falls through to error; coding-agent compaction returns without retry.
+- **Hold out the triggering user turn**: summarize only history before the last real user message, then re-create that message (media replaced by `[Attached mime: file]`) after the summary (opencode legacy, 413 included).
+- **Hold the error unpublished**: an overflow before any assistant output is not persisted; one compaction, then a retry path that has no recovery at all (opencode v2) — never after durable output.
+- **Respect disabled auto-compaction**: surface the overflow instead of compacting (opencode legacy `7e09660c3b`; v2 does not check, inference).
 
 ## Implementations
 - [[pi--overflow-recovery|pi]] — `_checkCompaction` cases 1/2: omit failed attempt via `context_edit`, `_runAutoCompaction("overflow", true)`, `agent.continue()`; latch `_overflowRecoveryAttempted`; durable generation compacts once then re-prepares.
+- [[opencode--overflow-recovery|opencode]] — legacy: overflow compaction holds out and replays the last user turn, compaction-overflow is terminal; v2: unpublished overflow → `compactAfterOverflow` → one retry through a recovery-free path.
 
 ## Failures
 - [[overflow-compaction-cascade]]
 - [[completed-response-retried-after-overflow]]
 - [[overflow-judged-against-wrong-model]]
+- [[overflow-ignores-autocompact-optout]]
 - [[length-stop-recovery]]
 - Cross-group: [[rate-limit-misread-as-overflow]], [[overflow-message-not-recognized]] (02-model-interface)
+
+## Tradeoffs
+- [[compaction-design]]
 
 ## Related
 [[context-overflow-detection]] · [[auto-compaction]] · [[auto-retry-backoff]] · [[context-edit-overlay]] · [[run-settlement]] · [[max-tokens-context-clamp]] · [[token-estimation]]

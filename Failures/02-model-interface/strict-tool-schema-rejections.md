@@ -1,7 +1,7 @@
 ---
 type: failure
-concepts: [constrained-tool-sampling]
-harnesses: [pi]
+concepts: [constrained-tool-sampling, tool-schema-lowering]
+harnesses: [pi, opencode]
 ---
 **Symptom** — Provider 400s on tool declarations:
 - `strict` was sent to OpenAI-compatible servers that don't support it.
@@ -27,6 +27,8 @@ harnesses: [pi]
 - `295cc72b0` 2026-09-30 — per-provider keyword veto (`packages/ai/src/api/anthropic-messages.ts:1541-1574`) (#9953):
   - `prefer` falls back silently to non-strict, and `require` throws (`constrained-sampling.ts:225-249`).
 
+**Fix · [[opencode]]** Gemini, incident by incident: `ee91f31313` 2025-06-17 integer enums, `ee946d8128` 2025-11-26 MCP schemas, `0331931f56` 2025-12-01, `d89b567b47` 2025-12-21 arrays without `items`, `3741516fe3` / `3adeed8f97` 2026-02-03, `7e3e85ba59` 2026-03-03 sibling injection next to combiners, `2e71292f2f` 2026-06-11 nullable type arrays. OpenAI: `213ff3f2d7` 2026-06-16 port of Codex's schema lowering plus `strict: false`; v2 `f011d77128` 2026-06-04. MCP: `25cb2be619` 2026-06-16 missing `properties`; `79d6b10d7c` 2026-05-09 unresolved `$ref` in `outputSchema` crashed listing. See [[tool-schema-lowering]].
+
 **Lesson** — Constrained sampling needs per-provider schema-subset validation with a graceful "prefer" fallback. Default unknown endpoints to the lenient wire subset.
 
-Related: [[constrained-tool-sampling]] · [[pi--constrained-tool-sampling|pi]] · [[model-catalog]]
+Related: [[constrained-tool-sampling]] · [[pi--constrained-tool-sampling|pi]] · [[model-catalog]] · [[opencode--tool-schema-lowering|opencode]]

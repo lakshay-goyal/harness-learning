@@ -2,8 +2,8 @@
 type: concept
 stage: loop
 tier: candidate
-aliases: [agent_settled, agent_before_settle, _handlePostAgentRun, _runAgentPrompt, waitForIdle, willRetry, post-run driver, awaited listeners, settle boundary]
-harnesses: [pi]
+aliases: [agent_settled, agent_before_settle, _handlePostAgentRun, _runAgentPrompt, waitForIdle, willRetry, post-run driver, awaited listeners, settle boundary, SessionRunState, ensureRunning, SessionRunCoordinator, finalizeInterruptedAssistant, ShellThenRun]
+harnesses: [pi, opencode]
 ---
 Explicit "no more automatic work" boundary, distinct from the end of one model loop; a post-run driver inspects the last response and decides retry / compaction / continue-for-queued-work / settle.
 
@@ -20,15 +20,19 @@ Explicit "no more automatic work" boundary, distinct from the end of one model l
 - **Listener semantics**: awaited, ordered, part of idle (pi `9022a5b5e`) · observational only (pi raw `agentLoop()`).
 - **Idle definition**: no run · no run AND no compaction/summary/retry (pi).
 - **Durable**: run baton document (`pi.live.run`) whose presence = busy; inputs settle `done`/`unanswered` atomically (pi-durable).
+- **Per-session runner**: state machine `Idle | Running | Shell | ShellThenRun`, joiners await one `Deferred` (opencode legacy) · process-global coordinator with coalesced `pendingWake` successor drains (opencode v2).
+- **Interrupt finalization**: stamp `time.completed` + `AbortedError` on every interrupt path, including before the processor starts (opencode `e76cf967e6`).
 
 ## Implementations
 - [[pi--run-settlement|pi]] — `_runAgentPrompt` driver loop: retry → compaction → queued → `agent_before_settle` → `agent_settled`; `agent_end.willRetry`.
+- [[opencode--run-settlement|opencode]] — legacy per-session `Runner` goes `Idle` and status idle; v2 `SessionRunCoordinator` entry settles inside an uninterruptible settlement region.
 
 ## Failures
 - [[retry-wait-race-prompt-returns-early]]
 - [[queued-messages-stranded-at-run-end]]
 - [[listeners-see-stale-agent-state]]
 - [[compaction-cancellation-races]]
+- [[interrupted-message-never-finalized]]
 
 ## Related
 [[turn-loop]] · [[auto-retry-backoff]] · [[overflow-recovery]] · [[auto-compaction]] · [[follow-up-queue]] · [[extension-event-hooks]] · [[agent-event-stream]] · [[cache-warming]] · [[out-of-band-message-deferral]]

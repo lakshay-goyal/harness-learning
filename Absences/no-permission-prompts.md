@@ -44,4 +44,6 @@ YOLO by default: no per-tool approval, no command pre-screening.
 - pi treats approval prompts as UX theatre and real isolation as the only boundary ([[no-sandbox]], [[tool-only-isolation]]). Core offers a hook plus metadata, not a policy.
 - Headless/RPC users get no protection unless they install a gate. The example gate fails closed without a UI.
 
+**opencode contrast**: implements it: allow/ask/deny ruleset, last match wins, tree-sitter bash parsing, once/always/reject replies (`packages/opencode/src/permission/index.ts:28-163`), but `SECURITY.md:17` calls it "a UX feature", not isolation — see [[permission-ruleset]] / [[shell-command-permission-parsing]] / [[permission-prompts-vs-none]].
+
 Related: [[tool-call-gate]] · [[tool-safety-annotations]] · [[project-trust-gate]] · [[tool-only-isolation]] · [[no-sandbox]] · [[no-prompt-injection-defense]] · [[no-cwd-confinement]] · [[Absences]]

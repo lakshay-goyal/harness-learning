@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [context-overflow-detection]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** A 429 rate limit, or Bedrock `ThrottlingException: Too many tokens, please wait`, was classified as context overflow. That triggered a needless lossy compaction instead of a backoff (#1038, #2699). Bodyless 400/413 errors from *any* provider were also treated as overflow (#9482).
 
@@ -16,6 +16,8 @@ harnesses: [pi]
 - `661619e87` 2026-09-18: Cerebras `/^4(?:00|13)\s*(?:status code)?\s*\(no body\)/i` applies only when `provider === "cerebras"` (`overflow.ts:65,146-148`) (#9482).
 - Custom-provider docs: "never rewrite rate limits as overflow" (`packages/coding-agent/docs/custom-provider.md:152-154`).
 
+**Fix · [[opencode]]** `d98bd4bd52` 2026-02-10 removed the generic `too many tokens` / `token limit exceeded` patterns as overcorrecting (rate-limit text matched); `2a097f3af7` 2026-07-19 re-added them behind an exclusion list `^(throttling error|service unavailable):`, `rate limit`, `too many requests` (`packages/llm/src/provider-error.ts:34-38`).
+
 **Lesson** Throughput limits are not size limits. Run an explicit exclusion list before the generic overflow regexes, and gate provider-specific heuristics on provider identity.
 
-Related: [[context-overflow-detection]] · [[overflow-recovery]] · [[auto-retry-backoff]] · [[error-text-breaks-retry-classification]] · [[overflow-message-not-recognized]] · [[pi--context-overflow-detection|pi]]
+Related: [[context-overflow-detection]] · [[overflow-recovery]] · [[auto-retry-backoff]] · [[error-text-breaks-retry-classification]] · [[overflow-message-not-recognized]] · [[pi--context-overflow-detection|pi]] · [[opencode--context-overflow-detection|opencode]]

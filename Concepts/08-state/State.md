@@ -14,6 +14,8 @@ How conversation and plugin state is persisted, branched, projected into model c
 - [[branch-scoped-extension-state]] — Plugin/tool state stored in tool-result details or custom entries so each branch sees its own.
 - [[durable-execution]] — Every loop step a checkpointed task committed before shown; crashed process resumes from storage.
 - [[replicated-state]] — Single-writer sequence-numbered state published as snapshot + delta ops; overflow collapses to snapshot.
+- [[workspace-snapshots]] — Snapshot the working tree into a private git store at each step, with per-step patches on messages, so revert and unrevert to a message boundary work separately from the user's VCS.
+- [[event-sourced-session-store]] — Each session state change is a typed, versioned event appended in one SQLite transaction that also runs the read-model projectors; model context is derived from the projections.
 
 ## Absences
 [[no-checkpoints-undo]] · [[no-todo-tool]]

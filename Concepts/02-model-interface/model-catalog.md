@@ -2,8 +2,8 @@
 type: concept
 stage: model-interface
 tier: candidate
-aliases: [models.generated.ts, generate-models.ts, models.dev, ModelRuntime, remote catalog, models.json, modelOverrides, withRemoteCatalog, generated-model-catalog, layered-model-catalog, remote-catalog-overlay, dynamic-model-refresh, compat-flag-matrix, conservative-capability-defaults, name-heuristic-capability-detection, model-prompt-cache-ttl-metadata, availability-snapshot, custom-model-id-fallback]
-harnesses: [pi]
+aliases: [models.generated.ts, generate-models.ts, models.dev, ModelRuntime, remote catalog, models.json, modelOverrides, withRemoteCatalog, generated-model-catalog, layered-model-catalog, remote-catalog-overlay, dynamic-model-refresh, compat-flag-matrix, conservative-capability-defaults, name-heuristic-capability-detection, model-prompt-cache-ttl-metadata, availability-snapshot, custom-model-id-fallback, ModelsDev.Service, OPENCODE_MODELS_URL, models.opencode.ai]
+harnesses: [pi, opencode]
 ---
 Typed metadata for every model: context window, output cap, costs, input modalities and limits, reasoning levels, cache lifetimes, and per-endpoint compatibility flags. It is generated at build time from public catalogs plus curated overrides, then layered at runtime:
 1. remote overlay,
@@ -48,11 +48,14 @@ On top sits an availability view that says which providers are authenticated.
 - **Availability**
   - Check per call.
   - A synchronous snapshot with generation and sequence counters, plus provisional marking at registration. *pi chose this.*
+- **Runtime fetch from the vendor's own catalog**: models.dev, 5-min file cache, hourly refresh, cross-process lock, build-time snapshot fallback (opencode).
 
 ## Implementations
 - [[pi--model-catalog|pi]] — `scripts/generate-models.ts` produces `models.generated.ts` and the typed shards. Coding-agent `ModelRuntime` composes builtin, pi.dev remote overlay, `models.json`, extension providers and `modelOverrides`, and keeps the availability snapshot.
+- [[opencode--model-catalog|opencode]] — `ModelsDev.Service` cache → snapshot → fetch, refresh every 60 min; alpha hidden, deprecated removed.
 
 ## Failures
+- [[compaction-threshold-underflow]]
 - [[capability-sniffing-misses-opaque-ids]]
 - [[thinking-config-per-model-drift]]
 - [[endpoint-rejects-request-field]]

@@ -2,8 +2,8 @@
 type: concept
 stage: model-interface
 tier: candidate
-aliases: [ThinkingLevel, thinkingLevelMap, clampThinkingLevel, ":high suffix", MIN_ANSWER_TOKENS, DEFAULT_THINKING_BUDGETS, thinkingFormat, thinking-format-adapter, adaptive-vs-budget-thinking, thinking-budget-answer-reserve, thinking-disable-fallback, thinking-level-suffix, forceAdaptiveThinking, thinkingTokenBudgetField]
-harnesses: [pi]
+aliases: [ThinkingLevel, thinkingLevelMap, clampThinkingLevel, ":high suffix", MIN_ANSWER_TOKENS, DEFAULT_THINKING_BUDGETS, thinkingFormat, thinking-format-adapter, adaptive-vs-budget-thinking, thinking-budget-answer-reserve, thinking-disable-fallback, thinking-level-suffix, forceAdaptiveThinking, thinkingTokenBudgetField, ProviderTransform.variants, budgetVariants, smallOptions, OPENAI_XHIGH_EFFORT_RELEASE_DATE]
+harnesses: [pi, opencode]
 ---
 A provider-neutral reasoning-effort scale (off/minimal/…/max), mapped for each provider and model onto the native control:
 - an effort enum,
@@ -51,6 +51,8 @@ The mapping models unsupported levels explicitly, clamps to the nearest supporte
   - `MIN_ANSWER_TOKENS` always left for the answer, with the budget shrunk when the output cap is not larger than the budget. *pi chose this.*
 - **User syntax**
   - A level suffix on the model reference (`model:high`), parsed at the last colon only after an exact match fails (see [[model-resolution]]).
+- **Named per-model variants**: generated option bundles (`low…max`) chosen by the user, no harness default, release-date gates for new effort tiers (opencode).
+- **Side-call isolation**: small/side calls skip the user's variant and use the lowest effort (opencode `smallOptions`).
 
 ## Implementations
 - [[pi--thinking-level-abstraction|pi]] — `ThinkingLevel`, `thinkingLevelMap` and `clampThinkingLevel`. `simple-options.ts` holds the budgets and answer reserve. Per-adapter wire formats:
@@ -60,11 +62,15 @@ The mapping models unsupported levels explicitly, clamps to the nearest supporte
   - Responses and Codex: effort and summary.
   - Google: level vs budget.
   - Mistral: effort vs `prompt_mode`.
+- [[opencode--thinking-level-abstraction|opencode]] — `ProviderTransform.variants` per model; budgets `high` 16 000 / `max` 31 999; family defaults in `options()`.
 
 ## Failures
+- [[compaction-request-shape-mismatch]]
 - [[thinking-off-not-honored]]
 - [[thinking-config-per-model-drift]]
 - [[thinking-consumes-answer-budget]]
+- [[sdk-enum-lags-provider-options]]
+- [[endpoint-rejects-request-field]]
 
 ## Related
 [[signed-reasoning-replay]] · [[max-tokens-context-clamp]] · [[model-catalog]] · [[model-resolution]] · [[virtual-model-router]] · [[cache-warming]]

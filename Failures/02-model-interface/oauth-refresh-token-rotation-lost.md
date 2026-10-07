@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [subscription-oauth-auth, mcp-integration]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — Users were silently logged out when several pi instances ran at once:
 - A stalled OAuth refresh held the credential lock indefinitely.
@@ -22,6 +22,8 @@ harnesses: [pi]
 
 **Fix · [[pi]] (CI, same behavior)** — `abe9c9d9f` 2026-07-06 issue-analysis workflow runs pi with a stored `PI_AUTH_JSON` and writes the refreshed `auth.json` back to the environment secret, refusing files without an `openai-codex` refresh token (`.github/workflows/issue-analysis.yml:418-452`). Header warns the login must be dedicated: Codex rotates refresh tokens on every refresh, so an auth.json shared with a developer machine "invalidates whichever copy refreshes second" → "OAuth refresh failed for openai-codex" (`issue-analysis.yml:34-37`). Cross-machine copies of a rotating credential cannot be fixed by a file lock.
 
+**Fix · [[opencode]]** `e4286ae7a3` 2026-01-22: the Codex refresh token was not written back to the OpenAI auth entry. `c619caefdd` 2026-04-01: concurrent console token refreshes coalesced.
+
 **Lesson** — Once a non-idempotent remote side effect starts, finish and persist it regardless of caller cancellation, bounded by a timeout. Rotation demands cross-process mutual exclusion plus re-validation after acquiring the lock.
 
-Related: [[subscription-oauth-auth]] · [[mcp-integration]] · [[pi--subscription-oauth-auth|pi]] · [[credential-file-lock-contention]] · [[abort-propagation]]
+Related: [[subscription-oauth-auth]] · [[mcp-integration]] · [[pi--subscription-oauth-auth|pi]] · [[credential-file-lock-contention]] · [[abort-propagation]] · [[opencode--subscription-oauth-auth|opencode]]

@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [signed-reasoning-replay, cross-provider-handoff]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — Two failure shapes:
 - Behavioral: Qwen via OpenAI-compatible endpoints degraded multi-turn tool-call arguments to empty `{}`.
@@ -17,6 +17,8 @@ harnesses: [pi]
 - `a37306d43` (2026-10-05): Azure Foundry keeps `reasoning_content` on assistant turns so the cached prefix stays byte-identical (tests `packages/ai/test/azure-openai-completions.test.ts:111-249`).
 - Replay field selection: the signature names the field the provider used (`reasoning_content`/`reasoning`/`reasoning_text`) (`:1340-1349`).
 
+**Fix · [[opencode]]** `86715fecc4` / `923af96d26` 2026-04-24: DeepSeek V4 thinking mode rejected assistant history lacking `reasoning_content`, even empty; every assistant message now gets a (possibly empty) reasoning part, kept in the interleaved field (`packages/opencode/src/provider/transform.ts:303-354`). `e7053c41f4` 2026-04-26 OpenRouter SDK bump for DeepSeek reasoning; `6ca60d9204` 2026-07-01 Cerebras SDK reasoning replay.
+
 **Lesson** — For open-weight chat templates, dropping prior reasoning changes model behavior, not just cost. Some providers need an explicit "preserve thinking" flag to keep cache-stable prefixes.
 
-Related: [[signed-reasoning-replay]] · [[cross-provider-handoff]] · [[thinking-level-abstraction]] · [[pi--signed-reasoning-replay|pi]]
+Related: [[signed-reasoning-replay]] · [[cross-provider-handoff]] · [[thinking-level-abstraction]] · [[pi--signed-reasoning-replay|pi]] · [[opencode--signed-reasoning-replay|opencode]]

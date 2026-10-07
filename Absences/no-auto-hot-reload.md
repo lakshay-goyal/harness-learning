@@ -1,6 +1,6 @@
 ---
 type: absence
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 # no-auto-hot-reload
 
@@ -35,4 +35,9 @@ harnesses: [pi]
 - Deterministic: a half-saved extension file never loads mid-turn. The cost is a manual step in the extension dev loop.
 - Because reload is a full session_shutdown → session_start cycle, plugins must be written to survive it. Stale-context invalidation exists for exactly that reason.
 
-Related: [[runtime-plugin-loading]] · [[extension-event-hooks]] · [[replaceable-builtin-extension]] · [[harness-package-distribution]] · [[durable-execution]] · [[Absences]]
+**opencode** ([[opencode]], `ecc4916b5a`): also absent in legacy (completeness unverified).
+- No file watcher on config. Reload goes through `Config.invalidate` when config is updated via the API (`packages/opencode/src/config/config.ts:652-678`) or through `/instance/dispose` (`packages/opencode/src/server/routes/instance/httpapi/groups/instance.ts:44`).
+- v2 states the opposite as a goal: "Services are hot-reloadable by design: updates are granular, observable, and do not require tearing down the whole process" (`specs/v2/instructions.md:13`). Not observed as implemented for config files.
+- Instruction files (AGENTS.md) are re-read from disk every step in legacy, so they *are* effectively live (`packages/opencode/src/session/system.ts:69-105`), at the cost of prefix stability → [[prompt-cache-strategy]].
+
+Related: [[runtime-plugin-loading]] · [[extension-event-hooks]] · [[replaceable-builtin-extension]] · [[harness-package-distribution]] · [[durable-execution]] · [[opencode]] · [[Absences]]

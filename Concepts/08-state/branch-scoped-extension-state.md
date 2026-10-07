@@ -24,5 +24,8 @@ Plugin/tool state is persisted *inside the session log* (tool-result `details` o
 ## Failures
 - none recorded
 
+## Tradeoffs
+- [[todo-tool-vs-none]]
+
 ## Related
 [[session-tree]] · [[session-fork]] · [[plugin-tools]] · [[code-mode]] · [[extension-event-hooks]] · [[durable-execution]] · [[no-todo-tool]] · [[structured-tool-output]]

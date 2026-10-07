@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [unified-provider-api]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom**
 - Reasoning replay was lost or wrong when Responses items finished out of order (#6009).
@@ -23,6 +23,8 @@ harnesses: [pi]
 - `7d0497fdb` 2026-06-22: `reasoning_details` ordered before tool deltas (#5114).
 - `31f5c2327` 2026-05-06: `reasoning_summary_part.done` emits a `"\n\n"` delta (`openai-responses-shared.ts:605-634`).
 
+**Fix · [[opencode]]** v2 `packages/llm` re-hit the class within weeks: `16fb6dac8d` 2026-05-20 OpenAI reasoning deltas not parsed (reasoning silently missing); `eb84f461b8` 2026-05-23 reasoning summary blocks merged into one; `11d2f3e5f8` 2026-06-26 reasoning lifecycle not closed before text started (Gemini / OpenAI Chat).
+
 **Lesson** Treat a provider stream as a multiplexed set of items keyed by index. Drop zero-length deltas before they reach block bookkeeping. Keep "is reasoning" separate from "carries opaque reasoning state".
 
-Related: [[unified-provider-api]] · [[signed-reasoning-replay]] · [[streamed-tool-call-fragmentation]] · [[opaque-reasoning-payload-lost]] · [[pi--unified-provider-api|pi]]
+Related: [[unified-provider-api]] · [[signed-reasoning-replay]] · [[streamed-tool-call-fragmentation]] · [[opaque-reasoning-payload-lost]] · [[pi--unified-provider-api|pi]] · [[opencode--unified-provider-api|opencode]]

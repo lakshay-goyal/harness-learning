@@ -2,8 +2,8 @@
 type: concept
 stage: model-interface
 tier: candidate
-aliases: [resolveProviderAuth, resolveConfigValue, getApiKey, RuntimeCredentials, credential-resolution-order, stored-credential-owns-provider, credential-chain-precedence, config-value-indirection, per-request-credentials, credential-derived-endpoint, byok-header-suppression, "!command", "$ENV", "<authenticated>"]
-harnesses: [pi]
+aliases: [resolveProviderAuth, resolveConfigValue, getApiKey, RuntimeCredentials, credential-resolution-order, stored-credential-owns-provider, credential-chain-precedence, config-value-indirection, per-request-credentials, credential-derived-endpoint, byok-header-suppression, "!command", "$ENV", "<authenticated>", enabled_providers, disabled_providers]
+harnesses: [pi, opencode]
 ---
 Decide which credential a request uses, and where it comes from. The sources in precedence order are:
 1. request override,
@@ -50,9 +50,11 @@ The resolved credential can also carry an endpoint, headers or provider-scoped e
 - **SDK chains**
   - Let the SDK resolve.
   - Disable the SDK's default credential chain and resolve in the harness, e.g. `PiAnthropic._shouldResolveDefaultCredentials → false`.
+- **Config wins**: env → stored → plugin loaders → config re-applied last (opencode).
 
 ## Implementations
 - [[pi--credential-resolution|pi]] — pi-ai `resolveProviderAuth` (request override, then stored, then ambient), `envApiKeyAuth`, `getApiKeyEnvVars`, provider-scoped env with a `/proc/self/environ` fallback. Coding-agent `RuntimeCredentials`, the provider-composer chain, `resolveConfigValue`, and `getApiKey` per LLM call.
+- [[opencode--credential-resolution|opencode]] — layered passes (env, `auth.json`, plugin loaders, config last) with allow/deny provider lists.
 
 ## Failures
 - [[env-credential-discovery-misfires]]

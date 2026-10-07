@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [terminal-event-required, errors-as-stream-events]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — Streams that ended early were persisted as successful partial answers (half answers, half tool args), and the agent stopped silently:
 - an Anthropic stream with no `message_stop`;
@@ -24,6 +24,8 @@ harnesses: [pi]
 - `64eeb82a4` 2026-09-03 — Codex SSE terminal event without trailing blank line was lost; decoder flushed at EOF (#9047) (`packages/ai/src/api/openai-codex-responses.ts:799-859`).
 - `b7f788194` 2026-09-19 — experimental remote client awaits terminal remote prompt event. Agent `streamProxy`: clean EOF without terminal → "Connection closed by proxy server before the response completed" (`packages/agent/src/proxy.ts:219-230`).
 
+**Fix · [[opencode]]** legacy `e0b9e68a68` 2026-08-21: a raw `finish_reason: network_error` was treated as a normal finish; now a retryable `ResponseStreamError` (`packages/opencode/src/session/llm/ai-sdk.ts:88-90`). **Open in v2**: the runner consumes `llm.stream`, whose only completeness check lives in `generate` (`packages/llm/src/route/client.ts:384-392`); a stream with no `step-finish` writes no `Step.Ended`, fails nothing and ends the drain (`packages/core/src/session/runner/llm.ts:325-354`). Confirmed by code reading; no runner test covers it.
+
 **Lesson** — The absence of a terminal event is an error, not "done". Make it retryable, and make the exception (a server that never sends one) an explicit opt-in compat flag.
 
-Related: [[terminal-event-required]] · [[errors-as-stream-events]] · [[unified-provider-api]] · [[auto-retry-backoff]] · [[retry-classifier-regex-sprawl]] · [[stop-reason-mapping-gaps]] · [[length-truncated-tool-calls-executed]] · [[pi--terminal-event-required|pi]]
+Related: [[terminal-event-required]] · [[errors-as-stream-events]] · [[unified-provider-api]] · [[auto-retry-backoff]] · [[retry-classifier-regex-sprawl]] · [[stop-reason-mapping-gaps]] · [[length-truncated-tool-calls-executed]] · [[pi--terminal-event-required|pi]] · [[opencode--terminal-event-required|opencode]]

@@ -2,8 +2,8 @@
 type: concept
 stage: architecture
 tier: candidate
-aliases: ["registerTool", "ToolDefinition", "extension-custom-tools", "custom tools (pre-2026)"]
-harnesses: [pi]
+aliases: ["registerTool", "ToolDefinition", "extension-custom-tools", "custom tools (pre-2026)", "{tool,tools}/*.ts", "tool plugin hook"]
+harnesses: [pi, opencode]
 ---
 Plugin-registered model-callable tools: schema, executor, renderers, prompt contribution and exposure level declared through the same API the harness uses for its own tools.
 
@@ -22,13 +22,22 @@ Plugin-registered model-callable tools: schema, executor, renderers, prompt cont
 - **Nested calls**: tools may call other tools through the full pipeline (pi `ctx.executeTool`, [[nested-tool-calls]]).
 - **Name conflicts**: load error (pi, between plugins) vs override (pi, same-name override of built-ins, `tool-override.ts`; `replaceable` built-ins step aside).
 - **Execution mode**: per-tool sequential opt-out from parallel batches ([[parallel-tool-execution]]).
+- **Drop-in discovery**: every config dir's `tool(s)/*.{js,ts}` exports become tools (opencode).
+- **Schema system**: Zod `args` converted to JSON Schema, missing `args` normalized to `{}` (opencode) vs reject at registration (pi).
+- **Stale-call rejection**: per-turn registration identity; a call whose registration changed settles as "Stale tool call" (opencode v2).
 
 ## Implementations
 - [[pi--plugin-tools|pi]] — `pi.registerTool(ToolDefinition)` with TypeBox params, renderers, exposure, annotations, `prepareArguments`, `outputSchema`, nested `executeTool`.
+- [[opencode--plugin-tools|opencode]] — plugin `tool` hook + `{tool,tools}/*.{js,ts}` files; Zod → JSON Schema; `tool.definition` rewrite hook; v2 scope-bound overlay registrations.
 
 ## Failures
 - [[plugin-tool-without-schema-breaks-requests]]
 - [[side-door-input-bypasses-hooks]]
+- [[tool-wrapper-accumulation]]
+- [[untrusted-repo-loads-executable-config]]
+
+## Tradeoffs
+- [[todo-tool-vs-none]]
 
 ## Related
 [[extension-event-hooks]] · [[runtime-plugin-loading]] · [[replaceable-builtin-extension]] · [[tool-safety-annotations]] · [[structured-tool-output]] · [[tool-argument-repair]] · [[mcp-integration]] · [[pluggable-tool-backends]] · [[minimal-default-toolset]]

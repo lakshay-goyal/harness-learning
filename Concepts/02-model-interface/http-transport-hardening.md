@@ -2,8 +2,8 @@
 type: concept
 stage: model-interface
 tier: candidate
-aliases: [configureHttpDispatcher, SESSION_WEBSOCKET_MAX_AGE_MS, zstd, http-dispatcher.ts, connection-pool-max-age, transport-fallback-sticky, request-body-compression, header-deletion-marker, signed-header-injection, templated-endpoint-placeholders, beta-header-management, provider-attribution-headers, getBetaFeatures, anthropic-beta, transport]
-harnesses: [pi]
+aliases: [configureHttpDispatcher, SESSION_WEBSOCKET_MAX_AGE_MS, zstd, http-dispatcher.ts, connection-pool-max-age, transport-fallback-sticky, request-body-compression, header-deletion-marker, signed-header-injection, templated-endpoint-placeholders, beta-header-management, provider-attribution-headers, getBetaFeatures, anthropic-beta, transport, headerTimeout, chunkTimeout, timeoutFetch, wrapSSE, ws-pool]
+harnesses: [pi, opencode]
 ---
 The harness owns its HTTP and WebSocket transport policy instead of inheriting runtime and SDK defaults. That policy covers:
 - proxies and tunnels, idle and header timeouts, connect attempt timeouts;
@@ -54,9 +54,12 @@ The harness owns its HTTP and WebSocket transport policy instead of inheriting r
   - Attribution headers only when telemetry is enabled.
 - **Body**
   - zstd compression where the runtime supports it.
+- **Idle-timeout reversals**: SSE idle timeout 2 min → 5 min → off → 5 min default; header timeout 10 s OpenAI-only → 5 min for all providers (opencode, 2026-03…09).
+- **No timeouts by design**: provider watchdog deferred to a future configurable policy (opencode v2).
 
 ## Implementations
 - [[pi--http-transport-hardening|pi]] — coding-agent `http-dispatcher.ts` and `provider-attribution.ts`. Codex WS/SSE transport (connection cache, sticky fallback, zstd level 3), Anthropic `getBetaFeatures`, Bedrock Smithy build/deserialize middleware, Cloudflare endpoint placeholders.
+- [[opencode--http-transport-hardening|opencode]] — `timeoutFetch` header + SSE idle timeouts (5 min defaults), Codex-style WS pool with 5 stream retries then HTTP; none in v2.
 
 ## Failures
 - [[proxied-request-hang-after-upgrade]]

@@ -25,7 +25,14 @@ Scope: which tools a harness exposes and how they are designed, described, valid
 - [[structured-tool-output]] — Separate model-facing content from machine-facing structured results; terminating submit tools.
 - [[pluggable-tool-backends]] — Tools delegate I/O to swappable operations (local / SSH / VM / remote env).
 - [[crash-safe-tool-replay]] — Effect sandwich: commit intent → effect → outcome; per-tool replay policy after a crash.
+- [[patch-envelope-edit]] — Model-specific multi-file `*** Begin Patch` edit tool; hunks applied by context seeking.
+- [[model-specific-toolset]] — Registry swaps whole tools by model family (e.g. apply_patch for GPT) to match training distribution.
+- [[web-tools]] — Built-in fetch and search tools with format conversion and size limits.
+- [[task-list-tool]] — Model-maintained structured todo list the harness persists and renders.
+- [[ask-user-tool]] — Blocking tool that asks the human structured questions mid-turn; answers become the result.
+- [[lsp-diagnostics-feedback]] — After a mutation, language-server error diagnostics are appended to the tool result.
+- [[post-edit-formatting]] — Formatter runs after each write and the file is re-read so diff and model view match.
 
 Failures: [[Tools Failures]]
 
-Adjacent: [[tool-output-truncation]] · [[tool-output-spill]] · [[image-normalization]] (05) · [[tool-call-gate]] · [[process-tree-kill]] · [[tool-safety-annotations]] (07) · [[constrained-tool-sampling]] · [[streaming-json-repair]] (02) · [[dynamic-tool-guidelines]] (04) · [[plugin-tools]] (10)
+Adjacent: [[tool-output-truncation]] · [[tool-output-spill]] · [[image-normalization]] (05) · [[tool-call-gate]] · [[process-tree-kill]] · [[tool-safety-annotations]] (07) · [[constrained-tool-sampling]] · [[streaming-json-repair]] · [[tool-schema-lowering]] (02) · [[permission-ruleset]] · [[shell-command-permission-parsing]] · [[workspace-boundary-check]] (07) · [[dynamic-tool-guidelines]] (04) · [[plugin-tools]] (10)

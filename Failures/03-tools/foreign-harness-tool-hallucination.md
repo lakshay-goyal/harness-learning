@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [tool-description-design, provider-identity-shim]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — Codex-trained models running inside pi called tools from their native harness that pi does not have: `apply_patch`/`applyPatch` for file edits, `update_plan`/`read_plan`/`todowrite`/`todoread` for planning.
 
@@ -17,3 +17,5 @@ harnesses: [pi]
 Related: [[tool-description-design]] · [[provider-identity-shim]] · [[search-replace-edit]] · [[no-todo-tool]] · [[harness-identity]]
 
 **Fix · [[pi]]** (prompting angle, appended by 04-prompting writer) — `6dcb64565` 2026-01-10 "Prepare for alternative Codex harness certification" sits between bridge and allowlisted-instructions phases; the durable outcome is [[harness-identity]]: preamble "operating inside pi, a coding agent harness" (`4068bc556`, HEAD `packages/coding-agent/src/core/system-prompt.ts:155-156`) instead of tool-by-tool `critical_rule` denials. Full Codex prompt detour timeline in [[pi--harness-identity]].
+
+**Fix · [[opencode]]** — opposite strategy: give the model its native tools. `b7ad6bd839` 2026-01-17 `apply_patch` for `gpt-*` ids instead of edit/write (`packages/opencode/src/tool/registry.ts:297-300`) → [[model-specific-toolset]], [[patch-envelope-edit]]. Case-mismatched names (`Read`) auto-repaired by lowercasing in `experimental_repairToolCall`; anything else becomes the hidden `invalid` tool's error result (`packages/opencode/src/session/llm.ts:296-317`, `0a42068fbb` 2025-08-04). See [[opencode--tool-argument-repair]].

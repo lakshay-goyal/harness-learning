@@ -2,8 +2,8 @@
 type: concept
 stage: architecture
 tier: candidate
-aliases: ["pi install", "pi packages", "\"pi\" manifest key", "pi-package keyword", "pi list/remove/update/config"]
-harnesses: [pi]
+aliases: ["pi install", "pi packages", "\"pi\" manifest key", "pi-package keyword", "pi list/remove/update/config", skills.urls, engines.opencode, "~/.claude/skills (read by opencode)"]
+harnesses: [pi, opencode]
 ---
 Bundling plugins, skills, prompt templates and themes as versioned npm/git/local packages with a manifest, install scopes, filters and pinning.
 
@@ -22,12 +22,16 @@ Bundling plugins, skills, prompt templates and themes as versioned npm/git/local
 - **Discovery**: registry keyword → gallery (pi `pi-package` → pi.dev/packages).
 - **Install scripts**: run lifecycle scripts (pi for third-party, unverified intent) vs `--ignore-scripts` (pi for own installs).
 - **Try-before-install**: one-run load (`pi -e npm:…`).
+- **Install by config entry**: npm specs listed in `plugin` config, installed at start with scripts disabled, `engines.opencode` range checked (opencode).
+- **Remote skill index**: `index.json` with per-skill files and version, staged atomic swap (opencode `skills.urls`).
+- **Cross-harness reuse**: read Claude Code (`~/.claude/skills`) and `.agents/skills` dirs as-is (opencode).
 
 ## Implementations
 - [[pi--harness-package-distribution|pi]] — `pi install npm:|git:|https:|./path`, manifest + filters + pinning, peer-dep enforcement, gallery keyword.
+- [[opencode--harness-package-distribution|opencode]] — npm plugins from config via arborist (`ignoreScripts`); skills from `.claude`/`.agents`/config dirs/paths/remote `index.json` URLs.
 
 ## Failures
 - [[duplicate-host-module-instances]]
 
 ## Related
-[[runtime-plugin-loading]] · [[replaceable-builtin-extension]] · [[layered-settings]] · [[skill-progressive-disclosure]] · [[prompt-template-expansion]] · [[project-trust-gate]] · [[supply-chain-pinning]]
+[[runtime-plugin-loading]] · [[replaceable-builtin-extension]] · [[layered-settings]] · [[skill-progressive-disclosure]] · [[prompt-template-expansion]] · [[project-trust-gate]] · [[supply-chain-pinning]] · [[self-update]]

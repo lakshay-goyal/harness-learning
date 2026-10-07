@@ -2,8 +2,8 @@
 type: concept
 stage: architecture
 tier: candidate
-aliases: ["pi server", "pi client", "coordinator", "session-worker", "SessionWorkerManager", "Radius relay", "RadiusRelayHost", "pi-protocol", "pi-server", "pi-client", "Chord services", "CBOR framing", "PI_EXPERIMENTAL", "session-worker-isolation", "stable-coordinator-endpoint", "remote-presentation-split", "session-relay-gateway", "length-prefixed-cbor-framing", "attachment-fenced-routing", "strict-json-boundary", "control-before-bulk-scheduling", "lazy-reconnecting-connection"]
-harnesses: [pi]
+aliases: ["pi server", "pi client", "coordinator", "session-worker", "SessionWorkerManager", "Radius relay", "RadiusRelayHost", "pi-protocol", "pi-server", "pi-client", "Chord services", "CBOR framing", "PI_EXPERIMENTAL", "session-worker-isolation", "stable-coordinator-endpoint", "remote-presentation-split", "session-relay-gateway", "length-prefixed-cbor-framing", "attachment-fenced-routing", "strict-json-boundary", "control-before-bulk-scheduling", "lazy-reconnecting-connection", opencode serve, opencode attach, "http://opencode.internal", Embedded OpenCode]
+harnesses: [pi, opencode]
 ---
 Split the agent from its UIs: each session runs in a durable worker process that owns storage and the agent loop; presentations (TUI, remote, web) attach through a routed protocol via a stable endpoint, optionally through a hosted relay for remote access.
 
@@ -23,9 +23,13 @@ Split the agent from its UIs: each session runs in a durable worker process that
 - **Remote access**: inbound port vs outbound dial to a hosted relay that multiplexes clients (pi Radius).
 - **Reconnect**: transparent replay vs never replay; app re-attaches (pi client).
 - **Scheduling**: FIFO vs control-before-bulk priority queues (pi-env daemon) — see [[remote-execution-env]].
+- **One HTTP server, every UI a client**: TUI tunnels `fetch` over worker RPC with no TCP port; web, ACP, `run`, CI and SDK use the same API (opencode).
+- **Many projects per server**: instance chosen per request by directory ([[location-scoped-runtime]], opencode).
+- **In-memory embedding of the same API**: router executed without a listener (opencode v2 Embedded OpenCode).
 
 ## Implementations
 - [[pi--client-server-session-split|pi]] — experimental (`PI_EXPERIMENTAL=1`) coordinator/server/session-worker over Unix sockets + CBOR pi-protocol carrying Chord service calls; Radius WebSocket relay for remote clients; workers built on pi-durable.
+- [[opencode--client-server-session-split|opencode]] — `opencode serve` HTTP API + SSE; TUI in-process over worker RPC (`http://opencode.internal`); ACP and SDK as clients; v2 `packages/server` + embedded router.
 
 ## Failures
 - [[strict-json-undefined-breaks-replication]]
@@ -39,6 +43,10 @@ Split the agent from its UIs: each session runs in a durable worker process that
 - [[internal-errors-leak-over-wire]]
 - [[update-before-snapshot-on-subscribe]]
 - [[unbounded-subscriber-buffering]]
+- [[approval-wait-without-responder]]
+
+## Tradeoffs
+- [[client-server-vs-single-process]]
 
 ## Related
-[[durable-execution]] · [[replicated-state]] · [[runtime-plugin-loading]] · [[headless-rpc-mode]] · [[remote-execution-env]] · [[remote-host-trust]] · [[abort-propagation]] · [[task-owned-subagent]] · [[spec-driven-agentic-development]]
+[[durable-execution]] · [[replicated-state]] · [[runtime-plugin-loading]] · [[headless-rpc-mode]] · [[remote-execution-env]] · [[remote-host-trust]] · [[abort-propagation]] · [[task-owned-subagent]] · [[spec-driven-agentic-development]] · [[location-scoped-runtime]] · [[sdk-embedding]]

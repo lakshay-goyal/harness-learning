@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [transcript-carried-system-prompt, cache-stable-prompt-prefix, cache-breakpoint-placement]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — Adding, removing or redefining a tool mid-conversation (extension `setActiveTools`, MCP servers connecting, loadout changes) invalidated the whole Anthropic prompt cache: the next request was a full-price write. Variants:
 - prompt/tool changes rewrote the leading system prompt + tool list (pre-#9548);
@@ -15,6 +15,8 @@ harnesses: [pi]
 - `9e05370b2` 2026-09-16 (#9548) "Mid conversation system messages": prompt sections + tool declarations live in the transcript; changes are appended deltas; Anthropic request `tools` fixed to initial tools + `__pi_deferred_placeholder__` declared from request 1 — "keeps that scaffolding in the cached prefix, so the first tool change does not invalidate the cache (measured: full miss without it)" (HEAD `packages/ai/src/api/anthropic-messages.ts:197-209, 1205-1219`).
 - `b271b0a52` 2026-10-02 "define Anthropic mid-conversation tools inline": `inline-tools-2026-09-15` beta, later tools as `tool_addition{tool_definition}` / `tool_removal{tool_reference}`, so redefinitions no longer resend the tool list (`anthropic-messages.ts:195, 1339-1353`); `hasToolRedefinitions()` deprecated (`transcript.ts:179-197`).
 - `92216fa15` 2026-10-06 (#10542, durable) `leadWithSystem` — "Move a system message that only user messages precede to the front … without it, a later tool change rewrites the request's tool list and invalidates the whole prompt cache" (`packages/durable/src/harness/context.ts:170-180`); live gate `test/system-order-cache-e2e.test.ts`.
+
+**Fix · [[opencode]]** none at `ecc4916b5a` (exposure, unverified by measurement). Legacy rebuilds the tool block every step: the `task` description lists the currently permitted subagents and the code-mode description lists the MCP catalog (`packages/opencode/src/tool/registry.ts:265-289`), so an MCP connect/disconnect or agent change rewrites the head; tool order at least is canonical since `83bb216486` ([[nondeterministic-tool-order-busts-cache]]). v2 appends prompt-side changes as Mid-Conversation System Messages but still sends the full current tool list each turn, and drops `tools` entirely on the max-steps turn (`packages/core/src/session/runner/llm.ts:221-222`; `packages/llm/src/protocols/anthropic-messages.ts:515-517`).
 
 **Lesson** — Keep tools/system at the very front and fixed; express changes as appended deltas, pre-declare anything that would otherwise change hidden scaffolding, and normalize provider-visible order independently of storage order.
 

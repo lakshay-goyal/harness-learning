@@ -2,8 +2,8 @@
 type: concept
 stage: messages
 tier: candidate
-aliases: [transformMessages, transform-messages.ts, isSameModel, cross-provider-transcript-handoff, foreign-reasoning-as-plain-text, unsigned-tool-call-handoff, non-vision-image-placeholder, synthetic-bridge-message, text-phase-signature, typed-item-id-prefix, requested-vs-response-model-identity, empty-content-placeholders, responseModel, TextSignatureV1]
-harnesses: [pi]
+aliases: [transformMessages, transform-messages.ts, isSameModel, cross-provider-transcript-handoff, foreign-reasoning-as-plain-text, unsigned-tool-call-handoff, non-vision-image-placeholder, synthetic-bridge-message, text-phase-signature, typed-item-id-prefix, requested-vs-response-model-identity, empty-content-placeholders, responseModel, TextSignatureV1, differentModel, Native Continuation Metadata]
+harnesses: [pi, opencode]
 ---
 At request time, rewrite stored conversation history so a different provider, API or model will accept it in the middle of a session. Foreign reasoning is demoted, foreign opaque tokens are dropped, ids are reshaped, unsupported media gets placeholders, and role-order rules are satisfied. Raw history stays untouched.
 
@@ -41,9 +41,11 @@ At request time, rewrite stored conversation history so a different provider, AP
   - Synthetic bridge messages, e.g. an assistant "I have processed the tool results." turn, or a follow-up user message carrying tool-result images.
 - **Message phase and id metadata**
   - Versioned text signature `{v, id, phase}`, kept same-model only.
+- **Same-model key**: configured `providerID/model.id`, not `model.api.id` (opencode `aa599b4a7d`); v2 additionally requires the stored turn to be error-free before reusing metadata.
 
 ## Implementations
 - [[pi--cross-provider-handoff|pi]] — `transformMessages` (packages/ai/src/api/transform-messages.ts) with an adapter-supplied id normalizer and id map. It demotes reasoning to plain text, strips signatures, adds image placeholders, and runs per-adapter replay rules.
+- [[opencode--cross-provider-handoff|opencode]] — `differentModel` drops provider metadata and turns reasoning into plain text; v2 reuses continuation metadata only for the exact same model.
 
 ## Failures
 - [[thinking-tag-mimicry]]

@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [cross-provider-handoff, signed-reasoning-replay, usage-cost-accounting]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — On Anthropic-compatible relays that report a different response model, and on server-side fallbacks, the next turn's signed thinking was treated as cross-model. It was converted to text or lost its signature, which broke reasoning continuity.
 
@@ -13,6 +13,8 @@ harnesses: [pi]
 - Tests at `anthropic-sse-parsing.test.ts:142,169`.
 - CHANGELOG `packages/ai/CHANGELOG.md:211`.
 
+**Fix · [[opencode]]** `aa599b4a7d` 2026-01-21: the same-model check compared `model.api.id`, so legacy (pre-variant) model ids looked foreign and lost their metadata; switched to `model.id` (`packages/opencode/src/session/message-v2.ts:255`).
+
 **Lesson** — Replay decisions must use the requested identity. Record the identity the server echoes separately, for display and pricing.
 
-Related: [[cross-provider-handoff]] · [[signed-reasoning-replay]] · [[usage-cost-accounting]] · [[server-side-refusal-fallback]] · [[fallback-model-output-misattributed]] · [[pi--cross-provider-handoff|pi]]
+Related: [[cross-provider-handoff]] · [[signed-reasoning-replay]] · [[usage-cost-accounting]] · [[server-side-refusal-fallback]] · [[fallback-model-output-misattributed]] · [[pi--cross-provider-handoff|pi]] · [[opencode--cross-provider-handoff|opencode]]

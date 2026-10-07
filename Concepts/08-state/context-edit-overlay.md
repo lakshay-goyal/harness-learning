@@ -19,6 +19,7 @@ Append-only log entries that hide (omit) or replace the model-visible content of
 - **Last-wins per target** (pi) vs stacked.
 - **Who writes**: harness recovery paths (retry, overflow) and plugins at turn boundaries (pi drafts at `turn_end`/`agent_before_settle`).
 - **Token accounting**: usage captured before an edit is untrusted → estimate (pi `estimateProjectedContextTokens`).
+- **In-place marker instead of an edit entry**: set a field on the stored part (`time.compacted`), keep the bytes, render a placeholder at request build (opencode legacy tool-output pruning; not append-only, so not this concept) → [[tool-output-pruning]].
 
 ## Implementations
 - [[pi--context-edit-overlay|pi]] — `ContextEditEntry {targetId, replacement:{content}|null}` (`466db0fec`); retry and overflow omit failed attempts; extensions append drafts; latest-per-target in `buildSessionProjection`.

@@ -2,8 +2,8 @@
 type: concept
 stage: model-interface
 tier: candidate
-aliases: [resolveCliModel, findInitialModel, enabledModels, Ctrl+P, parseModelPattern, restoreModelFromSession, defaultModelPerProvider, model-reference-resolution, initial-model-selection-cascade, model-cycling-scope, "--models", ":thinking suffix"]
-harnesses: [pi]
+aliases: [resolveCliModel, findInitialModel, enabledModels, Ctrl+P, parseModelPattern, restoreModelFromSession, defaultModelPerProvider, model-reference-resolution, initial-model-selection-cascade, model-cycling-scope, "--models", ":thinking suffix", SessionRunnerModel.resolve]
+harnesses: [pi, opencode]
 ---
 Turn a user string into one concrete model and thinking level. The string can be `provider/id`, a bare id, a fuzzy match, a glob, or any of these with a `:level` suffix. Resolution must:
 - break ambiguity in favor of a model the user can actually call (authenticated), or fail loudly;
@@ -43,9 +43,12 @@ Turn a user string into one concrete model and thinking level. The string can be
 - **Scope**
   - All models.
   - Globs over `provider/id` restricted to authenticated models, cycled with a hotkey; the choice is session-scoped unless the user persists it.
+- **Per-message model**: every user message carries its model (`input.model ?? agent.model ?? session model`) (opencode).
+- **Small-model cascade** for side calls: `small_model` → plugin hook → family priority (opencode, see [[auxiliary-model-calls]]).
 
 ## Implementations
 - [[pi--model-resolution|pi]] — `packages/coding-agent/src/core/model-resolver.ts`: `resolveCliModel`, `parseModelPattern`, `findInitialModel`, `restoreModelFromSession`, the scoped-models globs, and Ctrl+P cycling in agent-session.
+- [[opencode--model-resolution|opencode]] — `provider/model` per message, fuzzy suggestions on miss, default-model priority list; v2 never silently falls back.
 
 ## Failures
 - [[model-reference-ambiguity]]

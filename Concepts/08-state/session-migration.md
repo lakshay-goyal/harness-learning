@@ -2,8 +2,8 @@
 type: concept
 stage: state
 tier: candidate
-aliases: [CURRENT_SESSION_VERSION, migrateV1ToV2, migrateV2ToV3, migrateToCurrentVersion, "migrate(value, fromVersion)", migration_failed, prepareArguments (legacy shapes)]
-harnesses: [pi]
+aliases: [CURRENT_SESSION_VERSION, migrateV1ToV2, migrateV2ToV3, migrateToCurrentVersion, "migrate(value, fromVersion)", migration_failed, prepareArguments (legacy shapes), DatabaseMigration, json-migration, reset_v2_session_state, ContextSnapshotDecodeError]
+harnesses: [pi, opencode]
 ---
 Versioned, on-load upgrade of the persisted session format (and of stored typed state) so old logs keep loading after format changes, plus shims for legacy shapes embedded in history (e.g. old tool-call argument schemas).
 
@@ -17,12 +17,18 @@ Versioned, on-load upgrade of the persisted session format (and of stored typed 
 - **Read-time compatibility shims** without rewriting (pi `prepareArguments` for legacy tool-call shapes; null-content normalization on load).
 - **Rewrite strategy**: in-place truncate+write (pi) vs temp+rename.
 - **Forward compat**: unknown future types dropped (pi-ai model catalog) vs rejected.
+- **SQL schema migrations on open + lenient decoders for stored JSON** (opencode): strict schemas only on write, loosened for legacy numeric/timestamp/diff shapes.
+- **Storage-format jump with a time-boxed importer**: JSON files → SQLite importer shipped 2026-02, deleted 2026-06 (opencode).
+- **Reset, don't migrate, pre-release state**: experimental v2 events/projections/epochs reset while canonical v1 rows are preserved (opencode).
+- **Two runtimes on one schema**: shared projectors must only touch tables both runtimes guarantee (opencode) → [[projector-depends-on-transitional-table]].
 
 ## Implementations
 - [[pi--session-migration|pi]] — `CURRENT_SESSION_VERSION = 3`; v1→v2 linear ids + `firstKeptEntryIndex→Id`; v2→v3 `hookMessage→custom`; file rewritten; durable per-definition `migrate`.
+- [[opencode--session-migration|opencode]] — drizzle SQL migrations applied on every DB open (38 files), legacy JSON storage migrations with a marker file, lenient stored-history schemas, v2 experimental state reset migrations.
 
 ## Failures
-- none recorded
+- [[strict-schema-rejects-legacy-records]]
+- [[projector-depends-on-transitional-table]]
 
 ## Related
 [[session-tree]] · [[tool-argument-repair]] · [[durable-execution]] · [[branch-scoped-extension-state]]

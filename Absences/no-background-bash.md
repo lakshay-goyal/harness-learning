@@ -1,6 +1,6 @@
 ---
 type: absence
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 # no-background-bash
 
@@ -34,4 +34,11 @@ harnesses: [pi]
 - Long-running servers, watchers and dev servers must live outside the agent (tmux) or block the turn. Cleanup and observability stay simple: anything pi spawns dies with pi.
 - Pairs with no default timeout. A blocking `npm run dev` hangs the turn until the user presses Esc ([[abort-propagation]]).
 
-Related: [[shell-execution]] · [[process-tree-kill]] · [[abort-propagation]] · [[no-bash-default-timeout]] · [[no-turn-cap]] · [[Absences]]
+**opencode** ([[opencode]], `ecc4916b5a`): also absent for the model, and removed on purpose in v2.
+- Legacy shell schema is `command`, `timeout`, `workdir` (+ description); no background/detach flag (`packages/opencode/src/tool/shell/prompt.ts:15-20`). Every call blocks under the 2-min default timeout (`packages/opencode/src/tool/shell.ts:347`).
+- v2 removed background bash: "The model has no registered observation or cancellation tool for background bash jobs, and process-local status is not a sufficient remote contract" (`specs/v2/schema-changelog.md:697`; `d29f5eba92` 2026-06-22).
+- What does run in the background: **subagents** only, behind `OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS` (`task` param `background`, `packages/opencode/src/tool/task.ts:58-61`; `22de34c4de` 2026-05-14), on a registry that is "intentionally not durable" (`packages/core/src/background-job.ts:113-118`). Completion is pushed as a message, never polled → [[no-background-task-polling]].
+- A PTY service exists for user terminals in the app (`packages/core/src/pty.ts`), not as a model tool.
+- Same lesson from both sides: pi says use tmux; opencode says no async capability without its observe/cancel pair.
+
+Related: [[shell-execution]] · [[process-tree-kill]] · [[abort-propagation]] · [[no-bash-default-timeout]] · [[no-turn-cap]] · [[opencode]] · [[Absences]]

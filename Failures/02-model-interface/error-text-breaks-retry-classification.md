@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [errors-as-stream-events, auto-retry-backoff]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom**
 - Responses and Azure 5xx/429 errors were not auto-retried (#4232).
@@ -19,6 +19,8 @@ harnesses: [pi]
 - `371adcf37` 2026-06-24: explicit "please retry" texts. The classifier moved into `packages/ai/src/utils/retry.ts` (#6019).
 - The pattern list itself is covered in [[retry-classifier-regex-sprawl]].
 
+**Fix · [[opencode]]** `027d43b5ea` 2025-12-01: provider error bodies concatenated into the message broke retry detection; messages normalized. `61aefc0759` 2026-08-05: the regex list also matches the response body, not only the message (`packages/opencode/src/session/retry.ts:93-94`).
+
 **Lesson** With string-classified retry, error formatting is part of the retry contract. Structured error kinds would decouple adapters from the classifier.
 
-Related: [[errors-as-stream-events]] · [[auto-retry-backoff]] · [[retry-classifier-regex-sprawl]] · [[rate-limit-misread-as-overflow]] · [[foreign-sdk-error-shape-skips-retry]] · [[pi--errors-as-stream-events|pi]]
+Related: [[errors-as-stream-events]] · [[auto-retry-backoff]] · [[retry-classifier-regex-sprawl]] · [[rate-limit-misread-as-overflow]] · [[foreign-sdk-error-shape-skips-retry]] · [[pi--errors-as-stream-events|pi]] · [[opencode--auto-retry-backoff|opencode]]

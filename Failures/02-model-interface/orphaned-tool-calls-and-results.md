@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [transcript-replay-repair]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — After interruptions or errors, providers rejected the replayed history:
 - Anthropic and Claude broke the tool_use→tool_result chain.
@@ -24,6 +24,8 @@ Open quirk (unverified): a toolResult whose assistant message was skipped still 
 
 Durable variant: "Tool result unavailable: history ends before this call completed." (`packages/durable/src/harness/context.ts:10`).
 
+**Fix · [[opencode]]** replay closes every dangling `tool_use` with `output-error` "[Tool execution was interrupted]" (`packages/opencode/src/session/message-v2.ts:362-373`). `c29392d085` 2026-04-09: interrupted bash keeps its partial output and replays it as `output-available` (success). `748fcb7ebd` 2026-05-25: cleanup-marked interrupted tools were counted as pending and fired an assistant-prefill request; now excluded. v2 `eb9a683b40` 2026-06-06: `failUnsettledTools` when a tool fiber fails, plus durable failing of interrupted tools before each drain. `5f57cee8e4` 2025-12-16 (#5650): a user-invoked subtask (slash command run as a subagent) left an assistant `tool_use` turn with no following user turn, so Gemini-style reasoning models errored on the missing thinking signature; a synthetic user message "Summarize the task tool output above and continue with your task." is now appended after command subtasks (`packages/opencode/src/session/prompt.ts:430-448`).
+
 **Lesson** — Run one central transcript-repair pass before every request. Repair by *adding* the missing counterpart, never by mutating signed content. Run the invariant at end of sequence, not only at transitions.
 
-Related: [[transcript-replay-repair]] · [[failed-turns-replayed]] · [[session-switch-leaves-dangling-tool-calls]] · [[pi--transcript-replay-repair|pi]]
+Related: [[transcript-replay-repair]] · [[failed-turns-replayed]] · [[session-switch-leaves-dangling-tool-calls]] · [[pi--transcript-replay-repair|pi]] · [[opencode--transcript-replay-repair|opencode]]

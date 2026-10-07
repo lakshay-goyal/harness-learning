@@ -28,5 +28,8 @@ When a single user turn (request + long tool loop) is larger than the keep budge
 - [[summarizer-refusal]]
 - [[parallel-side-requests-single-slot-provider]]
 
+## Tradeoffs
+- [[compaction-design]]
+
 ## Related
 [[compaction-cut-point]] · [[auto-compaction]] · [[structured-compaction-summary]] · [[transcript-serialization-for-summary]] · [[summary-validation]]

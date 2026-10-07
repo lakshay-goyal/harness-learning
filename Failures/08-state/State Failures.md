@@ -20,9 +20,16 @@ Failures whose primary concept is in [[State]].
 - [[held-draft-reference-misaddresses]] — held draft references wrote the wrong element after unshift/splice.
 - [[settled-draft-then-probe-throws]] — revoked draft proxies threw on Promise `then` probes.
 - [[delta-tracking-memory-and-size-blowup]] — proxy caches retained GiBs; 4096-op cap turned small changes into 66 MB snapshots.
-- [[unbounded-subscriber-buffering]] — replicated-state subscribers buffered without bound / reentrant publication.
-- [[update-before-snapshot-on-subscribe]] — remote update arrived before the snapshot it applies to.
+- [[unbounded-subscriber-buffering]] — replicated-state subscribers buffered without bound / reentrant publication (pi); per-connection unbounded SSE queue in opencode legacy, coalesced wake signal in v2.
+- [[update-before-snapshot-on-subscribe]] — remote update arrived before the snapshot it applies to (pi); events lost between `/event` connect and lazy subscription (opencode).
+- [[revert-deletes-preexisting-files]] — undo deleted user files missing from the shadow snapshot (opencode).
+- [[host-vcs-config-leaks-into-shadow-repo]] — GPG signing, external diff, ignores and big repos leaked into the private snapshot repo (opencode).
+- [[strict-schema-rejects-legacy-records]] — tightened stored-data schemas rejected old sessions; snapshot decode died as a defect (opencode).
+- [[projector-depends-on-transitional-table]] — shared `Moved` projector touched a v2-only table on v1 databases (opencode).
+- [[stale-runner-recreates-context-after-move]] — old-location runner could initialize stale privileged context after a move (opencode).
+- [[reordered-context-misidentifies-latest-turn]] — "latest" by array position / id after a reordering projection → double compaction (opencode).
 
 Other groups' failures touching state concepts: [[abandoned-attempts-left-in-context]] · [[session-switch-leaves-dangling-tool-calls]] · [[branch-summary-records-wrong-source-leaf]] · [[compaction-includes-abandoned-branches]] · [[stream-scratch-state-persisted]] · [[failed-turns-replayed]] · [[quadratic-event-queue-drain]] · [[non-idempotent-tool-replayed-after-crash]] · [[ownership-cancellation-races]]
 
 Back: [[State]]
+- [[timestamp-ordered-history-pagination]] — wall-clock ordering reordered history (double auto-compaction); v2 orders by durable seq.

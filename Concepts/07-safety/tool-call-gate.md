@@ -2,8 +2,8 @@
 type: concept
 stage: permissions
 tier: candidate
-aliases: [tool_call, beforeToolCall, "{block: true}", before_tool, beforeTool, user_bash, tool-call-interception, tool-call-hooks, tool-call-gate-hook]
-harnesses: [pi]
+aliases: [tool_call, beforeToolCall, "{block: true}", before_tool, beforeTool, user_bash, tool-call-interception, tool-call-hooks, tool-call-gate-hook, tool.execute.before, "permission.ask hook"]
+harnesses: [pi, opencode]
 ---
 Pre-execution hook on every tool call (after arg validation, before execute) that can rewrite arguments or block the call with a reason fed back to the model; the single seam where permission/approval policies live, failing closed when the policy itself errors.
 
@@ -23,14 +23,24 @@ Pre-execution hook on every tool call (after arg validation, before execute) tha
 - **Static rule config** (allow/deny lists in settings) — absent in pi core; only example extensions with regex lists.
 - **Human wait budget**: hook timeouts (pi had them, removed `88e39471e`) vs. unbounded + abort signal.
 - **Policy inputs**: tool name + args only, or declarative tool metadata ([[tool-safety-annotations]]).
+- **Declarative rules as the primary gate, hook secondary** (opencode: [[permission-ruleset]] asks inside each tool; plugin `tool.execute.before` runs first).
+- **Hook without veto result**: in-place `output.args` mutation, blocking only by throwing (opencode `tool.execute.before`).
+- **No registry-level gate**: trusted leaf tools sequence their own permission requests (opencode v2, `specs/v2/tools.md:131`).
 
 ## Implementations
 - [[pi--tool-call-gate|pi]] — `beforeToolCall` in agent-core → extension `tool_call` event; first block wins; throw = block; no re-validation; nested codemode calls gated too; no built-in policy, only examples.
+- [[opencode--tool-call-gate|opencode]] — built-in [[permission-ruleset]] asks inside each tool; plugin `tool.execute.before` mutates args (throw = block, inferred); `permission.ask` decision hook dead since 2026-03; v2 has no tool hook.
 
 ## Failures
 - [[hook-error-fails-open]]
 - [[side-door-input-bypasses-hooks]]
 - [[pre-tool-hook-sees-stale-state]]
+- [[declined-action-retried]]
+- [[dead-hook-in-public-api]]
+
+## Tradeoffs
+- [[plan-mode-vs-none]]
+- [[permission-prompts-vs-none]]
 
 ## Related
-[[tool-safety-annotations]] · [[project-trust-gate]] · [[tool-only-isolation]] · [[extension-event-hooks]] · [[tool-error-as-result]] · [[tool-result-rewriting]] · [[nested-tool-calls]] · [[code-mode]] · [[parallel-tool-execution]] · [[no-permission-prompts]] · [[no-sandbox]] · [[no-plan-mode]]
+[[tool-safety-annotations]] · [[project-trust-gate]] · [[tool-only-isolation]] · [[extension-event-hooks]] · [[tool-error-as-result]] · [[tool-result-rewriting]] · [[nested-tool-calls]] · [[code-mode]] · [[parallel-tool-execution]] · [[no-permission-prompts]] · [[no-sandbox]] · [[no-plan-mode]] · [[permission-ruleset]] · [[shell-command-permission-parsing]]

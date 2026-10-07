@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [usage-cost-accounting]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom**
 - Reasoning tokens were counted twice (#3581).
@@ -22,6 +22,8 @@ harnesses: [pi]
 - `fc3cbedc6` 2026-04-29 reads `prompt_cache_hit_tokens` (#3880). `d3ab2af96` 2026-08-16 reads top-level `cached_tokens` (#8075). Chain at `packages/ai/src/api/openai-completions.ts:1531-1533`. Input = `max(0, prompt − read − write)` (`:1546-1559`).
 - Image usage: `cacheRead = cached − cacheWrite` when OpenRouter reports `cache_write_tokens` (`packages/ai/src/api/openrouter-images.ts:167-198`).
 
+**Fix · [[opencode]]** `c8bda598f5` 2025-11-12: OpenRouter cache cost double-charged (OpenAI-style input already includes cache). `72c77d0e7b` 2026-03-29: the AI SDK v6 upgrade changed Anthropic/Bedrock input semantics → double counting. `280eb16e77` 2026-04-04: reasoning tokens counted twice in output (`packages/opencode/src/session/session.ts:338-371`).
+
 **Lesson** Before costing, normalize every provider into one disjoint (input, cacheRead, cacheWrite, output⊇reasoning) partition, following the documented spec rather than one observation.
 
-Related: [[usage-cost-accounting]] · [[streamed-usage-misread]] · [[usage-priced-at-wrong-rate]] · [[pi--usage-cost-accounting|pi]]
+Related: [[usage-cost-accounting]] · [[streamed-usage-misread]] · [[usage-priced-at-wrong-rate]] · [[pi--usage-cost-accounting|pi]] · [[opencode--usage-cost-accounting|opencode]]

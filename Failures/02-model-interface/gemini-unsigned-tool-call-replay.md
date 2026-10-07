@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [cross-provider-handoff, signed-reasoning-replay]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — Gemini 3 rejected histories that contained function calls without a `thoughtSignature`, for example after a Claude→Gemini switch. Each workaround caused a new problem: text conversion lost structured context and invited mimicry, and the sentinel was rejected by Vertex.
 
@@ -19,6 +19,8 @@ Follow-ups in the same arc:
 - `cbaca6038` (2026-08-03), #7494: keep Gemini ≥3 tool-call ids → [[tool-call-id-requirement-drift]].
 - `6138f5a07` (2026-07-31), #7362: keep signed empty parts → [[signed-empty-reasoning-dropped]].
 
+**Fix · [[opencode]]** `61e7cdfbff` 2026-05-23: Vertex thought signatures needed a `@ai-sdk/google-vertex` bump. v2 Gemini lowering replays `thoughtSignature` on reasoning and on each tool call (`packages/llm/src/protocols/gemini.ts:193-202,238-240`).
+
 **Lesson** — Signed-reasoning protocols make history non-portable. Each cross-model strategy (text, note, sentinel) failed on some backend. Turning calls into text "lobotomizes" the context, and vendor sentinels may not carry over to sibling endpoints.
 
-Related: [[cross-provider-handoff]] · [[signed-reasoning-replay]] · [[thinking-tag-mimicry]] · [[foreign-reasoning-signature-replayed]] · [[pi--signed-reasoning-replay|pi]]
+Related: [[cross-provider-handoff]] · [[signed-reasoning-replay]] · [[thinking-tag-mimicry]] · [[foreign-reasoning-signature-replayed]] · [[pi--signed-reasoning-replay|pi]] · [[opencode--signed-reasoning-replay|opencode]]

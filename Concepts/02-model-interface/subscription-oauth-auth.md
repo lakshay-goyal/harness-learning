@@ -2,8 +2,8 @@
 type: concept
 stage: model-interface
 tier: candidate
-aliases: [/login, OAuthAuth, lazyOAuth, refreshStoredOAuthCredential, isSubscription, subscription-oauth-login, loopback-oauth-with-paste-fallback, device-code-oauth, locked-oauth-refresh, non-cancellable-token-rotation, minted-short-lived-api-key, workload-identity-federation, credential-file-locking]
-harnesses: [pi]
+aliases: [/login, OAuthAuth, lazyOAuth, refreshStoredOAuthCredential, isSubscription, subscription-oauth-login, loopback-oauth-with-paste-fallback, device-code-oauth, locked-oauth-refresh, non-cancellable-token-rotation, minted-short-lived-api-key, workload-identity-federation, credential-file-locking, OAUTH_POLLING_SAFETY_MARGIN_MS, CodexAuthPlugin, opencode-anthropic-auth]
+harnesses: [pi, opencode]
 ---
 Log in with a consumer subscription or an org identity and use the resulting token as the model API credential. Login uses a PKCE loopback callback with a paste fallback, or a device code. Refresh is proactive, locked across processes, and double-checked. Rotated refresh tokens are always persisted.
 
@@ -46,11 +46,14 @@ Log in with a consumer subscription or an org identity and use the resulting tok
 - **Identity**
   - Plain OAuth.
   - Impersonate the vendor's first-party client (see [[provider-identity-shim]]).
+- **Vendor scope**: ChatGPT, Copilot, GitLab, xAI only; Claude subscription removed after a legal request (opencode 1.3.0, `1ac1a0287c`).
 
 ## Implementations
 - [[pi--subscription-oauth-auth|pi]] — pi-ai `OAuthAuth` and `lazyOAuth`, with flows for Anthropic, Codex, ChatGPT, Copilot, OpenRouter, xAI, Kimi, Meta and Radius. `resolve.ts` does the locked refresh. Coding-agent `AuthStorage` is `auth.json` with proper-lockfile.
+- [[opencode--subscription-oauth-auth|opencode]] — built-in Codex (port 1455), Copilot, GitLab, xAI device code; no Claude Pro/Max since 2026-03.
 
 ## Failures
+- [[vendor-prompt-copy-legal-exposure]]
 - [[oauth-refresh-token-rotation-lost]]
 - [[credential-expires-mid-run]]
 - [[credential-file-lock-contention]]

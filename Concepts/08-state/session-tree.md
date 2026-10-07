@@ -21,17 +21,25 @@ Persistent conversation log as an append-only file of typed entries linked by `i
 - **Write path**: sync append per entry, no fsync (pi) vs fsync / WAL / commit markers (durable).
 - **Torn tail**: skip malformed lines + append `\n` on load (pi) vs truncate (removed harness) vs commit-marker recovery (durable JSONL).
 - **What enters context**: `custom` (extension state, not in context) vs `custom_message` (in context) entry types.
+- **No tree at all**: linear message/part rows in one global SQLite database written through event projectors; rewinds are soft revert markers committed on the next prompt, branches are row-copy forks (opencode, not an implementation of this concept) → [[event-sourced-session-store]], [[workspace-snapshots]], [[opencode--session-fork|opencode fork]].
 
 ## Implementations
 - [[pi--session-tree|pi]] — `~/.pi/agent/sessions/--<cwd>--/<ts>_<uuidv7>.jsonl`; header v3 + typed entries; leaf = last entry; deferred `wx` create at first user message; `\n` torn-tail repair.
 
 ## Failures
+- [[repeated-compaction-drops-kept-messages]]
+- [[fork-boundary-loss]]
+- [[session-switch-leaves-dangling-tool-calls]]
 - [[tool-result-persisted-before-tool-call]]
 - [[torn-log-tail-fuses-next-entry]]
 - [[session-lost-before-first-response]]
 - [[session-config-not-restored-on-resume]]
 - [[quadratic-long-session-operations]]
 - [[time-ordered-id-prefix-collision]]
+
+## Tradeoffs
+- [[undo-vs-none]]
+- [[session-store-format]]
 
 ## Related
 [[session-fork]] · [[context-projection]] · [[context-edit-overlay]] · [[partial-message-persistence]] · [[session-migration]] · [[branch-scoped-extension-state]] · [[branch-summary]] · [[auto-compaction]] · [[session-export-share]] · [[durable-execution]] · [[no-checkpoints-undo]]

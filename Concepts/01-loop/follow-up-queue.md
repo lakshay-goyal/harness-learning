@@ -2,8 +2,8 @@
 type: concept
 stage: loop
 tier: candidate
-aliases: ["followUp()", followUpMode, getFollowUpMessages, streamingBehavior followUp, deliverAs nextTurn, whenBusy followUp, final boundary]
-harnesses: [pi]
+aliases: ["followUp()", followUpMode, getFollowUpMessages, streamingBehavior followUp, deliverAs nextTurn, whenBusy followUp, final boundary, "delivery: queue", pendingWake, promoteNextQueued]
+harnesses: [pi, opencode]
 ---
 Queue of messages delivered only when the agent would otherwise stop (no tool calls, no steering), starting another turn.
 
@@ -17,13 +17,18 @@ Queue of messages delivered only when the agent would otherwise stop (no tool ca
 - **Batching**: one-at-a-time (pi default) · all.
 - **Failure semantics**: dropped on failed run · kept queued until next submission (pi-durable).
 - **Variants**: attach to next user prompt (`deliverAs:"nextTurn"`, pi) · trigger a new run when idle.
+- **Durable FIFO**: one queued row promoted only when the session would otherwise go idle, each with a fresh step budget (opencode v2).
 
 ## Implementations
 - [[pi--follow-up-queue|pi]] — second `PendingMessageQueue` drained at natural stop + session-level `hasQueuedMessages()` re-check; durable follow-ups placed at `final` boundary.
+- [[opencode--follow-up-queue|opencode]] — legacy has none (newest message always wins); v2 promotes one `delivery: "queue"` row per outer-loop iteration.
 
 ## Failures
 - [[queued-messages-stranded-at-run-end]]
 - [[side-phase-input-lost]]
+
+## Tradeoffs
+- [[mid-run-user-input]]
 
 ## Related
 [[steering-queue]] · [[run-settlement]] · [[turn-loop]] · [[task-owned-subagent]]

@@ -2,8 +2,8 @@
 type: concept
 stage: messages
 tier: candidate
-aliases: ["<cwd>", "<skills>", sections]
-harnesses: [pi]
+aliases: ["<cwd>", "<skills>", sections, "<env>"]
+harnesses: [pi, opencode]
 ---
 Fence each prompt section and each injected document with XML tags (optionally with attributes like `path`) instead of markdown headings, so harness structure can't collide with content structure.
 
@@ -17,9 +17,11 @@ Fence each prompt section and each injected document with XML tags (optionally w
 - **XML tags per section + per-file tags with path attribute** (**pi chose**).
 - Escaping injected content (pi escapes skill metadata only; context file content unescaped).
 - Out-of-band channel for harness remarks (durable `<harness>` → [[harness-diagnostics-channel]]).
+- Mixed: XML for harness-generated blocks, plain-text headers for instruction files (opencode).
 
 ## Implementations
 - [[pi--xml-prompt-boundaries|pi]] — every non-preamble section `<name>…</name>`; `<project_instructions path>`; `<available_skills>`; `<summary>`.
+- [[opencode--xml-prompt-boundaries|opencode]] — XML for harness blocks (`<env>`, `<available_skills>`, `<mcp_instructions>`, `<diagnostics>`, `<system-reminder>`); instruction files only get a plain `Instructions from: <path>` header.
 
 ## Failures
 - [[markdown-boundaries-ingested-inconsistently]]

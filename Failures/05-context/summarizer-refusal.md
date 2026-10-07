@@ -1,7 +1,7 @@
 ---
 type: failure
-concepts: [split-turn-summary, structured-compaction-summary, transcript-serialization-for-summary]
-harnesses: [pi]
+concepts: [split-turn-summary, structured-compaction-summary, transcript-serialization-for-summary, auxiliary-model-calls]
+harnesses: [pi, opencode]
 ---
 **Symptom** — Claude Fable 5.1 refused to produce split-turn (turn-prefix) compaction summaries, so compaction of long single turns failed.
 
@@ -9,6 +9,8 @@ harnesses: [pi]
 
 **Fix · [[pi]]** — `d192bd6dc` 2026-09-22 (#9908, fixes #9652) "avoid Fable split-turn summary refusals": "Separate conversation content from instructions and replace prefix/suffix wording with continuation-oriented summarization guidance. Hopefully this avoids the refusals." Now `# Conversation` / `# Instructions` headings, "earlier context from an ongoing conversation. Later messages are stored separately and do not need to be reconstructed", "Create a concise checkpoint…", and "Only summarize information explicitly present above. Do not infer or recreate later messages." (`packages/coding-agent/src/core/compaction/compaction.ts:942-955`, `1096`). Full text in [[pi--split-turn-summary]].
 
+**Fix · [[opencode]]** — same class on the session-title side call: small title models replied that they could not generate a title. `dabb1aa719` 2025-11-07 "prevent title generation refusal responses" added "DO NOT SAY YOU CANNOT GENERATE A TITLE OR COMPLAIN ABOUT THE INPUT" (`packages/opencode/src/agent/prompt/title.txt:27`; file was `packages/opencode/src/session/prompt/title.txt` at the time). Legacy only; see [[opencode--auxiliary-model-calls]].
+
 **Lesson** — Summarization prompts are model-version-sensitive: phrase them as neutral checkpointing of what is present, separate data from instructions, avoid "reconstruct the hidden part" framing.
 
-Related: [[split-turn-summary]] · [[structured-compaction-summary]] · [[transcript-serialization-for-summary]] · [[domain-biased-summarizer-prompt]] · [[server-side-refusal-fallback]]
+Related: [[split-turn-summary]] · [[structured-compaction-summary]] · [[transcript-serialization-for-summary]] · [[domain-biased-summarizer-prompt]] · [[server-side-refusal-fallback]] · [[auxiliary-model-calls]]

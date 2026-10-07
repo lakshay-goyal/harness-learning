@@ -1,6 +1,6 @@
 ---
 type: absence
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 # no-sandbox
 
@@ -41,4 +41,11 @@ harnesses: [pi]
 - Isolation is pushed to the OS/VM layer. The architectural enabler is that every built-in tool does its I/O through swappable `ReadOperations` / `BashOperations` / `ExecutionEnv`.
 - Open hole (unverified): `examples/extensions/sandbox/` reads `<cwd>/.pi/sandbox.json` unconditionally (`sandbox/index.ts:80,94-102`), and `enabled` is overridable (`:108`). `sandbox.json` is not in the project-trust list (`packages/coding-agent/src/core/trust-manager.ts:30-39`), so a hostile repo could disable or widen the sandbox for a user who installed the example globally.
 
-Related: [[tool-only-isolation]] · [[pluggable-tool-backends]] · [[remote-execution-env]] · [[supply-chain-pinning]] · [[process-tree-kill]] · [[no-permission-prompts]] · [[no-cwd-confinement]] · [[no-prompt-injection-defense]] · [[Absences]]
+**opencode** ([[opencode]], `ecc4916b5a`): also absent, stated in the threat model.
+- `SECURITY.md:15-19` ("No Sandbox"): "OpenCode does **not** sandbox the agent. The permission system exists as a UX feature to help users stay aware of what actions the agent is taking … it is not designed to provide security isolation. If you need true isolation, run OpenCode inside a Docker container or VM."
+- `SECURITY.md:30` (Out of Scope): "Sandbox escapes: The permission system is not a sandbox". Threat model added `207a59aad4` (2026-01-14).
+- No seatbelt / bubblewrap / landlock code in `packages/opencode/src`, `packages/core/src` (grep). "Sandbox" in opencode code names a git worktree (`packages/opencode/src/worktree/index.ts:23-36`; `0b4af95223` 2026-01-03) → [[git-worktree-isolation]].
+- v2 keeps the stance: path checks run "without pretending path APIs provide a syscall-level sandbox" (`specs/v2/schema-changelog.md:270`).
+- Difference from pi: opencode ships an approval layer ([[permission-ruleset]]) but labels it UX, not security. pi ships neither → [[permission-prompts-vs-none]].
+
+Related: [[tool-only-isolation]] · [[pluggable-tool-backends]] · [[remote-execution-env]] · [[supply-chain-pinning]] · [[process-tree-kill]] · [[no-permission-prompts]] · [[no-cwd-confinement]] · [[no-prompt-injection-defense]] · [[opencode]] · [[Absences]]

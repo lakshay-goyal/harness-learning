@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [dynamic-tool-guidelines, guideline-softening, file-read-tool]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — Model read files with `cat`/`sed` via bash instead of the `read` tool — losing read's truncation/paging contract, image handling and file-op tracking (compaction only tracks `read`/`write`/`edit` calls, `compaction/utils.ts:30-61`).
 
@@ -14,3 +14,5 @@ harnesses: [pi]
 **Lesson** — Name the anti-pattern explicitly ("instead of cat or sed"); the anti-pattern naming survives, the "You must" intensity does not need to.
 
 Related: [[dynamic-tool-guidelines]] · [[guideline-softening]] · [[file-read-tool]] · [[file-op-tracking]] · [[pi--dynamic-tool-guidelines|pi]]
+
+**Fix · [[opencode]]** `281ce4c0c3` 2025-12-25 "prompt update to prevent searching via bash tool": "IMPORTANT: This tool is for terminal operations like git, npm, docker, etc. DO NOT use it for file operations (reading, writing, editing, searching, finding files)". HEAD shell description maps each habit to a tool: "Avoid using Bash with the `find`, `grep`, `cat`, `head`, `tail`, `sed`, `awk`, or `echo` commands…", "Read files: Use Read (NOT cat/head/tail)" (`packages/opencode/src/tool/shell/prompt.ts:100-103`); origin/v2 renders "Prefer dedicated tools over shell commands" only when `shell` is present (`origin/v2:packages/core/src/session/system-prompt.ts:11-15`). See [[opencode--tool-description-design]].

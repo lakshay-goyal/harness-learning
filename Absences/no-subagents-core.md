@@ -38,4 +38,6 @@ harnesses: [pi]
 - pi judges the cost of delegation (context lost at the boundary) to be higher than its benefit. Orchestration goes to the human (tabs/tmux) or to an extension that reuses the CLI as a subprocess, so process isolation is the context isolation.
 - "No subagents" is a product stance for the stable coding agent, not a runtime limit. Once crash-safe ownership existed ([[durable-execution]], [[crash-safe-tool-replay]]), subagents became cheap to express. Watch for promotion to stable (unverified intent; `5609b0d6c` experimental TUI on pi-durable).
 
+**opencode contrast**: implements it: `task` tool, child sessions, built-in `general` / `explore` subagents, experimental background mode, depth cap 1 (`packages/opencode/src/tool/task.ts:83-345`; `packages/opencode/src/agent/agent.ts:182-218`) — see [[task-owned-subagent]] / [[agent-profiles]] / [[builtin-subagents-vs-none]].
+
 Related: [[subagent-as-subprocess]] · [[task-owned-subagent]] · [[session-handoff]] · [[nested-tool-calls]] · [[replaceable-builtin-extension]] · [[no-plan-mode]] · [[Absences]]

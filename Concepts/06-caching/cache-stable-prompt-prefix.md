@@ -2,8 +2,8 @@
 type: concept
 stage: caching
 tier: candidate
-aliases: [no date in prompt, __pi_deferred_placeholder__, DEFERRED_TOOL_PLACEHOLDER, leadWithSystem, stable tool descriptions]
-harnesses: [pi]
+aliases: [no date in prompt, __pi_deferred_placeholder__, DEFERRED_TOOL_PLACEHOLDER, leadWithSystem, stable tool descriptions, Baseline System Context, "system rejoin", tool sort, "{{year}}"]
+harnesses: [pi, opencode]
 ---
 Keep everything before the conversation (system prompt, tool declarations, their order) byte-stable across turns, reloads and days: no timestamps, counts or server lists in it; preseed placeholders for features that would otherwise change hidden scaffolding.
 
@@ -19,14 +19,28 @@ Keep everything before the conversation (system prompt, tool declarations, their
 - **Preseed a never-callable placeholder tool** (**pi** Anthropic `__pi_deferred_placeholder__`, "measured: full miss without it").
 - **Normalize request order so a system message leads** (**pi-durable** `leadWithSystem`).
 - Determinism contract for renderers (pi-durable spec).
+- **Canonical tool order**: sort tool declarations by name at the provider boundary (opencode legacy `83bb216486`) → [[nondeterministic-tool-order-busts-cache]].
+- **Fixed number of system blocks**: re-join plugin-added system entries so exactly two cached blocks remain (opencode legacy).
+- **Narrow, don't remove**: date → year in a tool description (opencode websearch `{{year}}`); the legacy system `<env>` still carries a daily date.
+- **Frozen per-epoch baseline**: render the system context once, store it durably, reuse it verbatim until compaction; changes become appended chronological updates (opencode v2 Context Epoch) → [[transcript-carried-system-prompt]].
+- **History transforms must be stable per message**: no request-only rewrite of already-sent text (opencode removed its steering wrapper) → [[ephemeral-history-rewrite-busts-cache]].
 
 ## Implementations
 - [[pi--cache-stable-prompt-prefix|pi]] — date saga (3 steps), placeholder, stable meta-tool descriptions, leadWithSystem.
+- [[opencode--cache-stable-prompt-prefix|opencode]] — legacy: tools sorted by name, system re-joined to ≤ 2 blocks, de-volatilized tool descriptions, but daily date and per-step rebuilt task/MCP descriptions remain; v2: durable Baseline System Context per Context Epoch.
 
 ## Failures
+- [[duplicated-catalog-in-prompt]]
 - [[volatile-system-prompt-prefix]]
 - [[mcp-startup-blocks-and-description-churn]]
 - [[late-tool-change-rewrites-cache]]
+- [[nondeterministic-tool-order-busts-cache]]
+- [[ephemeral-history-rewrite-busts-cache]]
+- [[cache-breakpoints-miss-stable-segments]] (opencode: plugin system hook split the system prompt)
+
+## Tradeoffs
+- [[mid-run-user-input]]
+- [[prompt-cache-strategy]]
 
 ## Related
 [[transcript-carried-system-prompt]] · [[env-vars-as-context]] · [[minimal-system-prompt]] · [[no-date-in-prompt]] · [[deferred-tool-loading]] · [[mcp-integration]] · [[cache-miss-accounting]]

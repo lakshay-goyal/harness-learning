@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [context-overflow-detection]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** New backends reported context overflow in wording that no pattern matched. pi then treated it as a generic error and either got stuck repeating the request or surfaced a failure instead of compacting. Anthropic 413 `request_too_large` (byte size, e.g. images) left the session stuck repeating an oversized-image request (#2734).
 
@@ -21,6 +21,8 @@ harnesses: [pi]
 
 The file carries a "how to add a pattern" recipe for custom providers (`overflow.ts:122-131`). Custom providers should normalize to `context_length_exceeded` (`packages/coding-agent/docs/custom-provider.md:152-154`).
 
+**Fix · [[opencode]]** `be20f865ac` 2026-03-02 413 recovered via auto-compaction; `e718db624f` 2026-03-16 body `code: context_length_exceeded`; `56102ff642` 2026-03-18 vLLM; `adf178a6b9` 2026-07-07 z.ai; `2a097f3af7` 2026-07-19 seven more patterns (`packages/llm/src/provider-error.ts:4-32`).
+
 **Lesson** Byte-size limits count as context overflow too. Expect a regex catalogue to grow forever, and give custom providers a normalization target.
 
-Related: [[context-overflow-detection]] · [[rate-limit-misread-as-overflow]] · [[silent-overflow-undetected]] · [[overflow-recovery]] · [[pi--context-overflow-detection|pi]]
+Related: [[context-overflow-detection]] · [[rate-limit-misread-as-overflow]] · [[silent-overflow-undetected]] · [[overflow-recovery]] · [[pi--context-overflow-detection|pi]] · [[opencode--context-overflow-detection|opencode]]

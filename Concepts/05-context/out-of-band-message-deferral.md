@@ -25,5 +25,8 @@ Messages produced while a run is streaming but not addressed to the current turn
 ## Failures
 - [[side-channel-message-splits-tool-pair]]
 
+## Tradeoffs
+- [[mid-run-user-input]]
+
 ## Related
 [[steering-queue]] · [[follow-up-queue]] · [[transcript-replay-repair]] · [[message-conversion-layer]] · [[run-settlement]] · [[extension-event-hooks]]

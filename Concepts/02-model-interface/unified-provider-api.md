@@ -2,8 +2,8 @@
 type: concept
 stage: model-interface
 tier: candidate
-aliases: [pi-ai, "stream()", AssistantMessageEventStream, StreamFunction, AssistantMessageEvent, unified-assistant-event-stream, owned-sse-decoder, output-index-slotting, lazy-provider-loading, harness-native-wire-protocol, pi-messages, mapStopReason, rawStopReason]
-harnesses: [pi]
+aliases: [pi-ai, "stream()", AssistantMessageEventStream, StreamFunction, AssistantMessageEvent, unified-assistant-event-stream, owned-sse-decoder, output-index-slotting, lazy-provider-loading, harness-native-wire-protocol, pi-messages, mapStopReason, rawStopReason, LLMEvent, "@opencode-ai/llm", Route.make, OPENCODE_EXPERIMENTAL_NATIVE_LLM, ProviderTransform, patchedDependencies]
+harnesses: [pi, opencode]
 ---
 One provider-neutral streaming API and event protocol (start → text/thinking/toolcall start/delta/end → done|error, carrying a live partial message and a normalized stop reason) that sits on top of many vendor APIs, so the loop never sees vendor wire formats.
 
@@ -37,11 +37,17 @@ One provider-neutral streaming API and event protocol (start → text/thinking/t
 - **Extensibility**
   - Closed set of APIs.
   - Open `Api` string, so plugins can implement their own stream functions. *pi chose this.*
+- **Vendor SDK as substrate**: wrap Vercel AI SDK `streamText` and patch SDKs in place (`patches/*`) when they lag providers (opencode legacy) · own route-first protocols, Route = Protocol × Endpoint × Auth × Framing, one provider turn per call (opencode v2 `packages/llm`).
+- **Quirk placement**: one provider-transform middleware hotspot over the final prompt (opencode `ProviderTransform`, ~1900 lines).
+- **Unsupported routes**: fail loudly, never downgrade (opencode v2).
 
 ## Implementations
 - [[pi--unified-provider-api|pi]] — pi-ai `Models.stream/streamSimple` over 10 chat APIs and 42 providers. It has a typed event protocol, lazily loaded adapters, compat flags generated per model, and its own SSE/JSON parsing.
+- [[opencode--unified-provider-api|opencode]] — legacy AI SDK + `ProviderTransform` middleware + vendored SDK patches behind `LLMEvent`; v2 `packages/llm` own protocols, three routes accepted by the runner.
 
 ## Failures
+- [[cache-marker-namespace-mismatch]]
+- [[placeholder-tool-gets-called]]
 - [[stop-reason-mapping-gaps]]
 - [[streamed-tool-call-fragmentation]]
 - [[stream-delta-assembly-errors]]
@@ -54,6 +60,7 @@ One provider-neutral streaming API and event protocol (start → text/thinking/t
 - [[private-fields-break-duck-typed-streams]]
 - [[node-only-imports-break-browser-bundle]]
 - [[truncated-stream-accepted-as-success]]
+- [[sdk-enum-lags-provider-options]]
 
 ## Related
 [[errors-as-stream-events]] · [[cross-provider-handoff]] · [[streaming-json-repair]] · [[model-catalog]] · [[http-transport-hardening]] · [[custom-provider-registration]] · [[terminal-event-required]] · [[truncated-tool-call-guard]] · [[agent-event-stream]] · [[extension-event-hooks]] · [[partial-message-persistence]]

@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [shell-execution, tool-argument-repair]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — A model-chosen bash `timeout` that was huge (e.g. hours in seconds → > 2^31-1 ms) or non-positive/NaN fired **immediately**, killing the command at once with a misleading timeout.
 
@@ -15,3 +15,5 @@ harnesses: [pi]
 **Lesson** — Validate model-supplied numbers against the runtime's real limits and reject with an explanation rather than silently clamping.
 
 Related: [[shell-execution]] · [[tool-argument-repair]] · [[no-bash-default-timeout]] · [[pi--shell-execution|pi]]
+
+**Fix · [[opencode]]** `fc8db6cdf9` 2025-10-28 "ensure timeout param passed to bash tool is positive". Legacy has no upper bound at HEAD (`params.timeout ?? defaultTimeoutMs`, `packages/opencode/src/tool/shell.ts:618`, max dropped in `75a4dcbce8`); v2 bounds it in the schema with `MAX_TIMEOUT_MS = 10 min` (`packages/core/src/tool/bash.ts:20`). See [[opencode--shell-execution]].

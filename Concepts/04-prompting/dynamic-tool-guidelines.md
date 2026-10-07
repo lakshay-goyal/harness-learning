@@ -2,8 +2,8 @@
 type: concept
 stage: messages
 tier: candidate
-aliases: [promptSnippet, promptGuidelines, buildRules, "*ToolSystemPromptContribution", "<tools>", "<rules>"]
-harnesses: [pi]
+aliases: [promptSnippet, promptGuidelines, buildRules, "*ToolSystemPromptContribution", "<tools>", "<rules>", "${OPENCODE_TOOL_GUIDANCE}", SessionSystemPrompt.render]
+harnesses: [pi, opencode]
 ---
 Each declared tool contributes its own one-line prompt snippet and usage guidelines; the rules block is generated from the tools actually declared on the request, deduplicated.
 
@@ -18,15 +18,20 @@ Each declared tool contributes its own one-line prompt snippet and usage guideli
 - **Per-tool `promptSnippet` + `promptGuidelines`, opt-in listing, set-dedupe, recomputed per request from declared (non-hidden) tools** — **pi chose** (Mar 2026 →).
 - Fallback to API description when no snippet (pi tried; removed as duplicate bloat `7817e9b22`).
 - No tool list in prompt at all; rely on API declarations (partially: pi lists only tools with snippets).
+- Central renderer keyed on present tool names, run after per-model tool curation (opencode origin/v2) vs per-tool contributions (pi).
 
 ## Implementations
 - [[pi--dynamic-tool-guidelines|pi]] — `buildRules` order: shell rule → per-tool → extension → universal; hidden declarations excluded; skills hint reader-derived.
+- [[opencode--dynamic-tool-guidelines|opencode]] — origin/v2 only: shell / write / edit guidance lines rendered into `${OPENCODE_TOOL_GUIDANCE}` when those tools are present, after per-model tool curation; legacy hard-codes tool advice in each family prompt.
 
 ## Failures
 - [[prompt-names-unavailable-tools]]
 - [[shell-cat-instead-of-read-tool]]
 - [[skills-hidden-when-read-tool-absent]]
 - [[imperative-guideline-over-compliance]]
+
+## Tradeoffs
+- [[single-vs-per-model-system-prompt]]
 
 ## Related
 [[minimal-system-prompt]] · [[tool-description-design]] · [[plugin-tools]] · [[deferred-tool-loading]] · [[guideline-softening]] · [[transcript-carried-system-prompt]]

@@ -2,8 +2,8 @@
 type: concept
 stage: architecture
 tier: candidate
-aliases: ["--mode rpc", "RpcClient", "extension UI subprotocol", "strict-jsonl-framing", "stdout-protocol-guard", "takeOverStdout", "attachJsonlLineReader", "print mode", "-p"]
-harnesses: [pi]
+aliases: ["--mode rpc", "RpcClient", "extension UI subprotocol", "strict-jsonl-framing", "stdout-protocol-guard", "takeOverStdout", "attachJsonlLineReader", "print mode", "-p", opencode run, opencode acp, ACP (Agent Client Protocol), "--format json"]
+harnesses: [pi, opencode]
 ---
 Long-lived subprocess protocol (line-delimited JSON commands → responses + streamed events, plus a UI request/response sub-protocol) so non-JS hosts (IDEs, GUIs, other agents) can drive the harness.
 
@@ -22,13 +22,21 @@ Long-lived subprocess protocol (line-delimited JSON commands → responses + str
 - **UI**: no UI (print/json) vs forwarded dialog primitives with timeouts and stubbed rich components (pi RPC).
 - **Lifecycle**: close stdin = orderly shutdown (pi).
 - **One-shot variants**: print (final text, exit code) and JSON event stream ([[agent-event-stream]]).
+- **Headless entry points as HTTP clients of the harness's own server** (opencode `run`, ACP).
+- **Editor protocol**: ACP over stdio NDJSON, permission prompts mapped to `requestPermission`, fail closed when unsupported (opencode).
+- **Permission responder**: auto-reject every ask vs auto-approve non-denied (`--auto`) (opencode `run`); none (opencode GitHub run, [[approval-wait-without-responder]]).
 
 ## Implementations
 - [[pi--headless-rpc-mode|pi]] — `--mode rpc`: 33 typed commands, strict LF JSONL, stdout takeover with ENOBUFS/EAGAIN retry, extension-UI subprotocol, TS `RpcClient`.
+- [[opencode--headless-rpc-mode|opencode]] — `opencode run --format json` (auto-reject/`--auto` responder) and `opencode acp` (ACP NDJSON bridge to a local server); no bidirectional JSONL command protocol.
 
 ## Failures
 - [[headless-protocol-stream-corruption]]
 - [[quadratic-event-stream-output]]
+- [[approval-wait-without-responder]]
+
+## Tradeoffs
+- [[client-server-vs-single-process]]
 
 ## Related
-[[agent-event-stream]] · [[sdk-embedding]] · [[extension-ui-primitives]] · [[client-server-session-split]] · [[steering-queue]] · [[follow-up-queue]] · [[run-settlement]] · [[subagent-as-subprocess]]
+[[agent-event-stream]] · [[sdk-embedding]] · [[extension-ui-primitives]] · [[client-server-session-split]] · [[steering-queue]] · [[follow-up-queue]] · [[run-settlement]] · [[subagent-as-subprocess]] · [[ci-agent-integration]] · [[permission-ruleset]]

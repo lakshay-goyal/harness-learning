@@ -1,6 +1,6 @@
 ---
 type: absence
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 # no-codebase-index
 
@@ -32,4 +32,9 @@ No embeddings, RAG, vector store, repo map or tree-sitter symbol index.
 - Every session starts cold. Discovery cost is paid in tool calls and tokens each time, which is offset by prefix caching and compaction.
 - No index means no staleness, no background indexing process, and no extra security surface (an index can leak files to an embedding API).
 
-Related: [[search-tools]] · [[minimal-default-toolset]] · [[context-file-hierarchy]] · [[skill-progressive-disclosure]] · [[deferred-tool-loading]] · [[no-lsp]] · [[Absences]]
+**opencode** ([[opencode]], `ecc4916b5a`): also absent.
+- No embeddings or vector index in `packages/opencode/src` or `packages/core/src` (grep `embedding|vector`; the only "file search" is Copilot's hosted Responses tool, `packages/core/src/github-copilot/responses/tool/file-search.ts`).
+- Substitutes: ripgrep-backed `glob`/`grep` ([[search-tools]]), the `explore` subagent (read-only, own prompt; `packages/opencode/src/agent/agent.ts:196-218`), experimental LSP `workspaceSymbol` ([[lsp-diagnostics-feedback]]), and config `references` to external repos ([[project-references]]).
+- The repo-research `scout` agent with `repo_clone`/`repo_overview` lived 2026-05-09 → 2026-06-02 (`40d5ea1cf1` → `a639fe7a08`) → [[removed-builtin-tools]].
+
+Related: [[search-tools]] · [[minimal-default-toolset]] · [[context-file-hierarchy]] · [[skill-progressive-disclosure]] · [[deferred-tool-loading]] · [[no-lsp]] · [[opencode]] · [[Absences]]

@@ -31,4 +31,6 @@ harnesses: [pi]
 - Anything volatile in the system prompt costs a full cache miss every session/day. pi treats the date as volatile, so models must fall back on training-cutoff assumptions or ask bash.
 - Part of a broader rule ([[cache-stable-prompt-prefix]]): volatile MCP server lists moved to an appended `mcp_servers` section (#10212). Section changes are sent as mid-conversation system updates, not prefix rewrites (`9e05370b2`; [[transcript-carried-system-prompt]]).
 
+**opencode contrast**: does the opposite: `Today's date: ${new Date().toDateString()}` in the legacy `<env>` system block (`packages/opencode/src/session/system.ts:83`); v2 makes the date a context source whose change is appended as one mid-conversation line (`packages/core/src/system-context/builtins.ts:31-39`) — see [[transcript-carried-system-prompt]] / [[prompt-cache-strategy]].
+
 Related: [[cache-stable-prompt-prefix]] · [[minimal-system-prompt]] · [[env-vars-as-context]] · [[transcript-carried-system-prompt]] · [[system-prompt-override]] · [[Absences]]

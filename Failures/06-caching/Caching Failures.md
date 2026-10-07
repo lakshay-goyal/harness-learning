@@ -7,9 +7,12 @@ Failures whose primary concept is in [[Caching]].
 ## Prefix stability
 - [[volatile-system-prompt-prefix]] — date/time in the system prompt missed cache every reload/resume/day (3-step fix, then removed).
 - [[late-tool-change-rewrites-cache]] — tool add/remove/redefine (and durable storage order) rewrote the head → full cache miss.
+- [[nondeterministic-tool-order-busts-cache]] — tool declarations serialized in varying order between requests (opencode).
+- [[ephemeral-history-rewrite-busts-cache]] — request-only wrapper on queued user messages changed already-sent bytes (opencode).
 
 ## Markers, retention, routing
 - [[cache-breakpoints-miss-stable-segments]] — tool schemas, string user messages, OpenRouter tool results never cached.
+- [[cache-marker-namespace-mismatch]] — markers under the wrong SDK key/level silently disabled caching (opencode).
 - [[side-request-cache-pollution]] — compaction/branch summaries wrote cache under the session's identity.
 - [[cache-affinity-lost-across-reopen]] — durable conversations lost provider session id on reopen/reset/compaction.
 

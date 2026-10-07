@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [cross-provider-handoff, tool-call-id-normalization]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — OpenAI Responses returned 400s in several cases:
 - "function_call without required reasoning item" after switching models within OpenAI.
@@ -19,6 +19,8 @@ harnesses: [pi]
 - `02bd2d1c6` (2026-08-07): tool `namespace` is replayed only for the same model (`:316,325`).
 - Related: `2d27a2c72` handles errored turns ("reasoning without following item") → [[failed-turns-replayed]].
 
+**Fix · [[opencode]]** `8c2aec43b8` 2025-09-17 → reverted the same day `3c3d6b65c2` → re-landed `5d95846df1` 2025-09-26 after `e3e459fc50` persisted reasoning metadata ("Item of type 'reasoning' was provided without its required following item"). With `store:false` Responses item ids are stripped: `a740d2c667` 2026-04-29 Azure; `a86ecf3bba` 2026-06-08 moved before request signing (a fetch-hook rewrite broke Bedrock-mantle signatures); `f1407e41c4` 2026-06-30 stale Copilot ids (`packages/opencode/src/provider/transform.ts:501-516`). v2 re-hit it: `f254476043` 2026-06-26 stateless requests replayed item ids → 404 "item not found".
+
 **Lesson** — Provider item ids carry type and pairing provenance. Strip ids you did not mint for this exact model, and omit an optional id rather than coerce it.
 
-Related: [[cross-provider-handoff]] · [[tool-call-id-normalization]] · [[signed-reasoning-replay]] · [[cross-provider-tool-call-id-normalization]] · [[pi--cross-provider-handoff|pi]]
+Related: [[cross-provider-handoff]] · [[tool-call-id-normalization]] · [[signed-reasoning-replay]] · [[cross-provider-tool-call-id-normalization]] · [[pi--cross-provider-handoff|pi]] · [[opencode--signed-reasoning-replay|opencode]]

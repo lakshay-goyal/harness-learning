@@ -30,5 +30,8 @@ Delegation by spawning the same CLI headless (machine-readable event stream, no 
 - [[subagent-config-not-inherited]]
 - [[subagent-prompt-leaks-host-paths]]
 
+## Tradeoffs
+- [[builtin-subagents-vs-none]]
+
 ## Related
 [[task-owned-subagent]] · [[session-handoff]] · [[headless-rpc-mode]] · [[agent-event-stream]] · [[system-prompt-override]] · [[prompt-template-expansion]] · [[plugin-tools]] · [[abort-propagation]] · [[no-subagents-core]]

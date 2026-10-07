@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [max-tokens-context-clamp]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** The default output cap went wrong in turn, across 5+ commits:
 - Every model was clamped to 32000 output tokens (#4539).
@@ -24,6 +24,8 @@ harnesses: [pi]
 - `2e4ad6a09` 2026-07-06: floor of 16 (see [[endpoint-rejects-request-field]]).
 - `8973ae28a` 2026-07-09: estimate ignores usage older than a later-inserted prefix message (compaction summary) (`estimate.ts:71-95`) (#6464).
 
+**Fix · [[opencode]]** `870c38a6aa` 2026-01-29: a refactor hardcoded `maxOutputTokens = isCodex ? undefined : undefined`, so every model fell back to the provider default output limit. Cap is `min(limit.output, 32000)` since `469f667774` 2025-07-10 (`packages/opencode/src/provider/transform.ts:1481-1483`).
+
 **Lesson** Derive the output budget from remaining context, using a conservative token estimator, a safety margin and provider minimums. Default to the model cap for agents rather than the server default.
 
-Related: [[max-tokens-context-clamp]] · [[token-estimation]] · [[thinking-consumes-answer-budget]] · [[context-overflow-detection]] · [[pi--max-tokens-context-clamp|pi]]
+Related: [[max-tokens-context-clamp]] · [[token-estimation]] · [[thinking-consumes-answer-budget]] · [[context-overflow-detection]] · [[pi--max-tokens-context-clamp|pi]] · [[opencode--max-tokens-context-clamp|opencode]]

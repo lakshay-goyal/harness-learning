@@ -2,8 +2,8 @@
 type: concept
 stage: loop
 tier: candidate
-aliases: [runLoop, turn, turn_start, turn_end, agent-loop.ts, agent loop, inner loop, batch-early-termination, tool-presence-stop-promotion]
-harnesses: [pi]
+aliases: [runLoop, turn, turn_start, turn_end, agent-loop.ts, agent loop, inner loop, batch-early-termination, tool-presence-stop-promotion, SessionPrompt.runLoop, Session Drain, Provider Turn, SessionRunner.run, needsContinuation, isOrphanedInterruptedTool]
+harnesses: [pi, opencode]
 ---
 Inner agent loop: request → stream assistant → run its tool calls → append results → repeat while tool calls or injected messages exist; one iteration = one turn.
 
@@ -21,9 +21,14 @@ Inner agent loop: request → stream assistant → run its tool calls → append
 - **Failure exit**: error/aborted response = hard exit (pi) · auto-retry inside loop (pi moved retry outside, [[auto-retry-backoff]]).
 - **Re-entrancy**: reject `prompt()` while running, force mid-run input through queues (pi) · implicit queueing.
 - **State substrate**: in-memory messages array (pi stable) · chain of durable checkpointed tasks (pi-durable, [[durable-execution]]).
+- **State substrate (store-driven)**: no in-memory transcript; every step re-reads history from SQLite and re-derives the newest user / assistant / finished assistant (opencode legacy and v2).
+- **Continue condition (transcript-derived)**: continue while the last assistant has non-provider-executed tool parts or does not answer the newest user message, whatever the finish reason; `unknown` finish continues (opencode).
+- **Loop nesting (durable inbox)**: inner provider-turn loop + outer queue-promotion loop per Session Drain (opencode v2).
+- **Turn cap (opt-in wrap-up)**: per-agent step budget that forces a text-only final answer instead of erroring (opencode, [[step-budget-limit]]).
 
 ## Implementations
 - [[pi--turn-loop|pi]] — stateless `runLoop` (inner turn + outer follow-up loop), parallel tools, length-stop guard, no turn cap; durable variant = generation/tool task chain.
+- [[opencode--turn-loop|opencode]] — legacy `SessionPrompt.runLoop` re-reads SQLite each step, one AI SDK `streamText` per step; v2 Session Drain = inner provider-turn loop + outer queue promotion.
 
 ## Failures
 - [[reentrant-prompt-corrupts-state]]
@@ -31,6 +36,12 @@ Inner agent loop: request → stream assistant → run its tool calls → append
 - [[listeners-see-stale-agent-state]]
 - [[length-truncated-tool-calls-executed]]
 - [[proxied-stream-option-loss]]
+- [[stop-reason-mapping-gaps]] (02-model-interface)
+- [[rewrite-introduces-unrequested-limits]]
+- [[identical-tool-call-loop]]
+
+## Tradeoffs
+- [[turn-cap-vs-none]]
 
 ## Related
 [[run-settlement]] · [[steering-queue]] · [[follow-up-queue]] · [[turn-lifecycle-hooks]] · [[abort-propagation]] · [[truncated-tool-call-guard]] · [[parallel-tool-execution]] · [[tool-error-as-result]] · [[message-conversion-layer]] · [[agent-event-stream]] · [[no-turn-cap]]

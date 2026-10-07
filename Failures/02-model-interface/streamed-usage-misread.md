@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [usage-cost-accounting, errors-as-stream-events]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom**
 - Aborted Anthropic streams showed 0 tokens.
@@ -21,6 +21,8 @@ harnesses: [pi]
 - `0e6909f05` 2026-07-13: skip the block when `usage` is absent (`anthropic-messages.ts:826-853`).
 - `453541530` 2026-03-10: fall back to `choice.usage` (`packages/ai/src/api/openai-completions.ts:568-579`).
 
+**Fix · [[opencode]]** `fd6f7133c5` 2026-03-02: a Bus event shared a mutable part object, so token values were overwritten. `c6e6bdf59f` 2026-05-09: negative stored token counts crashed schema decode. `8bf288ecb1` 2026-09-20: TogetherAI streams reported no usage until an SDK bump.
+
 **Lesson** Treat streamed usage as partial cumulative patches. Capture it at the earliest event, so aborts and errors still account for spend.
 
-Related: [[usage-cost-accounting]] · [[errors-as-stream-events]] · [[usage-double-counting]] · [[pi--usage-cost-accounting|pi]]
+Related: [[usage-cost-accounting]] · [[errors-as-stream-events]] · [[usage-double-counting]] · [[pi--usage-cost-accounting|pi]] · [[opencode--usage-cost-accounting|opencode]]

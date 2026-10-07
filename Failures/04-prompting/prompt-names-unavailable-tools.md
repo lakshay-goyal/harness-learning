@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [dynamic-tool-guidelines, minimal-system-prompt]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — System-prompt rules referenced or implied tools the request didn't declare (or mis-described the toolset):
 - "Prefer grep/find/ls tools over bash for file exploration" emitted when *any* of grep/find/ls was present → model preferred unavailable ones (#5132).
@@ -23,3 +23,10 @@ harnesses: [pi]
 **Lesson** — Generate every tool-related sentence from the exact declarations sent on that request, and let each tool own its guidance; never infer permissions from tool absence.
 
 Related: [[dynamic-tool-guidelines]] · [[minimal-system-prompt]] · [[deferred-tool-loading]] · [[code-mode]] · [[skills-hidden-when-read-tool-absent]] · [[tool-loadout-stale-within-run]] · [[pi--dynamic-tool-guidelines|pi]]
+
+**Fix · [[opencode]]** — mostly unfixed at HEAD; prompt routing and tool/permission routing use different predicates:
+- `general` subagent (no own prompt) gets anthropic.txt "IMPORTANT: Always use the TodoWrite tool" (l.96) while its permission denies `todowrite` (`packages/opencode/src/agent/agent.ts:188`).
+- gpt-oss ids routed to gpt.txt "Always use apply_patch" (l.27) but the registry withholds `apply_patch` from `oss` ids; codex.txt "Use Read to view files, Edit to modify files" (l.12) for ids that never get Edit (`packages/opencode/src/tool/registry.ts:297-300` vs `packages/opencode/src/session/system.ts:28-51`) → [[model-specific-toolset]].
+- plan-mode.txt tells the plan agent to launch `general` agents and "at least 1 Plan agent"; the plan agent denies `task: general` and no "Plan" subagent exists (`packages/opencode/src/session/prompt/plan-mode.txt:26`, `:31` vs `packages/opencode/src/agent/agent.ts:165-166`) → [[plan-mode]].
+- Fixed: task.txt example agents mistaken for real ones → "NOTE: The agents below are fictional examples for illustration only" `790e9947bd` 2025-08-12, examples deleted `548648a3d9` 2026-05-16.
+- Direction on origin/v2: tool guidance rendered from the curated tool list (`origin/v2:packages/core/src/plugin/optimize.ts:78-84`) → [[dynamic-tool-guidelines]]. See [[opencode--per-model-system-prompt]].

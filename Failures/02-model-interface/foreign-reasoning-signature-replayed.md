@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [signed-reasoning-replay, cross-provider-handoff]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — Google returned 400s when history was replayed after a model or provider switch. Non-Claude Bedrock models rejected replayed reasoning.
 
@@ -15,6 +15,8 @@ harnesses: [pi]
 - `9a438465e` (2026-01-14), #727: non-Claude Bedrock models get `reasoningText{text}` without a signature (`packages/ai/src/api/bedrock-converse-stream.ts:1040-1068,894-904`).
 - Redacted thinking is kept only for the same model; otherwise it is dropped (`transform-messages.ts:104-106`).
 
+**Fix · [[opencode]]** `021e42c0bb` 2026-01-20: switching provider or account replayed reasoning signatures, item ids and encrypted content from the other model → 400. `toModelMessages` now drops provider metadata and turns reasoning into text when `providerID/model.id` differs (`packages/opencode/src/session/message-v2.ts:255,375-389`).
+
 **Lesson** — Opaque reasoning tokens are valid only for the exact (provider, api, model) that minted them. Validate their format before echoing them back.
 
-Related: [[signed-reasoning-replay]] · [[cross-provider-handoff]] · [[gemini-unsigned-tool-call-replay]] · [[model-relabel-breaks-same-model-check]] · [[pi--cross-provider-handoff|pi]]
+Related: [[signed-reasoning-replay]] · [[cross-provider-handoff]] · [[gemini-unsigned-tool-call-replay]] · [[model-relabel-breaks-same-model-check]] · [[pi--cross-provider-handoff|pi]] · [[opencode--cross-provider-handoff|opencode]]

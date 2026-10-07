@@ -2,8 +2,8 @@
 type: concept
 stage: context
 tier: candidate
-aliases: [AgentMessage, convertToLlm, CustomAgentMessages, "custom roles", bashExecution, compactionSummary, branchSummary]
-harnesses: [pi]
+aliases: [AgentMessage, convertToLlm, CustomAgentMessages, "custom roles", bashExecution, compactionSummary, branchSummary, toModelMessages, MessageV2, toLLMMessages, SessionMessage]
+harnesses: [pi, opencode]
 ---
 Harness keeps its own richer message union (shell runs, plugin notes, summaries, system deltas) and converts it to provider messages only at the request boundary, so storage/UI types never leak to the wire.
 
@@ -19,13 +19,17 @@ Harness keeps its own richer message union (shell runs, plugin notes, summaries,
 - Where custom roles land: pi maps all custom roles to `user` messages (shell output, plugin text, summaries); alternative = system messages or tool results.
 - Filtering vs placeholder: drop unconvertible messages (pi default converter keeps only system/user/assistant/toolResult) vs replace with text.
 - Wrapping converter for policy (pi `blockImages`, checked per request so mid-session toggles apply).
+- **Stored message + typed parts** (text/reasoning/tool state machine/file/step-start/step-finish/patch/compaction/subtask) rendered with placeholders at conversion: compaction part → "What did we do so far?", pruned tool output → "[Old tool result content cleared]", pending tool → "[Tool execution was interrupted]" (opencode legacy, two-stage via AI SDK `UIMessage`).
+- **Projected session message variants** lowered to a canonical provider-neutral request, with per-protocol lowering of chronological system updates (opencode v2: `user`, `synthetic`, `system`, `shell`, `assistant`, `compaction`; switch markers dropped).
 
 ## Implementations
 - [[pi--message-conversion-layer|pi]] — `AgentMessage` union + `convertToLlm` per request; 4 coding-agent custom roles all become user text; sdk wraps it with an image-blocking filter.
+- [[opencode--message-conversion-layer|opencode]] — legacy `MessageV2.toModelMessagesEffect` (stored parts → UI messages → ModelMessages, errored turns dropped, interrupted tools answered); v2 `toLLMMessages` over projected `SessionMessage` variants.
 
 ## Failures
 - [[context-handler-drops-system-state]] — a plugin transform sitting before conversion dropped the prompt/tool system messages.
 - [[side-channel-message-splits-tool-pair]] — custom messages appended mid-turn broke call/result adjacency.
+- [[post-compaction-transcript-ends-on-assistant]] — opencode: transcript left ending on the summary.
 
 ## Related
 [[context-transform-hook]] · [[cross-provider-handoff]] · [[transcript-replay-repair]] · [[transcript-carried-system-prompt]] · [[out-of-band-message-deferral]] · [[image-normalization]] · [[auto-compaction]] · [[branch-summary]] · [[context-projection]]

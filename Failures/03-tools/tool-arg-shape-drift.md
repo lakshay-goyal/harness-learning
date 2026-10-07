@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [tool-argument-repair, search-replace-edit]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — Calls with valid intent rejected by schema validation: `edits` sent as a JSON-encoded string (models then **abandoned the edit tool and fell back to `sed`/python** in bash); a single edit object instead of a one-element array; model-invented extra fields on edit items; `null` for omitted optional args; providers omitting tool inputs entirely; old-shape calls replayed from resumed sessions.
 
@@ -20,3 +20,5 @@ harnesses: [pi]
 **Lesson** — Validate leniently at the boundary: coerce near-misses into the canonical shape, because every rejection costs a turn and can push the model to a worse tool.
 
 Related: [[tool-arg-coercion-breaks-unions]] · [[tool-argument-repair]] · [[search-replace-edit]] · [[constrained-tool-sampling]] · [[pi--tool-argument-repair|pi]] · [[strict-tool-schema-rejections]]
+
+**Fix · [[opencode]]** — cosmetic schema limits rejected otherwise usable calls: question tool `label`/`header` `.max(30)` moved from the schema into the description, `397ee419d1` 2026-01-24 "make question validation more lax to avoid tool call failures"; `26008696e1` 2026-05-20 schema failures surfaced as friendly tool errors; GPT task-call failures around `session_id` → renamed `task_id` with a resume-only description, `64e2bf8bf0` 2026-02-05. Lesson: put soft limits in descriptions; hard-validate only what breaks execution. See [[opencode--tool-argument-repair]], [[ask-user-tool]].

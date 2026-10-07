@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [image-normalization, token-estimation]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — One bad image block in history bricked the session: every later request was rejected (HTTP 400 / size errors) and switching models didn't help. Variants:
 - Oversized images exceeded Anthropic's 5 MB / per-image dimension limits (the per-image cap drops from 8000px to 2000px once a request carries many images).
@@ -22,6 +22,8 @@ harnesses: [pi]
 - `d2931ad3d` 2026-09-30 (#10215) codemode `image()` validates base64 + magic signature (`packages/codemode/src/runtime/prelude-source.ts:392-427`).
 - `b30a6dd77` 2026-10-07 (#10527, HEAD) worker replies tagged `pi:image-resize-response`; untagged messages ignored (`packages/coding-agent/src/utils/image-resize-core.ts:21-29`).
 - Related: `39b1bf7b6` (#2734) Anthropic 413 `request_too_large` recognized as overflow (see [[overflow-message-not-recognized]]); `96f0edd02` (#4983) image tokens counted.
+
+**Fix · [[opencode]]** `9eefcd1b41` 2025-12-15 (#5521) reading an empty image file produced an Anthropic error on every request → replaced by a text error; `563177c6ac` 2026-05-01 (#25241) tool result with image + empty text caused API errors; `85ce6a5f95` 2026-05-10 (#26401) auto-resize to 2000×2000 / 5 MB with a JPEG quality ladder, un-resizable images dropped with "[N images omitted: could not be resized below the image size limit.]" (`packages/opencode/src/image/image.ts:10-14`; `packages/opencode/src/session/processor.ts:390-412`).
 
 **Lesson** — One bad content block persisted in history bricks the session: validate and normalize media at *every* door before it enters the transcript, and tag cross-thread protocol messages.
 

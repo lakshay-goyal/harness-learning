@@ -1,6 +1,6 @@
 ---
 type: absence
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 # no-prompt-injection-defense
 
@@ -38,4 +38,11 @@ Prompt injection is declared out of scope and unpreventable.
 - The honest position: the defense is the OS boundary. Any content the model reads is potentially adversarial, and pi does not pretend otherwise.
 - Users running pi on untrusted repos or with web/MCP tools must containerize.
 
-Related: [[project-trust-gate]] · [[context-file-hierarchy]] · [[xml-prompt-boundaries]] · [[tool-result-rewriting]] · [[tool-call-gate]] · [[no-sandbox]] · [[no-permission-prompts]] · [[no-web-tools]] · [[Absences]]
+**opencode** ([[opencode]], `ecc4916b5a`): also absent, implicitly.
+- No mention of prompt injection in `SECURITY.md`, `specs/` or source (grep `prompt.?injection`; the only "untrusted" hit is about inbox queue growth, `specs/v2/session.md:171`). Web and MCP output is not marked untrusted.
+- The threat model scopes out the obvious channels: "LLM provider data handling", "MCP server behavior: External MCP servers you configure are outside our trust boundary", "Malicious config files" (`SECURITY.md:31-33`).
+- Project `.opencode/tool(s)/*.ts` and plugins execute on open without a prompt (`packages/opencode/src/tool/registry.ts:183-197`) → [[no-project-trust-gate]].
+- Partial mitigations that are UX, not defense: `external_directory` ask ([[workspace-boundary-check]]) and `*.env: ask` read rules (`packages/opencode/src/agent/agent.ts:129-134`).
+- The one structural mitigation is in v2 compaction: the checkpoint is wrapped as "historical context, not as new instructions" (`packages/core/src/session/runner/to-llm-message.ts:147-165`). It guards against summary text being obeyed, not against hostile content.
+
+Related: [[project-trust-gate]] · [[context-file-hierarchy]] · [[xml-prompt-boundaries]] · [[tool-result-rewriting]] · [[tool-call-gate]] · [[no-sandbox]] · [[no-permission-prompts]] · [[no-web-tools]] · [[opencode]] · [[Absences]]

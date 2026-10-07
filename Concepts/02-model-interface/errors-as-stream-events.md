@@ -2,8 +2,8 @@
 type: concept
 stage: failure-handling
 tier: candidate
-aliases: ["stopReason error/aborted", errorMessage, errors-as-stream-terminal-events, provider-error-normalization, stable-error-categories, provider-failure-diagnostics, scratch-field-stripping, normalizeProviderError, formatProviderError, lazyStream]
-harnesses: [pi]
+aliases: ["stopReason error/aborted", errorMessage, errors-as-stream-terminal-events, provider-error-normalization, stable-error-categories, provider-failure-diagnostics, scratch-field-stripping, normalizeProviderError, formatProviderError, lazyStream, MessageV2.fromError, parseStreamError, ResponseStreamError, ContentFilterError]
+harnesses: [pi, opencode]
 ---
 Once a model stream has been handed back, failures never throw. The stream ends with a terminal error event whose message keeps the partial content, partial usage, a stable error text and structured diagnostics, and contains no streaming scratch state.
 
@@ -38,9 +38,12 @@ Once a model stream has been handed back, failures never throw. The stream ends 
 - **Diagnostics channel**
   - Rely only on `errorMessage` text.
   - Attach a redacted structured `diagnostics[]` array: status, code, request id, transport phase, input transformations.
+- **Error storage**: typed error object stored on the assistant message (`AbortedError`, `APIError`, `ContextOverflowError`, `ContentFilterError`…) (opencode legacy) · typed `reason` classes decided at the HTTP boundary (opencode v2).
+- **Content-filter finish**: surfaced as a visible error rather than a silent empty stop (opencode `e2527db3c7`).
 
 ## Implementations
 - [[pi--errors-as-stream-events|pi]] — the StreamFunction contract plus `lazyStream`. Adapter catch blocks strip scratch fields and set aborted/error with the partial message. Errors go through `normalizeProviderError`/`formatProviderError` (4000-char body cap) and diagnostics records.
+- [[opencode--errors-as-stream-events|opencode]] — `MessageV2.fromError` maps SDK/fetch errors to typed session errors; `parseStreamError` reads mid-stream codes; v2 typed reasons.
 
 ## Failures
 - [[provider-error-body-hidden]]

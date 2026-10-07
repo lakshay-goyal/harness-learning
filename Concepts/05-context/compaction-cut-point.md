@@ -2,8 +2,8 @@
 type: concept
 stage: compaction
 tier: candidate
-aliases: [findCutPoint, findProjectedCutPoint, isCutPointMessage, isTurnStartMessage, selectCut, firstKeptEntryId, "keep-recent window"]
-harnesses: [pi]
+aliases: [findCutPoint, findProjectedCutPoint, isCutPointMessage, isTurnStartMessage, selectCut, firstKeptEntryId, "keep-recent window", tail_start_id, preserve_recent_tokens, tail_turns, splitTurn, MIN_PRESERVE_RECENT_TOKENS, DEFAULT_KEEP_TOKENS]
+harnesses: [pi, opencode]
 ---
 Rules choosing where history splits into "summarize" vs "keep verbatim": walk back from newest until the keep budget is reached, then snap to a legal boundary that never separates a tool call from its result.
 
@@ -21,14 +21,25 @@ Rules choosing where history splits into "summarize" vs "keep verbatim": walk ba
 - **Metadata adjacency**: pull cut back over context-invisible entries (model change, labels) ✔ pi.
 - **Abandoned retry attempts**: advance cut past a suffix that is only an omitted failed attempt so recovery can summarize it ✔ pi (context-edit aware).
 - Operate on raw log vs on the **projected context** (after edits/omissions) ✔ pi (`findProjectedCutPoint`; raw `findCutPoint` still exported).
+- **Budget scaled to the window**: `clamp(25% of usable, 2k, 15k)` unless configured (opencode legacy) vs fixed (pi 20000, opencode v2 8000).
+- **Turn cap**: optional `tail_turns` limits kept user turns, 0 disables the tail (opencode legacy; default 2 removed `dab2637217`).
+- **Split prefix folded into the head summary** rather than summarized separately (opencode legacy `splitTurn`).
+- **Kept tail as serialized text, not provider messages**: legality only matters at line level and no signed/encrypted reasoning crosses the boundary (opencode v2 `<recent-context>`).
+- **Boundary persisted by id** on the compaction marker (`tail_start_id`, opencode legacy) — must be remapped on fork ([[fork-boundary-loss]]).
 
 ## Implementations
 - [[pi--compaction-cut-point|pi]] — backward token walk over projected entries, legal cut = non-toolResult message entry, fallback to last cut point, split-turn detection, recovery-omission suffix advance; durable `selectCut` with interleaved-result rule.
+- [[opencode--compaction-cut-point|opencode]] — legacy: newest-first whole user turns within a window-scaled budget, first non-fitting turn split by suffix, tail start persisted as `tail_start_id`; v2: newest serialized lines within 8k tokens kept as `recent` text.
 
 ## Failures
 - [[oversized-trailing-tool-results-uncompactable]]
 - [[estimator-undercounts-context]]
 - [[repeated-compaction-drops-kept-messages]]
+- [[reordered-context-misidentifies-latest-turn]] (08-state)
+- Cross-group: [[fork-boundary-loss]] (08-state)
+
+## Tradeoffs
+- [[compaction-design]]
 
 ## Related
 [[auto-compaction]] · [[split-turn-summary]] · [[token-estimation]] · [[context-projection]] · [[context-edit-overlay]] · [[transcript-replay-repair]] · [[overflow-recovery]]

@@ -21,15 +21,20 @@ Every agent-loop step (model request, tool call, compaction) is a persisted task
 - **Missing code on reopen**: task stays pending `blocked` (missing_task / task_too_old / migration_failed), never terminalized.
 - **Ownership**: structured concurrency tree, abort flows down ([[task-owned-subagent]]).
 - **Writers**: single process owns storage (no cross-process locking; external `proper-lockfile`).
+- **Deliberately no execution identity**: durable events + projections only; crash recovery reasons from prompts, projected history, provider attempts and tool state, a `running` tool is never replayed, and post-crash continuation is deferred — "Do not introduce an enclosing durable execution identity solely to group these facts" (opencode v2, `specs/v2/todo.md:73-74`; not an implementation of this concept) → [[event-sourced-session-store]].
 
 ## Implementations
 - [[pi--durable-execution|pi]] — `@earendil-works/pi-durable` (experimental, v1.0.4): tasks `pi.generation`/`pi.tool`/`pi.compaction`, Memory/SQLite/JSONL/DO storage, poisoning, blocked tasks; consumed only by experimental TUI/session workers.
 
 ## Failures
+- [[unbounded-subscriber-buffering]]
 - [[storage-queue-close-races]]
 - [[per-request-projection-rescans-log]]
 - [[output-window-depends-on-commit-cadence]]
 - [[settled-tool-vanishes-before-placement]]
+
+## Tradeoffs
+- [[session-store-format]]
 
 ## Related
 [[crash-safe-tool-replay]] · [[replicated-state]] · [[context-projection]] · [[partial-message-persistence]] · [[session-tree]] · [[task-owned-subagent]] · [[steering-queue]] · [[background-compaction]] · [[deferred-responses]] · [[client-server-session-split]] · [[remote-execution-env]] · [[spec-driven-agentic-development]]

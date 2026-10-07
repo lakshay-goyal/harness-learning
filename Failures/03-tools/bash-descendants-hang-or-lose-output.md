@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [shell-execution, process-tree-kill]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — Four faces of one problem:
 - Aborting `sleep 4 && echo hello` left it running ("echo hello" appeared after abort).
@@ -21,3 +21,5 @@ harnesses: [pi]
 **Lesson** — Track exit, pipe drain and descendant lifetime separately: kill the process group, resolve on exit + idle pipes, and clean up detached children at shutdown.
 
 Related: [[shell-execution]] · [[process-tree-kill]] · [[windows-process-tree-and-shells]] · [[pi--shell-execution|pi]] · [[no-background-bash]]
+
+**Fix · [[opencode]]** `029612d8d5` 2025-08-31 "ensure shell cmds can be properly aborted (#2339)": spawn `detached`, kill the process group; `fc18fc8a08` 2025-10-16 "bash hangs & orphans (#3225)": SIGTERM then SIGKILL after 200 ms. HEAD: `detached: process.platform !== "win32"` and `kill({forceKillAfter: "3 seconds"})` on timeout/abort (`packages/opencode/src/tool/shell.ts:308,550-554`). Stdin hangs are a separate face → [[shell-waits-on-inherited-stdin]]. See [[opencode--shell-execution]].

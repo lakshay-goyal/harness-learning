@@ -2,8 +2,8 @@
 type: concept
 stage: permissions
 tier: candidate
-aliases: [sshArguments, scanHostKey, acceptHostKey, forgetHostKey, HostKeyChangedError, HostKeyUnknownError, StrictHostKeyChecking, Unix socket 0600, Bearer relay token, internal_error, pinned-host-key-ssh, transport-layer-auth, error-sanitization-at-boundary]
-harnesses: [pi]
+aliases: [sshArguments, scanHostKey, acceptHostKey, forgetHostKey, HostKeyChangedError, HostKeyUnknownError, StrictHostKeyChecking, Unix socket 0600, Bearer relay token, internal_error, pinned-host-key-ssh, transport-layer-auth, error-sanitization-at-boundary, OPENCODE_SERVER_PASSWORD, auth_token query, PTY connect ticket]
+harnesses: [pi, opencode]
 ---
 When the agent reaches across a process/network boundary (remote execution host, session server, relay), authenticate at the transport (app-owned pinned host keys, filesystem-permissioned sockets, bearer tokens on the upgrade), disable every implicit channel (agent/X11/port forwarding, connection sharing, env forwarding), and let only stable error codes — never internals — cross back.
 
@@ -20,9 +20,12 @@ When the agent reaches across a process/network boundary (remote execution host,
 - **Where auth lives**: framed auth message (pi protocol v2, removed) vs transport (0600 Unix socket; relay `Authorization: Bearer` on WebSocket upgrade) — pi now.
 - **Error boundary**: pass-through vs allow-listed codes, everything else `internal_error` (pi server).
 - **E2E encryption** above TLS for relays — absent in pi (gateway sees traffic).
+- **Unauthenticated by default**: loopback bind + printed warning, HTTP Basic only when a password is set (opencode `serve`); declared the user's responsibility (`SECURITY.md:21-29`).
+- **Browser clients**: CORS allowlist incl. the vendor web app origin; WebSockets checked by Origin/Host + connect tickets (opencode).
 
 ## Implementations
 - [[pi--remote-host-trust|pi]] — pi-env `sshArguments` (BatchMode, ClearAllForwardings, StrictHostKeyChecking=yes, app known_hosts), explicit `scanHostKey`/`acceptHostKey`, `HostKeyChangedError`; server Unix socket 0600 + atomic bind; Radius relay bearer; `internal_error` sanitization.
+- [[opencode--remote-host-trust|opencode]] — optional Basic auth (`OPENCODE_SERVER_PASSWORD`), `127.0.0.1` default, CORS allowlist, PTY tickets; remote workspaces proxied with no host pinning.
 
 ## Failures
 - [[internal-errors-leak-over-wire]]
@@ -30,4 +33,4 @@ When the agent reaches across a process/network boundary (remote execution host,
 - [[remote-binary-trusted-by-version-name]]
 
 ## Related
-[[remote-execution-env]] · [[client-server-session-split]] · [[tool-only-isolation]] · [[supply-chain-pinning]] · [[process-tree-kill]]
+[[remote-execution-env]] · [[client-server-session-split]] · [[tool-only-isolation]] · [[supply-chain-pinning]] · [[process-tree-kill]] · [[location-scoped-runtime]]

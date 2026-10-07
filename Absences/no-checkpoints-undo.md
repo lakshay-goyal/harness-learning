@@ -29,4 +29,6 @@ No file checkpoints, no `/undo` of file changes, no git auto-commit.
 - Conversation state and file state are decoupled. Rewinding the tree (`/tree`) leaves edits on disk, so the model's context can disagree with the working tree after navigation. [[branch-summary]] partially compensates for conversation context only.
 - Recovery is delegated to git and the user, consistent with "fast iteration requires trust" (`b172beb92`).
 
+**opencode contrast**: implements it: shadow-git snapshot per step, `patch` parts, `/undo` + `unrevert` (`packages/opencode/src/snapshot/index.ts:23-24,280-347`; `packages/opencode/src/session/revert.ts:38-124`) — see [[workspace-snapshots]] / [[undo-vs-none]].
+
 Related: [[session-tree]] · [[session-fork]] · [[branch-summary]] · [[extension-event-hooks]] · [[no-permission-prompts]] · [[no-sandbox]] · [[Absences]]

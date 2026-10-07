@@ -32,4 +32,6 @@ harnesses: [pi]
 - The prompt-only "read-only" rules were deleted. A mode must be enforced by the toolset or a gate, not by prose → [[minimal-default-toolset]], [[dynamic-tool-guidelines]].
 - Plans live in files (PLAN.md), which survive compaction and session switches. See [[no-todo-tool]].
 
+**opencode contrast**: implements it: `plan` agent (edits denied except `.opencode/plans/*.md`) + `plan_exit` tool; the model-driven `plan_enter` was disabled (`packages/opencode/src/agent/agent.ts:156-180`; `fa559b0385`) — see [[plan-mode]] / [[plan-mode-vs-none]] / [[no-model-initiated-plan-entry]].
+
 Related: [[tool-call-gate]] · [[extension-event-hooks]] · [[minimal-default-toolset]] · [[replaceable-builtin-extension]] · [[no-subagents-core]] · [[no-permission-prompts]] · [[Absences]]

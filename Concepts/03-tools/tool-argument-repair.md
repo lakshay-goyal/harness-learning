@@ -2,8 +2,8 @@
 type: concept
 stage: tool-design
 tier: candidate
-aliases: [prepareArguments, prepareEditArguments, model-arg-repair, lenient-tool-arg-validation, validateToolArguments coercion]
-harnesses: [pi]
+aliases: [prepareArguments, prepareEditArguments, model-arg-repair, lenient-tool-arg-validation, validateToolArguments coercion, experimental_repairToolCall, "invalid tool", InvalidArgumentsError]
+harnesses: [pi, opencode]
 ---
 A pre-validation shim that coerces common malformed argument shapes (stringified JSON, single object for array, legacy field names, numeric strings, stray nulls) into the canonical schema instead of rejecting the call.
 
@@ -20,9 +20,12 @@ A pre-validation shim that coerces common malformed argument shapes (stringified
 - Upstream prevention via constrained decoding → [[constrained-tool-sampling]]; downstream salvage of malformed streamed JSON → [[streaming-json-repair]].
 - Reject out-of-range values with explanation rather than silently clamping (pi bash timeout).
 - Mutate args in place vs repair on a copy (pi coding-agent mutates; pi durable copies).
+- Name-only repair via the SDK repair hook + a never-offered sink tool (opencode).
+- Move soft limits from the schema into the description (opencode question tool).
 
 ## Implementations
 - [[pi--tool-argument-repair|pi]] — `prepareArguments` hook (edit: JSON-string edits, single object, legacy oldText/newText) + pi-ai `validateToolArguments` coercion.
+- [[opencode--tool-argument-repair|opencode]] — name repair only (lowercase match, else rewrite to a hidden `invalid` sink tool); schema failures → "Please rewrite the input so it satisfies the expected schema"; leniency by loosening schemas.
 
 ## Failures
 - [[tool-arg-shape-drift]]

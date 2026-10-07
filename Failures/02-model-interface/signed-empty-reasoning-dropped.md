@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [signed-reasoning-replay]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — Three variants, all with the same cause:
 - Newer Claude models errored on replay when a thinking block with empty text but a valid signature (`display:"omitted"`) had been dropped.
@@ -16,6 +16,8 @@ harnesses: [pi]
 - `6138f5a07` (2026-07-31), #7362: Google drops empty text and thinking parts only when they are unsigned (`packages/ai/src/api/google-shared.ts:236-240,250-252`).
 - Shared handoff rule: same-model thinking with a signature is kept even when its text is empty (`packages/ai/src/api/transform-messages.ts:107-109`).
 
+**Fix · [[opencode]]** `233fc5b910` 2026-05-07: an empty text separator between signed Anthropic thinking blocks was filtered, shifting signed block positions → rejection; now replayed as a single space (`packages/opencode/src/session/message-v2.ts:272-289`). `42173bca4b` → `a763a14d44` 2026-06-02: same-day revert of a signed-thinking reorder fix.
+
 **Lesson** — The signature, not the text, is the replay payload. A block with empty visible text can carry required state.
 
-Related: [[signed-reasoning-replay]] · [[empty-signature-semantics-vary]] · [[opaque-reasoning-payload-lost]] · [[pi--signed-reasoning-replay|pi]]
+Related: [[signed-reasoning-replay]] · [[empty-signature-semantics-vary]] · [[opaque-reasoning-payload-lost]] · [[pi--signed-reasoning-replay|pi]] · [[opencode--signed-reasoning-replay|opencode]]

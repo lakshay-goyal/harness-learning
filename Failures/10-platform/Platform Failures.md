@@ -7,6 +7,7 @@ Failures whose primary concept is in [[Platform]].
 ## Plugin hooks
 - [[plugin-hook-wall-clock-timeout]] — hook timeouts killed hooks legitimately waiting on humans/LLMs.
 - [[unbounded-hook-continuation-loop]] — unconditional `continue:true` at the settle boundary loops forever (documented hazard).
+- [[dead-hook-in-public-api]] — opencode `permission.ask` hook still declared, never triggered since 2026-03.
 
 ## Plugin loading / distribution
 - [[stale-plugin-context-after-session-replacement]] — captured `ctx` silently targeted the old session after new/fork/switch/reload.
@@ -17,10 +18,12 @@ Failures whose primary concept is in [[Platform]].
 - [[reload-cannot-drain-in-flight-calls]] — "drain then swap" reload contract couldn't be honored.
 - [[plugin-tool-without-schema-breaks-requests]] — schema-less plugin tool broke every provider request.
 - [[plugin-shortcut-shadows-core-keys]] — plugin shortcuts captured submit/interrupt/exit.
+- [[tool-wrapper-accumulation]] — `Tool.define()` re-wrapped object-defined tools on every init.
 
 ## Headless / events / TUI / export
 - [[headless-protocol-stream-corruption]] — U+2028 splits, stray stdout writes, missing ids, backpressure loss broke RPC/JSON streams.
 - [[quadratic-event-stream-output]] — cumulative snapshots per delta made JSON output O(n²).
+- [[event-payload-aliases-mutable-state]] — bus events carried live part objects; later mutation changed published values.
 - [[full-redraw-replays-history]] — full redraws duplicated scrollback (Termux height toggles).
 - [[render-output-exceeds-string-limit]] — giant frames hit V8 max string length.
 - [[render-storm-during-streaming]] — per-event renders burned CPU and delayed input.
@@ -52,11 +55,13 @@ Failures whose primary concept is in [[Platform]].
 - [[eval-judges-readable-by-agent]] — agent could read judge modules via SSR caches.
 - [[conformance-suite-platform-timing]] — portable conformance cases timed out / leaked on some platforms.
 - [[telemetry-docs-outlive-code]] — docs advertise deleted telemetry schemas and a missing `/privacy` command.
+- [[flag-doc-drift]] — in-tree `AGENTS.md` says the umbrella experimental flag enables the native LLM runtime; the flag was split off and the guide not updated.
 
 ## Development process
 - [[shared-worktree-agents-clobber-each-other]] — parallel agent sessions in one checkout committed/stashed/reset each other's work.
 
 ## Cross-group failures touching platform concepts
+- [[approval-wait-without-responder]] · [[credentials-forwarded-to-execution-target]] (Safety) — headless/CI entry points without a permission responder; workspace adapters receive all credentials.
 - [[tool-result-hook-patches-lost]] (Tools) — multiple hook handlers overwrote each other.
 - [[side-door-input-bypasses-hooks]] (Safety) — RPC/custom-tool paths skipped extension hooks.
 - [[context-handler-drops-system-state]] (Context) — `context` hook dropped system prompt + tool declarations.

@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [unified-provider-api]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom**
 - `pi --no-tools` failed with a DashScope 400 `"[] is too short - 'tools'"` (#3649/#3650). LiteLLM and Anthropic proxies have the opposite rule: they require `tools` whenever history contains tool calls (#149).
@@ -22,6 +22,8 @@ harnesses: [pi]
 - `fe37e9f9b` 2026-08-25 silently dropped `tool_choice` with no tools. Reverted by `6b36eb592` 2026-08-26, which removed toolChoice from the compaction callers instead (#8607). At HEAD the completions adapter forwards `tool_choice` whenever requested (`openai-completions.ts:869-871`).
 - `15aa31350` 2026-05-05: Codex `instructions` defaults to "You are a helpful assistant." (`packages/ai/src/api/openai-codex-responses.ts:527-564`) (#4184).
 
+**Fix · [[opencode]]** `c285304acf` 2026-01-05 Anthropic empty messages and unsigned empty reasoning filtered (`packages/opencode/src/provider/transform.ts:168-195`); `4a2a046d79` 2026-03-12 Bedrock empty content blocks; `70a2e846cb` 2026-06-02 `@ai-sdk/google` patched to pop an empty trailing `contents` entry. Earlier attempts reverted: `d8a15e7bc9` → `d69366b00c` 2025-10-16; `1c59530115` 2025-10-15.
+
 **Lesson** Never send empty containers: normalize them to "absent", or to a literal placeholder where a field is required. Fix the caller rather than silently dropping its explicit intent in the adapter.
 
-Related: [[unified-provider-api]] · [[cross-provider-handoff]] · [[placeholder-text-misleads-model]] · [[endpoint-rejects-request-field]] · [[pi--unified-provider-api|pi]]
+Related: [[unified-provider-api]] · [[cross-provider-handoff]] · [[placeholder-text-misleads-model]] · [[endpoint-rejects-request-field]] · [[pi--unified-provider-api|pi]] · [[opencode--transcript-replay-repair|opencode]]

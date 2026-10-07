@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [thinking-level-abstraction, model-catalog]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 **Symptom** — Thinking was misconfigured on each new model release:
 - Opus 4.7 adaptive thinking was misconfigured, and Sonnet 4.6 had no adaptive mode or xhigh mapping.
@@ -28,6 +28,8 @@ harnesses: [pi]
 
 **Quirk (live divergence)** — Anthropic `mapThinkingLevelToEffort` silently maps xhigh/max to "high" when they are not in `thinkingLevelMap` (`anthropic-messages.ts:908-926`). Bedrock checks `supportsNativeXhighEffort` first (`bedrock-converse-stream.ts:780-828`). Custom models therefore behave differently on the two paths.
 
+**Fix · [[opencode]]** `554572bc39` 2026-01-04 main-model variant applied to the small model; `cc818f8032` 2026-03-22 Gemini `thinkingConfig` sent to non-reasoning models; 2026-05..07 per-family "align efforts/variants" commits `1cf8123bc6`, `e0396b809a`, `c36ab3f935`, `6f8e1dda15`, `a8062ea314`, `49d2dd8a38`. Effort tiers are gated by model release date (`packages/opencode/src/provider/transform.ts:589-592`).
+
 **Lesson** — Per-model reasoning capability belongs in generated catalog data. Adapters should read maps, not sniff ids. Duplicated tables drift.
 
-Related: [[thinking-level-abstraction]] · [[model-catalog]] · [[pi--thinking-level-abstraction|pi]] · [[thinking-off-not-honored]] · [[capability-sniffing-misses-opaque-ids]]
+Related: [[thinking-level-abstraction]] · [[model-catalog]] · [[pi--thinking-level-abstraction|pi]] · [[thinking-off-not-honored]] · [[capability-sniffing-misses-opaque-ids]] · [[opencode--thinking-level-abstraction|opencode]]

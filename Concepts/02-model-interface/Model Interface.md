@@ -48,5 +48,8 @@ Scope: the boundary between the agent and model providers:
   - body compression,
   - header rules.
 - [[server-side-refusal-fallback]] — The provider retries refused requests on a fallback model approved in advance.
+- [[auxiliary-model-calls]] — Secondary requests to a cheaper model beside the main loop, with their own prompt and options (session title, per-message summary).
+- [[sampling-parameter-defaults]] — A harness-owned table of temperature, topP and topK per model family, sent only when they differ from the provider default.
+- [[tool-schema-lowering]] — Rewrite each tool's JSON Schema into the subset a given provider accepts before sending tool definitions.
 
 Failures: [[Model Interface Failures]]

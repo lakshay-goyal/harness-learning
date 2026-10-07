@@ -36,4 +36,6 @@ harnesses: [pi]
 - pi trusts the model and the watching human. Unattended print/RPC/SDK runs can loop until context or money runs out. Embedders must add their own budget via hooks.
 - Every self-healing path is bounded to one attempt (overflow) or to N with a cap (retry) instead. Bound the recovery loops, not the work loop.
 
+**opencode contrast**: implements it, opt-in: per-agent `steps` (default `Infinity`) with a forced wrap-up message, plus a 3-identical-call guard (`packages/opencode/src/session/prompt.ts:1178`; `packages/opencode/src/session/processor.ts:29`) — see [[step-budget-limit]] / [[repeated-tool-call-detection]] / [[turn-cap-vs-none]].
+
 Related: [[turn-loop]] · [[turn-lifecycle-hooks]] · [[abort-propagation]] · [[auto-retry-backoff]] · [[overflow-recovery]] · [[run-settlement]] · [[no-bash-default-timeout]] · [[Absences]]

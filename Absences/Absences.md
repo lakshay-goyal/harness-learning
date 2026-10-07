@@ -4,7 +4,7 @@ group: absences
 ---
 # Absences
 
-Deliberate non-features and removed designs, with the rationale and the opt-in path. pi ([[pi]], `b30a6dd77`) is the reference harness.
+Deliberate non-features and removed designs, with the rationale and the opt-in path. pi ([[pi]], `b30a6dd77`) is the reference harness; opencode ([[opencode]], `ecc4916b5a`) is compared in [[#opencode stance]]. Design axes where the two diverge → [[Tradeoffs]].
 
 **Stance at HEAD**
 - "Pi ships with powerful defaults but skips features like sub-agents and plan mode. Ask Pi to build what you want, or install a package that does it your way." (`README.md:19`, wording `de7e675de`, 2026-10-02).
@@ -104,7 +104,60 @@ All under `packages/coding-agent/examples/extensions/`. **No example** for web s
 - Model routing/fallback: core has the virtual-model mechanism (`docs/virtual-models.md:3-5`, `540e174c7` #10035); the router exists only as the `jev-router.ts` example. There is no client-side cross-provider failover, only agent retry ([[auto-retry-backoff]]) and Anthropic server-side fallback metadata `compat.allowedFallbackModels` (`b03a367a4`; `packages/ai/src/types.ts:975`) → [[server-side-refusal-fallback]].
 - Ask-user tool (AskUserQuestion analogue): only the `question.ts` / `questionnaire.ts` examples.
 
+## opencode stance
+
+**Stance at HEAD** ([[opencode]], `ecc4916b5a`)
+- Rich by default, pruned by usage: ~14 built-in tools, built-in subagents, plan mode, todos, web, MCP, LSP (opt-in), snapshots/undo, approvals. Its absences are mostly **removals** (tools that were redundant, unused or harmful) and **v2 refusals to over-promise**, not manifesto lines.
+- Governance: readily merged are "Bug fixes, Additional LSPs / Formatters, Improvements to LLM performance, Support for new providers…"; "However, any UI or core product feature must go through a design review with the core team before implementation." (`CONTRIBUTING.md:3-13`). Net-new functionality starts as an issue and waits for core-team approval before a PR (`CONTRIBUTING.md:251-253`); "All PRs must reference an existing issue" (`CONTRIBUTING.md:180-182`); "Long, AI-generated PR descriptions and issues are not acceptable and may be ignored" (`CONTRIBUTING.md:204-206`). Net effect: features are gated by maintainers, not by a written non-goals list — most absences below are decisions recorded in commits and specs.
+- Security: "OpenCode does **not** sandbox the agent. The permission system exists as a UX feature" (`SECURITY.md:15-19`); out of scope: sandbox escapes, provider data handling, MCP server behavior, malicious config (`SECURITY.md:25-33`). "We do not accept AI generated security reports … automatic ban" (`SECURITY.md:3-7`, `e4b548fa76` 2026-02-17).
+
+**pi's absences, checked against opencode**
+| pi absence | opencode | evidence |
+|---|---|---|
+| [[no-sandbox]] | **also absent** (stated) | `SECURITY.md:15-19` |
+| [[no-background-bash]] | **also absent**; removed again in v2 | `specs/v2/schema-changelog.md:697` |
+| [[no-codebase-index]] | **also absent** | grep; `explore` subagent instead |
+| [[no-prompt-injection-defense]] | **also absent** (implicit) | `SECURITY.md:31-33` |
+| [[no-auto-hot-reload]] | **also absent** in legacy (unverified completeness); v2 goal | `specs/v2/instructions.md:13` |
+| [[no-subagents-core]] | implements → [[task-owned-subagent]], [[agent-profiles]] | `packages/opencode/src/tool/task.ts` |
+| [[no-plan-mode]] | implements → [[plan-mode]] | `packages/opencode/src/agent/agent.ts:156-180` |
+| [[no-permission-prompts]] | implements → [[permission-ruleset]] | `packages/opencode/src/permission/index.ts:28-163` |
+| [[no-todo-tool]] | implements → [[task-list-tool]] | `packages/opencode/src/tool/todo.ts` |
+| [[no-web-tools]] | implements → [[web-tools]] | `packages/opencode/src/tool/registry.ts:58-65` |
+| [[no-turn-cap]] | implements, opt-in → [[step-budget-limit]], [[repeated-tool-call-detection]] | `packages/opencode/src/session/prompt.ts:1178` |
+| [[no-cwd-confinement]] | soft version → [[workspace-boundary-check]] | `packages/opencode/src/tool/external-directory.ts:13-44` |
+| [[no-date-in-prompt]] | opposite (date in `<env>`; v2 appends date changes) | `packages/opencode/src/session/system.ts:83` |
+| [[no-builtin-mcp-reversed]] | built-in since `37c34fd39c` 2025-06-03 → [[mcp-integration]] | `packages/opencode/src/mcp/index.ts` |
+| [[no-lsp]] | implements, opt-in → [[lsp-diagnostics-feedback]] | `packages/opencode/src/lsp/lsp.ts:151` |
+| [[no-checkpoints-undo]] | implements → [[workspace-snapshots]] | `packages/opencode/src/snapshot/index.ts` |
+| [[no-bash-default-timeout]] | implements (2 min) → [[shell-execution]] | `packages/opencode/src/tool/shell.ts:347` |
+| [[no-binary-detection-in-read]] | implements → [[file-read-tool]] | `packages/opencode/src/tool/read.ts:182-226` |
+
+5 of 18 shared. Both harnesses agree on: no sandbox, no index, no injection defense, no model-facing background shell.
+
+**opencode's own absences**
+| Absence | Kind | Key evidence |
+|---|---|---|
+| [[no-project-trust-gate]] | stated (threat model) | `SECURITY.md:33`; `packages/opencode/src/tool/registry.ts:183-197` |
+| [[no-claude-subscription-auth]] | removed (legal) | `1ac1a0287c` 2026-03-19; `94dd0a8dbe` |
+| [[no-model-initiated-plan-entry]] | removed (failure) | `fa559b0385` 2026-02-24 |
+| [[no-background-task-polling]] | removed (failure) | `dabf2dc013` 2026-05-25 |
+| [[no-batch-tool]] | removed (no reason) | `463318486f` 2026-04-07 |
+| [[no-read-before-write-guard]] | removed (no reason); pi never had it | `76a141090e` 2026-04-16 |
+| [[removed-builtin-tools]] | index of removals (list, multiedit, todoread, lsp-*, codesearch, scout, patch) | see note |
+| [[no-lsp-formatters-by-default]] | reversed default | `220e3e9a2b` 2026-04-16 |
+| [[no-hardcoded-secret-refusal]] | replaced by rules | `3611260405` 2026-01-04 |
+| [[no-codemode-default-limits]] | stated (design doc) | `packages/codemode/codemode.md:130-143` |
+| [[v2-rejected-designs]] | stated (specs/v2) | `specs/v2/config.md:48-50`; `specs/v2/session.md:153-173` |
+
+**Reverts as signal** (runtime, `git log --grep=^revert`)
+- Reverted then re-added at HEAD: MCP OAuth redirect URI (`33290c54cd` 2026-01-16; `redirectUri` at `packages/opencode/src/mcp/oauth-provider.ts:19`), optional mDNS (`505068d5a6` 2025-12-26; `packages/opencode/src/server/mdns.ts`), global `~/.claude/skills` (`ef8388f0ee` 2025-12-29; `packages/opencode/src/skill/index.ts:186-193`), Trinity prompt (`b5a4671c64` 2026-02-03; `trinity.txt` present).
+- Reverted and still absent: provider-level `store` option (`16cac69a72` 2026-01-14), signed-thinking reorder (`a763a14d44` 2026-06-02), git-backed review modes (`1b028d0632` 2026-03-26, 308 lines).
+- Same-day revert of experimental code mode (`cb93114424` → `379adee35c` 2026-07-02), re-landed `2409c7a3d5` the next day.
+
 ## Open questions
+- Why opencode deleted the batch tool and the read-before-write guard (no commit bodies).
+- Why prune and LSP/formatters went default-off in April 2026 (cache stability and process cost are plausible, unverified).
 - Why MCP flipped (issue #10040 not fetched; the author changed from Mario Zechner to Armin Ronacher).
 - Whether durable subagents will reach stable pi (`5609b0d6c` experimental TUI on pi-durable).
 - The `sandbox/` example reads `.pi/sandbox.json` without a trust check (see [[no-sandbox]]).

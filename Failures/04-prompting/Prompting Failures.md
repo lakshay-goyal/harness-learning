@@ -9,6 +9,14 @@ Failures whose primary concept is in [[Prompting]].
 - [[shell-cat-instead-of-read-tool]] — model read files with `cat`/`sed` instead of the read tool.
 - [[imperative-guideline-over-compliance]] — "Inspect PI_* …" made models run env inspections every turn.
 - [[prompt-names-unavailable-tools]] — rules named/implied tools the request didn't declare (grep/find/ls preference, READ-ONLY mode, hidden/codemode tools).
+- [[over-commenting-code]] — models over-comment; rules diverge per family, origin/v2 keeps a density rule for Claude (opencode).
+- [[autonomy-prompt-overreach]] — Codex-style persistence push without scope bound; replaced on origin/v2 (opencode).
+
+## Per-model prompts
+- [[borrowed-prompt-foreign-references]] — prompts lifted from gemini-cli/Copilot/Claude Code/Codex reference things opencode lacks (opencode).
+- [[client-unrenderable-output-format]] — Codex-desktop link format rendered badly in the TUI (opencode).
+- [[excessive-permission-questions]] — codex models asked "Should I proceed?" (opencode).
+- [[model-cannot-parallel-tool-call]] — Trinity needs one tool per message (opencode).
 
 ## Identity
 - [[forced-model-identity-override]] — "You are actually not Claude, you are Pi." reverted after 11 days.
@@ -24,12 +32,17 @@ Failures whose primary concept is in [[Prompting]].
 - [[context-file-discovery-filesystem-edge-cases]] — Windows walk hang; dirs named AGENTS.md → EISDIR.
 - [[skills-hidden-when-read-tool-absent]] — skills vanished with bash-only toolsets; hint named hidden reader.
 - [[instruction-relative-paths-resolved-from-cwd]] — skill/doc relative paths resolved against the user's cwd.
+- [[duplicated-catalog-in-prompt]] — skill catalog rendered in system prompt, tool description and kimi.txt (opencode).
+- [[generic-context-file-bloat]] — `/init` produced 150-line generic AGENTS.md files (opencode).
 
 ## See also (primary concept in other groups)
 - [[foreign-harness-tool-hallucination]] — Codex models called `apply_patch`/`update_plan` (bridge prompt saga) — [[Tools Failures]].
 - [[partial-file-read-acted-on]] — acted on first 2000 lines of files/pi docs — [[Tools Failures]].
 - [[tool-description-lies-about-async]] — tool description as executable spec — [[Tools Failures]].
 - [[edit-tool-dual-mode-confusion]] — two schema shapes = prompt bug — [[Tools Failures]].
+- [[tool-description-drifts-from-implementation]] — borrowed/stale tool descriptions (opencode) — [[Tools Failures]].
+- [[todo-tool-usage-calibration]] — todo instructions per model family (opencode) — [[Tools Failures]].
+- [[edit-oldstring-drops-lines]] — Meta prompt diff-before-edit rule (opencode) — [[Tools Failures]].
 - [[placeholder-text-misleads-model]] — placeholder strings are prompts — [[Model Interface Failures]].
 - [[volatile-system-prompt-prefix]] — date in the prompt busted caches — [[Caching Failures]].
 - [[tool-loadout-stale-within-run]] — run prompt dropped on tool refresh — [[Loop Failures]].

@@ -3,7 +3,7 @@ type: concept
 stage: messages
 tier: candidate
 aliases: [sanitizeSurrogates, unicode-surrogate-sanitization, surrogate-sanitization]
-harnesses: [pi]
+harnesses: [pi, opencode]
 ---
 Remove or replace invalid text, mainly unpaired UTF-16 surrogates, at the provider serialization boundary, so that tool output or user text cannot break JSON encoding of the request.
 
@@ -21,6 +21,7 @@ Remove or replace invalid text, mainly unpaired UTF-16 surrogates, at the provid
 
 ## Implementations
 - [[pi--unicode-sanitization|pi]] — `sanitizeSurrogates` (`packages/ai/src/utils/sanitize-unicode.ts`), applied to all text in the Anthropic, Completions, Responses, Google, Bedrock, Mistral and OpenRouter-images converters.
+- [[opencode--unicode-sanitization|opencode]] — same `sanitizeSurrogates` (→ U+FFFD) over all text and tool results in `ProviderTransform.normalizeMessages`.
 
 ## Failures
 - [[unpaired-surrogate-breaks-json]]

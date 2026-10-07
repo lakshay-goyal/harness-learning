@@ -13,6 +13,9 @@ What the harness does to limit damage from model actions, repo-supplied inputs, 
 - [[supply-chain-pinning]] — Exact pins, installer lockfile, `--ignore-scripts`, lifecycle-script allowlist, content-addressed remote binaries.
 - [[remote-host-trust]] — Pinned app-owned host keys, no forwarding, transport-layer auth, sanitized errors at remote boundaries.
 - [[secret-handling]] — Credentials at rest (0600), config indirection, redaction in bug reports/diagnostics; stdout protocol guard is not safety.
+- [[permission-ruleset]] — Ordered allow/ask/deny rules over (permission, wildcard pattern), last match wins, layered defaults → agent → config → session; "ask" suspends until once/always/reject.
+- [[shell-command-permission-parsing]] — Parse the shell command into an AST so each sub-command and path argument is permission-checked separately.
+- [[workspace-boundary-check]] — Paths resolving outside the project/worktree trigger a separate `external_directory` permission.
 
 ## Absences
 [[no-permission-prompts]] · [[no-sandbox]] · [[no-cwd-confinement]] · [[no-prompt-injection-defense]]
