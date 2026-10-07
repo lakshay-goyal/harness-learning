@@ -1,0 +1,91 @@
+---
+type: implementation
+harness: pi
+concept: auto-compaction
+commit: b30a6dd77
+files: [packages/coding-agent/src/core/compaction/compaction.ts:126, packages/coding-agent/src/core/compaction/compaction.ts:267, packages/coding-agent/src/core/compaction/compaction.ts:872, packages/coding-agent/src/core/compaction/compaction.ts:965, packages/coding-agent/src/core/agent-session.ts:776, packages/coding-agent/src/core/agent-session.ts:836, packages/coding-agent/src/core/agent-session.ts:2051, packages/coding-agent/src/core/agent-session.ts:2763, packages/coding-agent/src/core/agent-session.ts:2946, packages/coding-agent/src/core/agent-session.ts:3096, packages/coding-agent/src/core/session-manager.ts:91, packages/coding-agent/src/core/session-manager.ts:1260, packages/coding-agent/src/core/messages.ts:11, packages/coding-agent/src/core/settings-manager.ts:18, packages/durable/src/harness/compaction.ts:103, packages/durable/src/harness/generation.ts:302]
+---
+[[auto-compaction]] in [[pi]].
+
+## Mechanism
+- **Trigger** `shouldCompact`: `contextTokens > contextWindow − reserveTokens` (`packages/coding-agent/src/core/compaction/compaction.ts:267-270`); no percentage anywhere. Disabled via global-only `compaction.enabled` (`packages/coding-agent/src/core/settings-manager.ts:937-947`; toggle `packages/coding-agent/src/core/agent-session.ts:3248-3255`).
+- **Settings resolution**: `compaction.{reserveTokens,keepRecentTokens}` per field: `modelOverrides["provider/modelId"]` → ordinary → default; non-negative safe integers or *throw on read* (`settings-manager.ts:950-976`). Resolved per call (`packages/coding-agent/src/core/agent-session.ts:2776`, `packages/coding-agent/src/core/agent-session.ts:3098`), so a model switch affects later checks, not an in-flight compaction (doc claim, `packages/coding-agent/docs/compaction.md` "Per-model overrides").
+- **Five trigger sites**:
+  1. *Between turns mid-run*: `prepareNextTurnWithContext` → `_compactBeforeNextAssistantResponse` (`packages/coding-agent/src/core/agent-session.ts:776-785`, installed `packages/coding-agent/src/core/agent-session.ts:898-906`) builds `buildSessionProjection()`, checks `_exceedsCompactionThreshold` (estimate via `estimateProjectedContextTokens`, skipped for `contextWindow <= 0`, `packages/coding-agent/src/core/agent-session.ts:766-774`), runs `_runAutoCompaction("threshold", false)`, re-projects. Agent loop calls `prepareNextTurn` at the top of every non-first inner iteration (`packages/agent/src/agent-loop.ts:184-189`).
+  2. *Per request for virtual (router) models*: threshold re-checked in `prepareRequest` against the **routed** physical model, then context re-prepared (`packages/coding-agent/src/core/agent-session.ts:836-841`).
+  3. *Post-run* `_handlePostAgentRun` → `_checkCompaction(msg, true, toolResults)` (`packages/coding-agent/src/core/agent-session.ts:1883-1885`): overflow cases → [[pi--overflow-recovery]]; case 3 threshold below.
+  4. *Pre-prompt* in `prompt()`: `_checkCompaction(lastAssistant, false)` — considers aborted messages; comment "do not call agent.continue() here" (`packages/coding-agent/src/core/agent-session.ts:2051-2056`).
+  5. *Manual* `/compact [text]` (TUI parse `packages/coding-agent/src/modes/interactive/interactive-mode.ts:3289-3292` → `session.compact()` `:7053-7060`; builtin list `packages/coding-agent/src/core/slash-commands.ts:40`).
+- **Case 3 token source priority** (`packages/coding-agent/src/core/agent-session.ts:3048-3083`): projection has any `context_edit` → `estimateProjectedContextTokens`; else error or zero usage → `estimateContextTokens(agent.state.messages)` with "usage source older than latest compaction → return false" guard; else `calculateContextTokens(usage)` (= `totalTokens || input+output+cacheRead+cacheWrite`, `packages/coding-agent/src/core/compaction/compaction.ts:140-142`). Details → [[pi--token-estimation]].
+- **Guards in `_checkCompaction`** (`packages/coding-agent/src/core/agent-session.ts:2946-2975`): disabled → false; aborted skipped when `skipAbortedCheck`; message timestamp ≤ latest compaction timestamp → skip (stale boundary; `getLatestCompactionEntry`, fixed from first-compaction `.find()` in `7eb969ddb`).
+- **`_runAutoCompaction(reason, willRetry)`** (`packages/coding-agent/src/core/agent-session.ts:3096-3240`): `prepareCompaction(getBranch(), settings)` → undefined ⇒ return false *before* emitting `compaction_start` (`7d08c81a0`); own `AbortController` (`_autoCompactionAbortController`) with `throwIfAborted()` checkpoints (`de2de549b`); `session_before_compact` hook may `{cancel}` or supply `{compaction}` (then `fromExtension=true`); else `_runDefaultCompaction` → `compact()` (`packages/coding-agent/src/core/compaction/compaction.ts:965-1074`); `appendCompaction(...)`; `_refreshFinalizedContext()`; `estimatedTokensAfter = estimateMessagesTokens(projection)`; `session_compact` event; `compaction_end`. Returns `willRetry` or `agent.hasQueuedMessages()` so queued steer/follow-ups are delivered (`packages/coding-agent/src/core/agent-session.ts:3206-3210`; `b050c582a`, `35a0d5d62`, `3852cb2b8`).
+- **Failure is non-fatal**: catch → `compaction_end{errorMessage:"Auto-compaction failed: …" | "Context overflow recovery failed: …"}` + `session_compact_failed`, aborted/extension-cancel → no error text (`packages/coding-agent/src/core/agent-session.ts:3211-3236`; `20f5fcc79`, `a6b1dbceb`).
+- **Manual `compact(customInstructions)`** (`packages/coding-agent/src/core/agent-session.ts:2763-2908`): `await this.abort()` first, never retries/continues; errors "Already compacted" (last entry is compaction) / "Nothing to compact (session too small)" (`packages/coding-agent/src/core/agent-session.ts:2780-2787`). Prompts rejected while manual compaction runs: "Cannot submit a prompt while compaction is in progress…" (`packages/coding-agent/src/core/agent-session.ts:1985-1989`, `8eda4f5b2`); auto-compaction passes `customInstructions: undefined` (`packages/coding-agent/src/core/agent-session.ts:3128`, `packages/coding-agent/src/core/agent-session.ts:3164`).
+- **Summary generation** (`packages/coding-agent/src/core/compaction/compaction.ts:965-1074`): history summary via `generateSummaryWithUsage` (initial or update prompt), split-turn prefix summary when needed, file lists appended → [[pi--structured-compaction-summary]], [[pi--iterative-summary-update]], [[pi--split-turn-summary]], [[pi--file-op-tracking]]. Uses the **current session model** and its thinking level (only if `model.reasoning && level≠off`, `packages/coding-agent/src/core/compaction/compaction.ts:595-610`); auth via `_getSummarizationRequestAuth` (routes virtual models first, `packages/coding-agent/src/core/agent-session.ts:572-609`). No separate summarizer-model setting (extension example picks Gemini Flash, `packages/coding-agent/examples/extensions/custom-compaction.ts:27-28`).
+- **Request hygiene** `completeSummarization` (`packages/coding-agent/src/core/compaction/compaction.ts:619-639`): `cacheRetention:"none"`, `sessionId ?? uuidv7()` (AgentSession passes `undefined`, `packages/coding-agent/src/core/agent-session.ts:2739` → fresh id), wrapped in `retryAssistantCall` with `settings.retry` and `summarization_retry_*` events (`packages/coding-agent/src/core/agent-session.ts:224-236`, `packages/coding-agent/src/core/agent-session.ts:3720-3743`); routes through session `streamFn` (`35f807cfa`).
+- **Storage** `CompactionEntry{summary, firstKeptEntryId, tokensBefore, details?, usage?, fromHook?, systemMessage?}` (`packages/coding-agent/src/core/session-manager.ts:91-104`); `appendCompaction` appends as child of leaf, snapshots `getCurrentSystemMessage(projection)` into `systemMessage` ("Complete prompt and tool state at this compaction boundary", `packages/coding-agent/src/core/session-manager.ts:1260-1287`); `firstKeptEntryId ?? id` = self-retaining/retain-none compaction (`packages/coding-agent/src/core/session-manager.ts:1278`); summarization usage stored for cost (`2fd386840`). History never deleted.
+- **Rebuild**: latest compaction on path projects to `[systemMessage?, compactionSummary]` + entries from `firstKeptEntryId` + everything after; older compactions inside the retained range project `[]` (`packages/coding-agent/src/core/session-manager.ts:461-464`, `packages/coding-agent/src/core/session-manager.ts:476-512`, `packages/coding-agent/src/core/session-manager.ts:558-564`) → [[pi--context-projection]] (08-state).
+- **What the model sees**: replayed system message; then a **user** message `"The conversation history before this point was compacted into the following summary:\n\n<summary>\n…\n</summary>"` (`packages/coding-agent/src/core/messages.ts:11-17`, rendered `:176-183`); then kept verbatim messages.
+- **Events**: `compaction_start{reason: manual|threshold|overflow}`, `compaction_end{result, aborted, willRetry, errorMessage}` (`packages/coding-agent/src/core/agent-session.ts:209-216`).
+- **Extension surface**: `session_before_compact{preparation, branchEntries, customInstructions, reason, willRetry, signal}` → `{cancel}`/`{compaction}`; `session_compact`; `session_compact_failed` (`packages/coding-agent/src/core/extensions/types.ts:770-800`); `ctx.compact({customInstructions,onComplete,onError})` (example 100k trigger on `turn_end`, `packages/coding-agent/examples/extensions/trigger-compact.ts:8-40`); drafts appended at `turn_end`/`agent_before_settle` get `fromHook=true` + recomputed `tokensBefore` (`packages/coding-agent/src/core/agent-session.ts:946-985`). Exported helpers `serializeConversation`, `convertToLlm`, `generateSummary`, `generateSummaryWithUsage`.
+- **Ordering with failed attempts** (doc): persist final assistant → `turn_end` → `agent_end` → append context_edit omissions → `session_before_compact` + append compaction → retry as fresh run; on failure keep omissions, no compaction, no internal retry (`packages/coding-agent/docs/compaction.md:85-98`).
+
+## Constants
+| name | value | path:line |
+|---|---|---|
+| `DEFAULT_COMPACTION_SETTINGS.enabled` | `true` | `packages/coding-agent/src/core/compaction/compaction.ts:126-130` |
+| `reserveTokens` | 16384 ("~8k summary + ~8k safety", plan `5daef11b4`) | `packages/coding-agent/src/core/compaction/compaction.ts:128`; `settings-manager.ts:23-26` |
+| `keepRecentTokens` | 20000 (borrowed from Codex `compact.rs` "last ~20k tokens", `5daef11b4`) | `packages/coding-agent/src/core/compaction/compaction.ts:129` |
+| history summary `maxTokens` | `min(floor(0.8·reserve), model.maxTokens)` = 13107 | `packages/coding-agent/src/core/compaction/compaction.ts:712-715` |
+| turn-prefix summary `maxTokens` | `min(floor(0.5·reserve), model.maxTokens)` = 8192 | `packages/coding-agent/src/core/compaction/compaction.ts:1090-1093` |
+| tool result chars in summary input | 2000 | `packages/coding-agent/src/core/compaction/utils.ts:94` |
+| image estimate | 4800 chars per image | `packages/coding-agent/src/core/compaction/compaction.ts:276` |
+| context % (display) | `tokens/contextWindow·100` | `packages/coding-agent/src/core/agent-session.ts:4272` |
+| durable `DEFAULT_COMPACTION_POLICY` | 16384 / 20000 / background 32768 | `packages/durable/src/harness/agent.ts:26-31` |
+
+## Evolution
+- 2025-12-02 `5daef11b4` research/plan doc (Claude Code, Codex, OpenCode surveyed; recommended 85–90% threshold + OpenCode-style tool-output pruning — pi chose fixed reserve, no pruning).
+- 2025-12-04 `6c2360af2` (#92) core logic: free-form "CONTEXT CHECKPOINT COMPACTION" prompt sent as user message after real messages.
+- 2025-12-09 `a38e61909` new compaction system with overflow recovery + split turns; same day `5a9d844f9` removed *proactive* mid-turn abort compaction, two cases only (overflow→auto-retry via new `Agent.continue()`, threshold→no retry), input blocked during compaction.
+- 2025-12-24 `1e1a92ea4` (#281) `before_compact` hook; `d9a542763` richer hook.
+- 2025-12-29 burst: `ac71aac09` structured format, `09d6131be` iterative update + file tracking, `3c6c9e52c` system prompt, `2add465fb` serialize as text, `fd13b53b1` move to `core/compaction/`.
+- 2025-12-31 `ddda8b124` compact only current branch path.
+- 2026-01-07 `615ed0ae2` (#535) model-switch guard; 2026-01-16 `20f5fcc79` (#792) failures non-fatal.
+- 2026-02-06 `b050c582a` (#1312) resume queued messages after auto-compaction (originally `setTimeout(() => agent.continue(), 100)`, later replaced by awaited driver loop).
+- 2026-02-12 `7eb969ddb` latest-compaction boundary + `?/200k` display; 2026-03-05/06 `a4f4d91fa`, `d5c18e024`, `d1a17bbae`, `b8910f13a` stale/error usage.
+- 2026-03-03 `6b4b92042` (#1319) overflow cascade latch; 2026-03-06 `c950c692a` (#1796) summarizer input cap; 2026-03-27 `eeace7971` (#2608) repeated compaction range.
+- 2026-05-11 `3d9e14d74` clamp summary output to model max; 2026-05-17 `35f807cfa` route through streamFn.
+- 2026-06-18 `7d08c81a0` (#4811) no empty compactions; `c60f6a8ab` expose `estimatedTokensAfter`; `6b9f3f492` (#5720) no retry after successful overflow.
+- 2026-06-25 `73581ea99` pre-prompt check no longer continues.
+- 2026-07-20 `2fd386840` (#6671) store summary usage; 2026-07-21 `8e53e0e49` (#6647) retry policy for summaries; 2026-07-22/23 `9b3a20591`, `241431c69` (#6618) no cache writes, fresh routing id.
+- 2026-07-31..08-05 `8eda4f5b2` (#7150), `e56893f4c` (#7370), `3852cb2b8` manual-compaction input/race handling.
+- 2026-08-18 `cff1cf52c` "cache-friendly compaction primitives" (summarize via the provider-context prefix so the cached prefix is reused) — **reverted next day** `8dab70281`, no stated reason.
+- 2026-08-19 `4495469a5` (#8328) compact without provider usage; 2026-08-24 `97fa14e39` (#7048) reject truncated summaries.
+- 2026-08-28 `56700d42e` (#6879/#8782) compact before post-tool model requests.
+- 2026-09-07 `46bde88a1` (#8133) per-model compaction budgets.
+- 2026-09-18 `8bdcd4498` (#9740) trailing oversized tool results; 2026-09-19 `de2de549b` cancellation races.
+- 2026-09-21 `466db0fec` canonical session context boundaries (`context_edit`, projection authoritative); `aef5fc429` (#9846) context handlers keep prompt/tool state.
+- 2026-09-30 `ed0d6b91b` durable compaction + overflow (Package 20).
+
+## Evidence commits
+`5daef11b4` `6c2360af2` `a38e61909` `5a9d844f9` `1e1a92ea4` `d9a542763` `ac71aac09` `09d6131be` `3c6c9e52c` `2add465fb` `fd13b53b1` `ddda8b124` `615ed0ae2` `20f5fcc79` `b050c582a` `7eb969ddb` `6b4b92042` `c950c692a` `eeace7971` `3d9e14d74` `35f807cfa` `7d08c81a0` `c60f6a8ab` `6b9f3f492` `73581ea99` `2fd386840` `8e53e0e49` `9b3a20591` `241431c69` `8eda4f5b2` `e56893f4c` `3852cb2b8` `35a0d5d62` `cff1cf52c` `8dab70281` `4495469a5` `97fa14e39` `56700d42e` `46bde88a1` `8bdcd4498` `de2de549b` `bea67d90d` `466db0fec` `aef5fc429` `a6b1dbceb` `ed0d6b91b`
+
+## Quirks
+- `reserveTokens` doubles as the summary output budget (0.8×) — "not solely a trigger threshold" (`docs/compaction.md` Per-model overrides). Raising reserve to compact earlier also enlarges summaries.
+- Fixed headroom ⇒ a 1M-window model compacts at ~98% (`07-constants` observation).
+- `_runAutoCompaction` locates the saved entry with `newEntries.find(e => e.type==="compaction" && e.summary === summary)` over all session entries (`packages/coding-agent/src/core/agent-session.ts:3182`, same in manual `packages/coding-agent/src/core/agent-session.ts:2852`) — first match by text, could pick an older identical summary (inferred, unverified in practice).
+- Summary always uses the session model: an expensive model pays full price for summaries; no cheap-summarizer setting (searched settings-manager — none).
+- Every compaction invalidates the provider prompt cache (summary replaces prefix); the cache-friendly variant was reverted (`8dab70281`) — open question.
+- If the model window is smaller than `reserve + keepRecent`-ish, `findProjectedCutPoint` never exceeds budget → keeps everything → `prepareCompaction` returns undefined (inferred from `packages/coding-agent/src/core/compaction/compaction.ts:817-829`, `packages/coding-agent/src/core/compaction/compaction.ts:914`).
+- Legacy `fromHook` name = extension-provided (`packages/coding-agent/src/core/session-manager.ts:100-101`).
+
+## Durable variant (packages/durable)
+- `pi.compaction` task (`packages/durable/src/harness/compaction.ts:103-228`) checkpointed `select → summarize → retry`; summary request pinned (`SummaryRequest` incl. `tail`, `firstKept`, model, thinking level, stream options, `maxTokens`, `:34-44`) so resume re-derives the same range from an immutable context view (`:153-155`).
+- Thresholds in generation `prepare` (`packages/durable/src/harness/generation.ts:302-323`): `blocking` above `window − reserve` (generation waits on owned compaction, `:153-163`), `background` above `window − reserve − backgroundTokens` → [[pi--background-compaction]].
+- Summary: single prompt with "If the conversation starts with an earlier summary, preserve its information and fold the newer messages into it" (`:65`); same system prompt, 2000-char tool-result cap (`:55`), `cacheRetention:"none"`, but `sessionId = ensureProviderSessionId()` (keeps conversation routing, unlike coding-agent's fresh id); reasoning only if thinking ≠ off.
+- Validity: clean `stop`, non-empty text, no toolCall (`:325-342`); retryable errors → `retry` phase with backoff; else terminal failed.
+- `beforeCompact` hook may decline or supply summary (`:128-133`). Stored as `pi.compaction` entry with `head = firstKept` and `model` = the wrapped user message (`packages/durable/src/entries.ts:31-34`; `compaction.ts:416-421`).
+- No file-op tracking, no split-turn prefix summary, no iterative `<previous-summary>` prompt.
+
+## Failures
+[[threshold-check-misses-post-tool-request]] · [[repeated-compaction-drops-kept-messages]] · [[compaction-includes-abandoned-branches]] · [[stale-usage-drives-compaction]] · [[compaction-starved-by-missing-usage]] · [[empty-compaction-summary]] · [[compaction-failure-crashes-session]] · [[summary-call-not-retried]] · [[compaction-request-shape-mismatch]] · [[summary-output-budget-misfit]] · [[pre-prompt-compaction-replays-turn]] · [[summarization-request-overflows]] · [[overflow-compaction-cascade]] · cross-group: [[compaction-cancellation-races]], [[side-phase-input-lost]], `fork-boundary-loss`, `side-request-cache-pollution`

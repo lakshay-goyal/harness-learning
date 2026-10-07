@@ -1,0 +1,35 @@
+---
+type: absence
+harnesses: [pi]
+---
+# no-codebase-index
+
+No embeddings, RAG, vector store, repo map or tree-sitter symbol index.
+
+**What's missing**
+- Nothing pre-indexes or summarizes the repository for the model. Exploration is on-demand via bash (`rg`, `find`, `ls`) or the opt-in grep/find/ls tools ([[search-tools]]).
+- `git grep -i -E 'embedding|vector store|repo.?map|tree-sitter'` over `packages/coding-agent/src` and `packages/agent/src` has two hits, neither an index:
+  - the BM25 tool-ranker comment, "BM25 today; a hybrid ranker with embeddings can replace it" (`packages/coding-agent/src/extensions/tool-search/tool.ts:34`), which ranks *tools*, not code;
+  - "embedding the agent in other applications" (`src/modes/rpc/rpc-mode.ts:4`).
+- `durable/src` also has no hits.
+
+**Evidence of decision**
+- Absence by omission. There is no explicit statement and no commit adding or removing a repo map.
+- `search-index` commits (`b92e5e861` 2026-07-27 "search index factory", `b75be04d9` 2026-08-11 "refactor: search (#7797)") index *sessions* (sqlite/jsonl), not code.
+- Design signal: grep/find/ls exist but are **off by default** (`packages/coding-agent/docs/settings.md:40,44`; default `read, bash, edit, write`, `settings-manager.ts:215`). The agent is expected to explore with bash/rg.
+- The prompt rule "Prefer grep/find/ls tools over bash for file exploration (faster, respects .gitignore)" was removed in `1ab289980` (2026-05-28, #5132) because it preferred tools that might not be active. The guideline was changed to "ls, rg, find" in `b846a4bfc`.
+
+**Opt-in replacement**
+- Context files: AGENTS.md/CLAUDE.md hierarchy ([[context-file-hierarchy]]). These are human-written maps, not computed ones.
+- `examples/extensions/claude-rules.ts` lists `.claude/rules/` files in the system prompt for on-demand reading ([[skill-progressive-disclosure]]).
+- MCP servers offering code search (since `8562bcf66`). The `tool_search` BM25 ranker is designed so embeddings could replace it (`tool-search/tool.ts:2,34`) → [[deferred-tool-loading]].
+- No example extension provides embeddings/RAG.
+
+**History**
+- Never present.
+
+**Implication**
+- Every session starts cold. Discovery cost is paid in tool calls and tokens each time, which is offset by prefix caching and compaction.
+- No index means no staleness, no background indexing process, and no extra security surface (an index can leak files to an embedding API).
+
+Related: [[search-tools]] · [[minimal-default-toolset]] · [[context-file-hierarchy]] · [[skill-progressive-disclosure]] · [[deferred-tool-loading]] · [[no-lsp]] · [[Absences]]
