@@ -8,6 +8,7 @@ Cross-harness atlas of coding-agent internals. Each harness strengthens shared c
 | Harness | Commit | Studied | Digest |
 |---|---|---|---|
 | [[pi]] | `b30a6dd77` | 2026-10-07 | [[2026-10-07-pi]] |
+| [[codex]] | `622e9e3696` | 2026-10-08 | [[2026-10-08-codex]] |
 
 ## Map
 | Group | Concepts | Failures |
@@ -23,7 +24,10 @@ Cross-harness atlas of coding-agent internals. Each harness strengthens shared c
 | 09 subagents | [[Subagents]] | [[Subagents Failures]] |
 | 10 platform | [[Platform]] | [[Platform Failures]] |
 
-Also: [[Constants]] · [[Absences]] · `Tradeoffs/` (empty until a second harness is studied) · `Digests/`
+Also: [[Constants]] · [[Absences]] · `Digests/`
+
+## Tradeoffs (pi vs codex)
+[[isolation-strategy]] · [[edit-format]] · [[dedicated-vs-shell-tools]] · [[prompt-ownership]] · [[compaction-locus]] · [[provider-breadth]] · [[cache-strategy]] · [[subagent-hosting]] · [[session-log-shape]] · [[tui-rendering-strategy]] · [[extensibility-model]]
 
 ## Dashboards (Dataview plugin, optional)
 

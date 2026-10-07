@@ -2,8 +2,8 @@
 type: concept
 stage: tools
 tier: candidate
-aliases: [ctx.executeTool, NestedToolCallRunner, parentToolCallId, NESTED_CALL_LIMITS, nestedCalls, nested-tool-calls-through-pipeline]
-harnesses: [pi]
+aliases: [ctx.executeTool, NestedToolCallRunner, parentToolCallId, NESTED_CALL_LIMITS, nestedCalls, nested-tool-calls-through-pipeline, ToolCallSource::CodeMode]
+harnesses: [pi, codex]
 ---
 Tools invoking other tools programmatically through the same validation, policy-hook and permission pipeline as model calls, with provenance (parent id) and a bounded record attached to the parent result.
 
@@ -18,12 +18,15 @@ Tools invoking other tools programmatically through the same validation, policy-
 - Ids: hierarchical `<parent>/<n>` (pi).
 - Serialization of sequential tools via a global queue with re-entrancy (pi `holdsQueue`).
 - Agent-level delegation (subagents) as the heavier alternative → [[subagent-as-subprocess]], [[task-owned-subagent]].
+- Nesting only from code-mode cells; provenance = cell id + per-cell runtime call id (✔ codex) vs any tool via `ctx.executeTool` (✔ pi).
+- Exposure-level exclusion of tools from scripts (`DirectModelOnly`: question tool, context reset) (✔ codex).
 
 ## Implementations
 - [[pi--nested-tool-calls|pi]] — `ctx.executeTool(name,args)` → `runToolCall` with hooks, `parentToolCallId` events, bounded `nestedCalls` record + summed usage on the parent toolResult; used by codemode.
+- [[codex--nested-tool-calls|codex]] — code-mode `tools.*` calls re-enter the same router (`ToolCallSource::CodeMode`), same RwLock gate, hooks, approvals.
 
 ## Failures
 - related (07): [[side-door-input-bypasses-hooks]]
 
 ## Related
-[[code-mode]] · [[tool-call-gate]] · [[parallel-tool-execution]] · [[structured-tool-output]] · [[file-op-tracking]] · [[plugin-tools]]
+[[code-mode]] · [[tool-call-gate]] · [[parallel-tool-execution]] · [[structured-tool-output]] · [[file-op-tracking]] · [[plugin-tools]] · [[deferred-tool-loading]]

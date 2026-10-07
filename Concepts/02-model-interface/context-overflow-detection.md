@@ -2,8 +2,8 @@
 type: concept
 stage: failure-handling
 tier: candidate
-aliases: [isContextOverflow, OVERFLOW_PATTERNS, NON_OVERFLOW_PATTERNS, isRecoverableLength, overflow-error-classification, overflow-false-positive-veto, recoverable-length-stop, silent overflow]
-harnesses: [pi]
+aliases: [isContextOverflow, OVERFLOW_PATTERNS, NON_OVERFLOW_PATTERNS, isRecoverableLength, overflow-error-classification, overflow-false-positive-veto, recoverable-length-stop, silent overflow, ContextWindowExceeded, context_length_exceeded]
+harnesses: [pi, codex]
 ---
 Decide that a provider response means "the context no longer fits". The signals are:
 - error text matched against a catalogue of provider phrasings, with exclusions that are evaluated first;
@@ -35,15 +35,22 @@ Decide that a provider response means "the context no longer fits". The signals 
 - **Undetectable cases**
   - Ollama silent truncation is documented as unobservable.
   - Custom providers are told to normalize their overflow messages.
+- **Structured error code only** (`context_length_exceeded`): no regex, no silent-overflow or length-stop heuristics. Feasible because there is one vendor family. ✔ codex (`codex-rs/codex-api/src/sse/responses_error.rs:48`)
+- **Reaction**
+  - Pin usage to the full window, fail the turn, compact before the next turn. There is no in-turn retry; an attempt was reverted the same day (`15e79f3c26` → `69f3183a8e`). ✔ codex
 
 ## Implementations
 - [[pi--context-overflow-detection|pi]] — `packages/ai/src/utils/overflow.ts` provides `OVERFLOW_PATTERNS`, `NON_OVERFLOW_PATTERNS`, the silent and length-stop cases, and `isRecoverableLength`. The coding-agent and durable generation call these, with same-model and post-compaction guards.
+- [[codex--context-overflow-detection|codex]] — `context_length_exceeded` → terminal `ContextWindowExceeded`, `set_total_tokens_full`, next-turn compaction; prevention through a 90% auto-compact clamp.
 
 ## Failures
 - [[rate-limit-misread-as-overflow]]
 - [[overflow-message-not-recognized]]
 - [[silent-overflow-undetected]]
 - [[length-stop-recovery]]
+- [[auto-compact-threshold-exceeds-window]]
+- [[unbounded-tool-output-overflows-context]]
+- [[overflow-judged-against-wrong-model]] (05-context) — After switching from a smaller-context model (e.g. Opus) to a larger one (e.g. Codex), the old model's…
 
 ## Related
-[[overflow-recovery]] · [[auto-compaction]] · [[token-estimation]] · [[errors-as-stream-events]] · [[auto-retry-backoff]] · [[max-tokens-context-clamp]]
+[[overflow-recovery]] · [[auto-compaction]] · [[token-estimation]] · [[errors-as-stream-events]] · [[auto-retry-backoff]] · [[max-tokens-context-clamp]] · [[provider-breadth]]

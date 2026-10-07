@@ -14,8 +14,11 @@ How conversation and plugin state is persisted, branched, projected into model c
 - [[branch-scoped-extension-state]] — Plugin/tool state stored in tool-result details or custom entries so each branch sees its own.
 - [[durable-execution]] — Every loop step a checkpointed task committed before shown; crashed process resumes from storage.
 - [[replicated-state]] — Single-writer sequence-numbered state published as snapshot + delta ops; overflow collapses to snapshot.
+- [[sqlite-session-index]] — JSONL transcripts stay source of truth; a disposable SQLite mirror indexes thread metadata (+ paginated item projection) for listing/search/jobs, rebuildable from the files.
 
 ## Absences
-[[no-checkpoints-undo]] · [[no-todo-tool]]
+[[no-checkpoints-undo]] · [[no-todo-tool]] · [[no-partial-history-fork]] · [[no-server-stored-conversation]] · [[no-tool-output-spill-file]]
+
+Tradeoffs: [[session-log-shape]]
 
 Failures: [[State Failures]]

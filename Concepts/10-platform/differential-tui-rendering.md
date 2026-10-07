@@ -21,6 +21,7 @@ Terminal UI that re-renders components to lines, diffs against the previous fram
 - **Scheduling**: render on every event vs coalesced + throttled frame budget with input preemption (pi 16 ms).
 - **Output size**: single write vs bounded chunked writer (pi 1 MiB).
 - **Testability**: headless virtual terminal (pi xterm-headless `VirtualTerminal`).
+- codex: different strategy — finalized history inserted once into native terminal scrollback via escape sequences, only the small inline live area diffed (ratatui cell buffer); see [[terminal-scrollback-tui]] / [[codex--terminal-scrollback-tui|codex]]. Fullscreen/alt-screen transcript is an opt-in mode (`/tui`, `--no-alt-screen`).
 
 ## Implementations
 - [[pi--differential-tui-rendering|pi]] — `@earendil-works/pi-tui`: line-diff main-screen renderer + alt-screen renderer behind one `TUI` interface, CSI 2026, 16 ms throttle, 1 MiB chunked writes.
@@ -30,6 +31,7 @@ Terminal UI that re-renders components to lines, diffs against the previous fram
 - [[render-output-exceeds-string-limit]]
 - [[render-storm-during-streaming]]
 - [[terminal-state-leaks-on-exit]]
+- [[terminal-input-sequence-fragmentation]] (10-platform) — Keystrokes dropped or misread: over SSH, key presses batched with Kitty release events in one stdin chunk…
 
 ## Related
-[[extension-ui-primitives]] · [[agent-event-stream]] · [[layered-settings]] · [[session-export-share]]
+[[extension-ui-primitives]] · [[agent-event-stream]] · [[layered-settings]] · [[session-export-share]] · [[tui-rendering-strategy]]

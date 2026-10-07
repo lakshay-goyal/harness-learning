@@ -17,7 +17,14 @@ Scope: everything the harness *says* to the model outside the conversation — s
 - [[guideline-softening]] — Downgrade imperative rules to permissive wording to stop over-compliance.
 - [[env-vars-as-context]] — Expose session facts via env vars readable by tools rather than prompt text.
 - [[harness-diagnostics-channel]] — Out-of-band harness remarks to the model in a delimited block separate from tool content.
+- [[per-model-system-prompt]] — Base prompt owned by the model-catalog entry (remotely updatable), generic fallback for unknown models.
+- [[personality-variants]] — Swappable persona/tone section chosen by a user setting, separate from behavioural rules.
+- [[message-role-layering]] — Each kind of harness text has a fixed role/position: base > developer policy > fenced user-role context > request.
+- [[plan-mode]] — User-switchable read-only planning mode as a developer message; ends with one tagged decision-complete plan.
+- [[current-time-reminder]] — Exact time appended as a developer note before requests when due, instead of a date in the cached prompt.
+- [[side-model-metadata-generation]] — Cheap-model side calls with schema output produce UI metadata (titles) outside the transcript.
 
 Key pi artifact: the full system-prompt timeline (45 changes, 19 removed rules, current full text) lives in [[pi--minimal-system-prompt]].
+Key codex artifact: prompt lineage, per-family selection history and ~20 single-line behavioural patches live in [[codex--per-model-system-prompt]]. Axis: [[prompt-ownership]].
 
 Failures: [[Prompting Failures]] · Neighbors: [[Caching]] (prompt prefix stability), [[Tools]] (tool descriptions), [[Context]] (compaction prompts).

@@ -19,6 +19,7 @@ A provider-neutral cache retention knob (none / short / long) mapped onto each p
 - Explicit-mode opt-out of implicit writes where the provider supports it (**pi** OpenAI GPT-5.6+ `{mode:"explicit"}`).
 - Declared cache lifetimes per model/tier as catalog metadata (feeds [[cache-warming]]), only where expiry behavior is verified (**pi**: direct Anthropic only).
 - Cache-friendly side requests that *reuse* the cached prefix (pi tried "cache-friendly compaction primitives", reverted next day).
+- codex: absent. `ResponsesApiRequest` has no retention or TTL field (`codex-rs/codex-api/src/common.rs:279-304`; `git grep prompt_cache_retention` at `622e9e3696` → no hits). Side requests (compaction, subagents, ephemeral forks) deliberately *share* the session cache key instead of opting out ([[codex--session-affinity-cache-routing|codex]]).
 
 ## Implementations
 - [[pi--cache-retention-control|pi]] — `CacheRetention` in pi-ai; per-adapter mapping table; summaries `cacheRetention:"none"` + `uuidv7()`.
@@ -28,4 +29,4 @@ A provider-neutral cache retention knob (none / short / long) mapped onto each p
 - [[server-limited-identifier-rejected]]
 
 ## Related
-[[session-affinity-cache-routing]] · [[cache-warming]] · [[cache-breakpoint-placement]] · [[usage-cost-accounting]] · [[auto-compaction]] · [[branch-summary]]
+[[session-affinity-cache-routing]] · [[cache-warming]] · [[cache-breakpoint-placement]] · [[usage-cost-accounting]] · [[auto-compaction]] · [[branch-summary]] · [[cache-strategy]]

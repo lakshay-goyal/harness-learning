@@ -2,8 +2,8 @@
 type: concept
 stage: architecture
 tier: candidate
-aliases: ["createAgentSession", "AgentSession", "AgentSessionRuntime", "DefaultResourceLoader", "SessionManager.inMemory()", "createAgentSessionServices", "pi SDK"]
-harnesses: [pi]
+aliases: ["createAgentSession", "AgentSession", "AgentSessionRuntime", "DefaultResourceLoader", "SessionManager.inMemory()", "createAgentSessionServices", "pi SDK", "@openai/codex-sdk", openai-codex, openai-codex-cli-bin, codex_core_api, thread-manager-sample]
+harnesses: [pi, codex]
 ---
 In-process library API exposing the full agent session (prompt/steer/follow-up/abort/subscribe) with every boundary — models, settings, session store, resources, tools — injectable.
 
@@ -19,9 +19,12 @@ In-process library API exposing the full agent session (prompt/steer/follow-up/a
 - **Busy-session prompt**: implicit queue vs reject unless steer/follow-up chosen (pi rejects).
 - **Session replacement**: mutate in place vs replace object + rebind (pi `AgentSessionRuntime`).
 - **Process isolation alternative**: [[headless-rpc-mode]].
+- **Subprocess SDK** ✔ codex: TS over exec JSONL, Python over app-server JSON-RPC; exact CLI binary pinned via a platform wheel.
+- **In-process for the host language only** ✔ codex (Rust `codex_core_api` sample, `codex-app-server-client`).
 
 ## Implementations
 - [[pi--sdk-embedding|pi]] — `createAgentSession()` → `AgentSession`; `AgentSessionRuntime` for new/switch/fork/import; 14 typechecked SDK examples.
+- [[codex--sdk-embedding|codex]] — SDKs are subprocess wrappers: TypeScript spawns `codex exec --experimental-json`; Python is a typed JSON-RPC client of `codex app-server --listen stdio://` with a pinned-binary runtime wheel; in-process embedding only for Rust (`codex_core_api`, app-server-client).
 
 ## Failures
 - [[stale-plugin-context-after-session-replacement]]

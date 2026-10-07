@@ -19,6 +19,7 @@ Summaries follow a fixed-section checkpoint template (Goal / Constraints & Prefe
 - Domain neutrality: "AI coding assistant" → "AI assistant" ✔ pi (`72fd91135`) so non-coding agents built on the harness aren't biased.
 - Machine-appended structured data outside the LLM text (pi appends `<read-files>`/`<modified-files>`) → [[file-op-tracking]].
 - Template replaceable by user? pi: compaction only appends "Additional focus"; branch summary allows full `replaceInstructions`; plugins can replace the whole summarizer.
+- codex: absent — had a fixed template (Objective / User instructions / AI actions / Important entities / Open issues, `e2c994e32a` 2025-07-31), dropped 2025-09-12 (`ea225df22e`); a strict-JSON variant was tried on a side branch and never merged (`e39e0c4332`); today a 9-line free-form "handoff summary for another LLM" (`codex-rs/prompts/templates/compact/prompt.md:1-9`), preservation delegated to code (verbatim user messages) and to opaque server-side compaction ([[no-structured-compaction-template]]).
 
 ## Implementations
 - [[pi--structured-compaction-summary|pi]] — `SUMMARIZATION_PROMPT` 6-section EXACT template since 2025-12-29; same skeleton for branch summaries; durable copy adds "fold an earlier summary in".
@@ -27,6 +28,7 @@ Summaries follow a fixed-section checkpoint template (Goal / Constraints & Prefe
 - [[summary-template-drops-goals]]
 - [[domain-biased-summarizer-prompt]]
 - [[summarizer-refusal]]
+- [[compaction-drops-harness-state]] — what the summary cannot carry must be retained by code
 
 ## Related
-[[iterative-summary-update]] · [[split-turn-summary]] · [[branch-summary]] · [[transcript-serialization-for-summary]] · [[summary-validation]] · [[file-op-tracking]] · [[auto-compaction]]
+[[iterative-summary-update]] · [[split-turn-summary]] · [[branch-summary]] · [[transcript-serialization-for-summary]] · [[summary-validation]] · [[file-op-tracking]] · [[auto-compaction]] · [[compaction-locus]]

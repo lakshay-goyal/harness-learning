@@ -31,4 +31,6 @@ harnesses: [pi]
 - Anything volatile in the system prompt costs a full cache miss every session/day. pi treats the date as volatile, so models must fall back on training-cutoff assumptions or ask bash.
 - Part of a broader rule ([[cache-stable-prompt-prefix]]): volatile MCP server lists moved to an appended `mcp_servers` section (#10212). Section changes are sent as mid-conversation system updates, not prefix rewrites (`9e05370b2`; [[transcript-carried-system-prompt]]).
 
-Related: [[cache-stable-prompt-prefix]] · [[minimal-system-prompt]] · [[env-vars-as-context]] · [[transcript-carried-system-prompt]] · [[system-prompt-override]] · [[Absences]]
+**codex** — *not absent since 2026-02-26*: `90cc4e79a2` "add local date/timezone to turn environment context (#12947)"; fields `current_date`, `timezone` in the environment world-state section (`codex-rs/core/src/context/world_state/environment.rs:35-36`), rendered as `<current_date>` / `<timezone>` inside `<environment_context>` — outside the base prompt, so the cached prefix is unaffected and a date change is a world-state diff ([[world-state-diff-injection]]). Exact time only via the opt-in reminder → [[current-time-reminder]]. Same cache concern as pi, solved by placement instead of removal.
+
+Related: [[cache-stable-prompt-prefix]] · [[minimal-system-prompt]] · [[env-vars-as-context]] · [[transcript-carried-system-prompt]] · [[system-prompt-override]] · [[Absences]] · [[current-time-reminder]] · [[world-state-diff-injection]]

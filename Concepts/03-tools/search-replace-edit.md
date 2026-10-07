@@ -23,6 +23,7 @@ File editing by exact old→new string replacement: each anchor must be unique, 
 - Read-before-edit enforcement / staleness tracking (absent in pi) vs none.
 - Write tool: overwrite with mkdir -p (pi) vs atomic temp+rename/backup (absent).
 - Diff shown to model vs only to UI/approval (pi: only UI/extensions; preview computed before execution for permission prompts).
+- codex: absent — edits only through a multi-file patch envelope ([[patch-envelope-edit]], freeform `apply_patch`); no write tool; function-style JSON apply_patch deleted `e783341b70` 2026-05-08. Axis: [[edit-format]].
 
 ## Implementations
 - [[pi--search-replace-edit|pi]] — `edit(path, edits[{oldText,newText}])`, uniqueness counted in fuzzy-normalized space, reverse-order apply, CRLF/BOM restore, diff+patch in details; `write(path, content)`.
@@ -32,6 +33,9 @@ File editing by exact old→new string replacement: each anchor must be unique, 
 - [[tool-arg-shape-drift]]
 - [[edit-invisible-character-mismatch]]
 - [[concurrent-file-mutation-interleave]]
+- (02, codex apply_patch) [[grammar-constrained-tool-instability]]
+- [[tool-result-misreports-facts]] (03-tools) — The write tool reported "Successfully wrote N bytes" where N was wrong for any non-ASCII content; the model…
+- [[fuzzy-edit-rewrites-untouched-lines]] (03-tools) — A single edit that needed the fuzzy fallback silently rewrote the whole file: trailing whitespace stripped…
 
 ## Related
-[[fuzzy-edit-matching]] · [[tool-argument-repair]] · [[per-file-mutation-queue]] · [[tool-description-design]] · [[path-normalization]] · [[tool-call-gate]]
+[[fuzzy-edit-matching]] · [[tool-argument-repair]] · [[per-file-mutation-queue]] · [[tool-description-design]] · [[path-normalization]] · [[tool-call-gate]] · [[patch-envelope-edit]] · [[edit-format]]

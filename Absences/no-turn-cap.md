@@ -1,6 +1,6 @@
 ---
 type: absence
-harnesses: [pi]
+harnesses: [pi, codex]
 ---
 # no-turn-cap
 
@@ -36,4 +36,6 @@ harnesses: [pi]
 - pi trusts the model and the watching human. Unattended print/RPC/SDK runs can loop until context or money runs out. Embedders must add their own budget via hooks.
 - Every self-healing path is bounded to one attempt (overflow) or to N with a cap (retry) instead. Bound the recovery loops, not the work loop.
 
-Related: [[turn-loop]] · [[turn-lifecycle-hooks]] · [[abort-propagation]] · [[auto-retry-backoff]] · [[overflow-recovery]] · [[run-settlement]] · [[no-bash-default-timeout]] · [[Absences]]
+**codex** — *absent too*. `run_turn`'s `loop` has no counter; exits are: no follow-up needed, hook stop/block-without-prompt, errors, abort (`codex-rs/core/src/session/turn.rs:424-837`); a comment relies on compaction to avoid infinite looping (`codex-rs/core/src/session/turn.rs:588`). No `max_turns` / `max_steps` / `max_iterations` / loop detection in `codex-rs/**/*.rs` (grep; only TUI display constant `RECAP_HISTORY_MAX_TURNS = 8`, `codex-rs/tui/src/app/recap_history.rs:13`). Bounds are economic / terminal states instead: shared rollout token budget → `SessionBudgetExceeded` / BudgetLimited (`codex-rs/core/src/agent/control/budget.rs:5-12`, `codex-rs/core/src/rollout_budget.rs:1-121`) → [[session-token-budget]]; usage-limit errors; goal `blocked` / `usageLimited` states (`0d344aca9b` 2026-05-18) and no-progress breakers (3 empty / 3 exec-failure / 3 blocked turns) → [[persistent-goal-continuation]]; token budgeting on by default for supporting models (`d58d0e5841` 2026-08-31). Stop-hook continuations uncapped → [[unbounded-hook-continuation-loop]].
+
+Related: [[turn-loop]] · [[turn-lifecycle-hooks]] · [[abort-propagation]] · [[auto-retry-backoff]] · [[overflow-recovery]] · [[run-settlement]] · [[no-bash-default-timeout]] · [[Absences]] · [[session-token-budget]] · [[persistent-goal-continuation]] · [[unbounded-hook-continuation-loop]] · [[goal-continuation-runaway]]

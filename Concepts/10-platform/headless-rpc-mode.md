@@ -2,8 +2,8 @@
 type: concept
 stage: architecture
 tier: candidate
-aliases: ["--mode rpc", "RpcClient", "extension UI subprotocol", "strict-jsonl-framing", "stdout-protocol-guard", "takeOverStdout", "attachJsonlLineReader", "print mode", "-p"]
-harnesses: [pi]
+aliases: ["--mode rpc", "RpcClient", "extension UI subprotocol", "strict-jsonl-framing", "stdout-protocol-guard", "takeOverStdout", "attachJsonlLineReader", "print mode", "-p", codex exec, ExecCli, "--experimental-json", "--output-schema", "--output-last-message", "codex app-server --listen stdio://"]
+harnesses: [pi, codex]
 ---
 Long-lived subprocess protocol (line-delimited JSON commands → responses + streamed events, plus a UI request/response sub-protocol) so non-JS hosts (IDEs, GUIs, other agents) can drive the harness.
 
@@ -22,13 +22,19 @@ Long-lived subprocess protocol (line-delimited JSON commands → responses + str
 - **UI**: no UI (print/json) vs forwarded dialog primitives with timeouts and stubbed rich components (pi RPC).
 - **Lifecycle**: close stdin = orderly shutdown (pi).
 - **One-shot variants**: print (final text, exit code) and JSON event stream ([[agent-event-stream]]).
+- **Split one-shot vs long-lived** ✔ codex: `exec` (JSONL events, schema-constrained final message, resume/fork/review subcommands) vs full app-server RPC.
+- **Headless safety defaults** ✔ codex: approvals forced `never` with sandbox still on; refuse outside a git repo unless explicitly skipped.
+- **UI in headless**: no UI subprotocol; user-interaction needs are server→client requests (app-server) or disabled (exec) ✔ codex.
 
 ## Implementations
 - [[pi--headless-rpc-mode|pi]] — `--mode rpc`: 33 typed commands, strict LF JSONL, stdout takeover with ENOBUFS/EAGAIN retry, extension-UI subprotocol, TS `RpcClient`.
+- [[codex--headless-rpc-mode|codex]] — `codex exec` one-shot (approval forced `never`, git-repo check, `--json` dot-named JSONL events, `--output-schema`) on an in-process app server; long-lived RPC = `codex app-server` over stdio.
 
 ## Failures
 - [[headless-protocol-stream-corruption]]
 - [[quadratic-event-stream-output]]
+- [[interrupt-rpc-hangs-on-finished-turn]]
+- [[line-separator-breaks-jsonl-framing]]
 
 ## Related
 [[agent-event-stream]] · [[sdk-embedding]] · [[extension-ui-primitives]] · [[client-server-session-split]] · [[steering-queue]] · [[follow-up-queue]] · [[run-settlement]] · [[subagent-as-subprocess]]

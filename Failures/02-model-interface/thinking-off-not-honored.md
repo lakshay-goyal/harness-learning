@@ -1,7 +1,7 @@
 ---
 type: failure
-concepts: [thinking-level-abstraction]
-harnesses: [pi]
+concepts: [thinking-level-abstraction, model-catalog]
+harnesses: [pi, codex]
 ---
 **Symptom** — User picked "off" but the model still thought, or the request 400'd:
 - Gemini dynamic-thinking default kept thinking when `reasoning` was undefined.
@@ -26,6 +26,15 @@ harnesses: [pi]
 - `e86102f18` 2026-09-10 — Codex receives `{effort: off ?? "none"}` explicitly (#9191) (`packages/ai/src/api/openai-codex-responses.ts:582-597`).
 - HEAD per-format off encodings: `packages/ai/src/api/openai-completions.ts:880-977`. Managed-effort Anthropic models force `off:null` (`generate-models.ts:831`).
 
-**Lesson** — Model "off" as a per-model wire value, with `null` meaning "cannot be disabled". Never assume that omitting the field means off.
+**Fix · [[codex]]** — the inverse: a config knob disabled reasoning.
+- Symptom: `model_supports_reasoning_summaries` was meant only to *enable* reasoning for unknown custom models, but it could disable reasoning for known reasoning models such as `gpt-5.3-codex`. It was "difficult to diagnose… led to many support issues" (`281b0eae8b` body).
+- `281b0eae8b` 2026-02-17: setting it to false is a no-op (`281b0eae8b:codex-rs/core/src/models_manager/model_info.rs`).
+- Related:
+  - `0af7e4a195` 2025-12-11: omit the summary when it is None.
+  - `dffe1f02a3` 2026-07-10: respect model support for reasoning summaries.
+  - `d2d00b6632` 2026-07-10: always send reasoning parameters.
+  - `3e4707b34b` 2026-08-26: `persistent` effort is sent as an explicit `disabled`.
 
-Related: [[thinking-level-abstraction]] · [[pi--thinking-level-abstraction|pi]] · [[model-catalog]] · [[thinking-config-per-model-drift]]
+**Lesson** — Model "off" as a per-model wire value, with `null` meaning "cannot be disabled"; never assume that omitting the field means off. Capability overrides should only add a capability, unless the knob is explicitly named as a disable.
+
+Related: [[thinking-level-abstraction]] · [[pi--thinking-level-abstraction|pi]] · [[model-catalog]] · [[thinking-config-per-model-drift]] · [[codex--thinking-level-abstraction|codex]]

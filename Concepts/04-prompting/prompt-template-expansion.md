@@ -2,8 +2,8 @@
 type: concept
 stage: messages
 tier: candidate
-aliases: [prompt templates, "$ARGUMENTS", "$1", ".pi/prompts", slash commands, argument-hint]
-harnesses: [pi]
+aliases: [prompt templates, "$ARGUMENTS", "$1", ".pi/prompts", slash commands, argument-hint, "/init", prompt_for_init_command.md, "/prompts:", custom prompts, "$CODEX_HOME/prompts"]
+harnesses: [pi, codex]
 ---
 User-side slash macros (markdown files) that expand, with positional arguments, into the user message before the turn starts.
 
@@ -17,12 +17,16 @@ User-side slash macros (markdown files) that expand, with positional arguments, 
 - Scripted commands with code (pi: extension commands, handled before templates).
 - Templates vs skills: template = user-triggered text injection; skill = model-discoverable instructions ([[skill-progressive-disclosure]]).
 - Scope: global + project (project trust-gated in pi) + packages.
+- Built-in canned prompts shipped by the harness (codex `/init`: fixed Markdown file submitted as a normal user message, no arguments) ✔ codex.
+- User template files with positional + named args under `/prompts:<name>` (codex 2025-08 → removed 2026-03-28, users pointed to `$skill-creator`) — codex chose **skills over templates** ([[skill-progressive-disclosure]]); plugin command Markdown auto-converted into skills on install (`2cd6ed7509`).
+- Preconditions in the template text vs client-side checks: codex moved "AGENTS.md exists?" from a TUI filesystem check into the `/init` prompt so it is evaluated where tools run ([[client-side-check-wrong-host]]).
 
 ## Implementations
 - [[pi--prompt-template-expansion|pi]] — `~/.pi/agent/prompts`, `.pi/prompts`; expansion after input hooks and `/skill:`; repo dogfoods 6 maintainer templates.
+- [[codex--prompt-template-expansion|codex]] — only built-in `/init` canned prompt today; user custom prompts (`/prompts:`) existed 2025-08 → 2026-03 and were replaced by skills.
 
 ## Failures
-- (none specific recorded)
+- [[client-side-check-wrong-host]]
 
 ## Related
-[[skill-progressive-disclosure]] · [[system-prompt-override]] · [[extension-event-hooks]] · [[harness-package-distribution]] · [[project-trust-gate]]
+[[skill-progressive-disclosure]] · [[system-prompt-override]] · [[extension-event-hooks]] · [[harness-package-distribution]] · [[project-trust-gate]] · [[remote-host-trust]] · [[context-file-hierarchy]]

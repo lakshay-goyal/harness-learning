@@ -17,6 +17,7 @@ Where explicit prompt-cache markers go in a request (system, last tool, last con
 - **System + last tool + last message** (Anthropic in **pi**); **system + last user message** (Bedrock in **pi**); **first system + last tool + last user/assistant/tool message** (OpenAI-compat with Anthropic format, e.g. OpenRouter `anthropic/*`, in **pi**).
 - Normalize content shape before marking (string → text block).
 - Capability detection by id/name substring + user override env (pi Bedrock) vs explicit catalog metadata.
+- codex: absent. No `cache_control` or breakpoint field anywhere in `codex-rs` (`git grep cache_control` at `622e9e3696` → no hits). Caching relies on OpenAI's automatic prefix caching keyed by `prompt_cache_key` ([[codex--session-affinity-cache-routing|codex]]).
 
 ## Implementations
 - [[pi--cache-breakpoint-placement|pi]] — per-adapter placement in pi-ai; marker on last *initial* tool + deferred placeholder under native tool changes.
@@ -27,4 +28,4 @@ Where explicit prompt-cache markers go in a request (system, last tool, last con
 - [[late-tool-change-rewrites-cache]]
 
 ## Related
-[[cache-retention-control]] · [[cache-stable-prompt-prefix]] · [[transcript-carried-system-prompt]] · [[model-catalog]] · [[unified-provider-api]]
+[[cache-retention-control]] · [[cache-stable-prompt-prefix]] · [[transcript-carried-system-prompt]] · [[model-catalog]] · [[unified-provider-api]] · [[cache-strategy]]

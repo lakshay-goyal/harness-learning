@@ -5,8 +5,8 @@ group: 10-platform
 Failures whose primary concept is in [[Platform]].
 
 ## Plugin hooks
-- [[plugin-hook-wall-clock-timeout]] — hook timeouts killed hooks legitimately waiting on humans/LLMs.
-- [[unbounded-hook-continuation-loop]] — unconditional `continue:true` at the settle boundary loops forever (documented hazard).
+- [[plugin-hook-wall-clock-timeout]] — hook timeouts killed hooks legitimately waiting on humans/LLMs (pi); hook stdin deadlock outside the timeout hung turns (codex).
+- [[unbounded-hook-continuation-loop]] — unconditional `continue:true` at the settle boundary loops forever (pi, documented hazard); uncapped Stop-hook / goal continuations (codex).
 
 ## Plugin loading / distribution
 - [[stale-plugin-context-after-session-replacement]] — captured `ctx` silently targeted the old session after new/fork/switch/reload.

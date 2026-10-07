@@ -17,6 +17,7 @@ Transfer distilled context into a fresh session/context (new thread seeded by a 
 - **Review**: draft into editor for human edit before sending (pi) · auto-submit.
 - **Lineage**: new session with `parentSession` link (pi stable) · same conversation with a `head` reset entry, history kept in storage (pi-durable).
 - **Cache hygiene**: one-off side call with no cache write + fresh session id.
+- codex: no user-facing "handoff into a new session" command found in findings (unverified absence). Adjacent mechanisms: compaction prompt framed as "a handoff summary for another LLM that will resume the task" (`codex-rs/prompts/templates/compact/prompt.md:1-9`, [[auto-compaction]]); model-callable `new_context_window` reset carried by model notes ([[model-requested-context-reset]]); turn suspension "Handoff intentionally drops" in-process pending input for recovery by another worker (`codex-rs/core/src/session/turn_suspension.rs:1-119`, [[durable-execution]]); realtime end-of-session handoff of the transcript tail to the agent ([[voice-frontend-delegation]]).
 
 ## Implementations
 - [[pi--session-handoff|pi]] — `examples/extensions/handoff.ts` (compaction-aware context → generated prompt → editor → new session); durable `reset(handoff)` / tool `control.handoff`.
@@ -25,4 +26,4 @@ Transfer distilled context into a fresh session/context (new thread seeded by a 
 none recorded.
 
 ## Related
-[[auto-compaction]] · [[structured-compaction-summary]] · [[transcript-serialization-for-summary]] · [[session-fork]] · [[subagent-as-subprocess]] · [[cache-retention-control]]
+[[auto-compaction]] · [[structured-compaction-summary]] · [[transcript-serialization-for-summary]] · [[session-fork]] · [[subagent-as-subprocess]] · [[cache-retention-control]] · [[model-requested-context-reset]] · [[voice-frontend-delegation]]

@@ -34,12 +34,14 @@ Tool names are mapped back on the way in.
   - Codex `originator` / `chatgpt-account-id`.
 - **Policy risk**
   - Removing the feature: f5e6bcac1 removed it and 19b566334 restored it the same day; the reason is unverified.
+- codex: n/a. Codex is the vendor's own first-party client. Its `originator: codex_cli_rs` header (`DEFAULT_ORIGINATOR`, `codex-rs/login/src/auth/default_client.rs:42`) is what pi's Codex path imitates. See [[request-attribution-metadata]].
 
 ## Implementations
 - [[pi--provider-identity-shim|pi]] — the Anthropic OAuth "stealth mode" in `anthropic-messages.ts`: Claude Code identity block, `claude-cli` UA, `claude-code-20250219` and `oauth` betas, CC tool-name casing. Also Copilot VS Code headers and Codex `originator`.
 
 ## Failures
 - [[tool-name-mapping-not-invertible]]
+- [[foreign-harness-tool-hallucination]] (03-tools) — Codex-trained models running inside pi called tools from their native harness that pi does not have:…
 
 ## Related
 [[subscription-oauth-auth]] · [[harness-identity]] · [[http-transport-hardening]] · [[credential-resolution]]

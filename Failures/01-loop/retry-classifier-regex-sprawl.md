@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [auto-retry-backoff, terminal-event-required, errors-as-stream-events]
-harnesses: [pi]
+harnesses: [pi, codex]
 ---
 **Symptom** — Transient failures ended headless runs ("waiting for a manual nudge") because the error text did not match the retryable list.
 
@@ -18,6 +18,10 @@ harnesses: [pi]
 - `3874b3e98` 2026-10-02 "model is at capacity" (#10278); `5b6c792b4` 2026-10-05 HTTP/2 "pending stream has been canceled" (#10379); `8b5708dbb` 2026-10-06 `server_busy` (#10543); `7fb59f995` 2026-10-07 Mistral `finish_reason:"error"` (#10487).
 - ~52 changelog bullets mention retry classification.
 
+**Fix · [[codex]]**
+- TS era: rate-limit retry regex looked for "retry again" but the API says "Please try again in 3.965s", so 429s were not retried — `693a6f96cf` 2025-04-17 "update regex to better match the retry error messages (#266)" (`75febbdefa:codex-cli/src/utils/agent/agent-loop.ts`).
+- Rust rewrite: structured error codes (`codex-rs/codex-api/src/api_bridge.rs:149-221`; `codex-rs/codex-api/src/sse/responses_error.rs:47-99`) mapped into typed `CodexErr` variants; one `retry_delay` decision (`d5b29951ac` 2026-09-18). Residual text parsing only for server delay hints ("try again in", `d9118c04bf`), superseded by headers (`9d8de19674`).
+
 **Lesson** — Centralize retry classification in the provider layer, default-to-retry on transport-level errors, and expect the list to grow; prefer structured error kinds over text.
 
-Related: [[auto-retry-backoff]] · [[terminal-event-required]] · [[error-text-breaks-retry-classification]] · [[foreign-sdk-error-shape-skips-retry]] · [[truncated-stream-accepted-as-success]] · [[pi--auto-retry-backoff|pi]]
+Related: [[auto-retry-backoff]] · [[terminal-event-required]] · [[error-text-breaks-retry-classification]] · [[foreign-sdk-error-shape-skips-retry]] · [[truncated-stream-accepted-as-success]] · [[pi--auto-retry-backoff|pi]] · [[server-retry-advice-ignored]] · [[codex--auto-retry-backoff|codex]]

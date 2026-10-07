@@ -48,5 +48,7 @@ Scope: the boundary between the agent and model providers:
   - body compression,
   - header rules.
 - [[server-side-refusal-fallback]] — The provider retries refused requests on a fallback model approved in advance.
+- [[subscription-usage-limits]] — Track provider-reported plan and usage windows and credits (headers or stream events). Limit reached or quota exhausted becomes a terminal error that explains the reset time, never a retry.
+- [[request-attribution-metadata]] — Attach installation, session, thread, turn, window, lineage and request kind to every request (body metadata plus headers) for vendor routing, billing and debugging, outside the model-visible prompt.
 
 Failures: [[Model Interface Failures]]

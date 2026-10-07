@@ -18,11 +18,19 @@ How a harness is extended, embedded, presented, distributed, operated remotely a
 - [[layered-settings]] — Global → project → CLI deep merge, locked fields.
 - [[session-export-share]] — Export transcript branch to HTML/JSONL; share via gist/hosted artifact.
 - [[install-telemetry]] — Opt-out anonymous version ping + vendor-neutral telemetry contracts.
-- [[client-server-session-split]] — Agent runs in durable per-session worker process; UIs attach over a protocol via a stable coordinator; relay for remote access.
+- [[client-server-session-split]] — Agent runs in durable per-session worker process; UIs attach over a protocol via a stable coordinator; relay for remote access. (codex: one app-server protocol for all surfaces; also holds codex's CLI subcommand surface.)
 - [[remote-execution-env]] — Small native daemon on remote host performs fs/exec for local agent over framed stdio (SSH).
 - [[harness-evals]] — How the harness evaluates itself: harness adapter, paired A/B arms, state-oracle grading, sandboxed runner, conformance suites.
 - [[spec-driven-agentic-development]] — Normative spec + ordered package handoff implemented by agents, reviewed per package.
+- [[client-supplied-dynamic-tools]] — Embedding client declares tool schemas at thread start; calls forwarded to the client over the protocol, content items returned.
+- [[cross-session-prompt-history]] — Global append-only file of every submitted prompt across sessions for Up-arrow recall, independent of transcripts.
+- [[managed-worktrees]] — Harness-created detached git worktrees (hooks disabled, owner metadata, keep-count cleanup) so a thread runs in an isolated checkout.
+- [[terminal-scrollback-tui]] — Finalized history pushed into native terminal scrollback via escape sequences; only the inline live area is rendered.
+- [[feature-flag-stages]] — Central typed flag registry with lifecycle stages (under development → experimental → stable → deprecated → removed no-op).
+- [[external-agent-import]] — Detect another harness's config (instructions, MCP, sub-agents, hooks, commands, plugins, memory, sessions) and translate it.
 
 Failures: [[Platform Failures]]
 
-Related absences: [[no-subagents-core]] · [[no-plan-mode]] · [[no-permission-prompts]] · [[no-sandbox]] · [[no-auto-hot-reload]] · [[no-builtin-mcp-reversed]]
+Related absences: [[no-subagents-core]] · [[no-plan-mode]] · [[no-permission-prompts]] · [[no-sandbox]] · [[no-auto-hot-reload]] · [[no-builtin-mcp-reversed]] · [[no-executable-plugins]] · [[no-strict-jsonrpc]] · [[no-prompt-and-agent-hooks]] · [[no-typescript-cli]] · [[no-in-repo-user-docs]] · [[no-external-code-contributions]] · [[no-plugin-providers]]
+
+Tradeoffs: [[tui-rendering-strategy]] · [[extensibility-model]]

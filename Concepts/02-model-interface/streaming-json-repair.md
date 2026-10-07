@@ -30,6 +30,7 @@ Parse streamed tool-argument JSON tolerantly. While the call is streaming, the p
   - Per-tool eager input streaming, gated by a compat flag.
 - **Scratch state**
   - Delete `partialJson` and `partialArgs` when the block finalizes and on error paths.
+- codex: absent. `response.function_call_arguments.delta` events are ignored, and tool calls are parsed only from the completed `response.output_item.done` item. A parse failure is logged and the event skipped (`codex-rs/codex-api/src/sse/responses.rs:353-358,480-491`). The patch tool avoids JSON entirely through a grammar-constrained freeform format ([[constrained-tool-sampling]]).
 
 ## Implementations
 - [[pi--streaming-json-repair|pi]] — `packages/ai/src/utils/json-parse.ts` (`repairJson`, `parseStreamingJson`, `parseJsonWithRepair`), re-parsed on every tool delta in all adapters. The scratch fields are stripped at block stop.

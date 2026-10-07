@@ -2,8 +2,8 @@
 type: concept
 stage: messages
 tier: candidate
-aliases: [promptSnippet, promptGuidelines, buildRules, "*ToolSystemPromptContribution", "<tools>", "<rules>"]
-harnesses: [pi]
+aliases: [promptSnippet, promptGuidelines, buildRules, "*ToolSystemPromptContribution", "<tools>", "<rules>", without_update_plan_instructions, update_plan_instructions.rs, "tools.update_plan.enabled", include_skills_usage_instructions, include_plugin_usage_instructions, include_apps_usage_instructions, BASE_INSTRUCTIONS_WITH_APPLY_PATCH]
+harnesses: [pi, codex]
 ---
 Each declared tool contributes its own one-line prompt snippet and usage guidelines; the rules block is generated from the tools actually declared on the request, deduplicated.
 
@@ -18,15 +18,24 @@ Each declared tool contributes its own one-line prompt snippet and usage guideli
 - **Per-tool `promptSnippet` + `promptGuidelines`, opt-in listing, set-dedupe, recomputed per request from declared (non-hidden) tools** — **pi chose** (Mar 2026 →).
 - Fallback to API description when no snippet (pi tried; removed as duplicate bloat `7817e9b22`).
 - No tool list in prompt at all; rely on API declarations (partially: pi lists only tools with snippets).
+- **Inverse: fixed model-owned prompt; when a tool is disabled, strip the sections/bullets that mention it by literal heading/prefix match** (`## Planning`, `## \`update_plan\``, `- Use the plan tool `), only from harness-owned text, custom instructions untouched ✔ codex (`codex-rs/prompts/src/update_plan_instructions.rs`).
+- Splice tool guidance into the base prompt at a string anchor (`base.replace("## Editing constraints", …)`) — codex 2025-11, silently dropped when the anchor was missing ([[anchor-based-prompt-injection-silently-fails]]); then append-to-family-prompt; then folded into per-model prompts.
+- Per-model flags gating whole instruction fragments (`include_skills_usage_instructions`, `include_plugin_usage_instructions`, `include_apps_usage_instructions`) ✔ codex.
+- Prompt variant per tool availability: base + apply_patch grammar for models without a native apply_patch tool (`BASE_INSTRUCTIONS_WITH_APPLY_PATCH`, codex until `a1abd53b6a`).
+- Where behavioural guidance lives: in the system prompt for always-present tools (codex moved it *out* of `update_plan`'s description, `30ee24521b`) vs in the description of optional tools (spawn_agent, goal, plugin-install) ✔ codex.
 
 ## Implementations
 - [[pi--dynamic-tool-guidelines|pi]] — `buildRules` order: shell rule → per-tool → extension → universal; hidden declarations excluded; skills hint reader-derived.
+- [[codex--dynamic-tool-guidelines|codex]] — literal-heading stripping of update_plan guidance when the tool is off (default off since 2026-08-31); catalog flags gate skills/plugins/apps fragments; behavioural text moved out of always-present tool descriptions.
 
 ## Failures
 - [[prompt-names-unavailable-tools]]
 - [[shell-cat-instead-of-read-tool]]
 - [[skills-hidden-when-read-tool-absent]]
 - [[imperative-guideline-over-compliance]]
+- [[anchor-based-prompt-injection-silently-fails]]
+- [[edits-bypass-patch-tool]]
+- [[mode-state-confusion]]
 
 ## Related
-[[minimal-system-prompt]] · [[tool-description-design]] · [[plugin-tools]] · [[deferred-tool-loading]] · [[guideline-softening]] · [[transcript-carried-system-prompt]]
+[[minimal-system-prompt]] · [[tool-description-design]] · [[plugin-tools]] · [[deferred-tool-loading]] · [[guideline-softening]] · [[transcript-carried-system-prompt]] · [[per-model-system-prompt]] · [[plan-checklist-tool]] · [[prompt-ownership]]

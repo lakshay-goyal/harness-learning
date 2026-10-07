@@ -14,7 +14,8 @@ Delegation by spawning the same CLI headless (machine-readable event stream, no 
 - Spawn-time config (model, thinking, tools, binary path) must be inherited deliberately ([[subagent-config-not-inherited]], [[subagent-prompt-leaks-host-paths]]).
 
 ## Design space
-- **Mechanism**: subprocess of same CLI (pi example) · in-process child conversation owned by a task ([[task-owned-subagent]]) · human-orchestrated parallel sessions/tmux (pi's stated default) · tool-level orchestration via nested calls/code mode ([[nested-tool-calls]], [[code-mode]]).
+- **Mechanism**: subprocess of same CLI (pi example) · in-process child conversation owned by a task ([[task-owned-subagent]]) · in-process thread in a shared thread manager, addressed by task path ([[in-process-subagent-threads]], codex) · remote hosted agent environment ([[cloud-task-delegation]], codex) · human-orchestrated parallel sessions/tmux (pi's stated default) · tool-level orchestration via nested calls/code mode ([[nested-tool-calls]], [[code-mode]]).
+- codex: absent — sub-agents are `CodexThread`s in the same `ThreadManager`, not child CLI processes (`codex-rs/core/src/agent/control/spawn.rs`); the subprocess wrapping (`codex exec` / app-server) is used only by SDKs and IDE clients ([[sdk-embedding]]).
 - **Modes**: single · parallel with concurrency cap · chain with `{previous}` substitution.
 - **Result contract**: last assistant text (pi) with per-task byte cap; full trace kept in tool details for UI only.
 - **Role definition**: markdown + frontmatter (tools allowlist, model) appended to system prompt; workflow prompt templates chaining roles.
@@ -31,4 +32,4 @@ Delegation by spawning the same CLI headless (machine-readable event stream, no 
 - [[subagent-prompt-leaks-host-paths]]
 
 ## Related
-[[task-owned-subagent]] · [[session-handoff]] · [[headless-rpc-mode]] · [[agent-event-stream]] · [[system-prompt-override]] · [[prompt-template-expansion]] · [[plugin-tools]] · [[abort-propagation]] · [[no-subagents-core]]
+[[task-owned-subagent]] · [[session-handoff]] · [[headless-rpc-mode]] · [[agent-event-stream]] · [[system-prompt-override]] · [[prompt-template-expansion]] · [[plugin-tools]] · [[abort-propagation]] · [[no-subagents-core]] · [[in-process-subagent-threads]] · [[subagent-hosting]]

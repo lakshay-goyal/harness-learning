@@ -33,6 +33,7 @@ The result never goes below the provider's minimum, and when thinking shares the
   - For Bedrock Claude, send the model cap by default. Omitting it saves throughput quota reservation but truncates at 4096: a5fac1ef0 → 11c3da4f7.
 - **Floor**
   - 1 overall, 16 for OpenAI Responses.
+- codex: absent. `ResponsesApiRequest` has no `max_output_tokens` (`codex-rs/codex-api/src/common.rs:279-304`). An attempt to read it from config was reverted (`c9e149fd5c` / `bce030ddb5` 2025-11-21). Headroom comes from `effective_context_window_percent` = 95 and the 90% auto-compact clamp ([[no-output-token-cap]]).
 
 ## Implementations
 - [[pi--max-tokens-context-clamp|pi]] — `clampMaxTokensToContext` in `packages/ai/src/api/simple-options.ts` (`CONTEXT_SAFETY_TOKENS=4096`, floor 1), used by the simple-options base, Anthropic and Bedrock; plus the Responses floor of 16.

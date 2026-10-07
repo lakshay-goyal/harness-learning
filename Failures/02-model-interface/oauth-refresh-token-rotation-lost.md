@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [subscription-oauth-auth, mcp-integration]
-harnesses: [pi]
+harnesses: [pi, codex]
 ---
 **Symptom** — Users were silently logged out when several pi instances ran at once:
 - A stalled OAuth refresh held the credential lock indefinitely.
@@ -22,6 +22,17 @@ harnesses: [pi]
 
 **Fix · [[pi]] (CI, same behavior)** — `abe9c9d9f` 2026-07-06 issue-analysis workflow runs pi with a stored `PI_AUTH_JSON` and writes the refreshed `auth.json` back to the environment secret, refusing files without an `openai-codex` refresh token (`.github/workflows/issue-analysis.yml:418-452`). Header warns the login must be dedicated: Codex rotates refresh tokens on every refresh, so an auth.json shared with a developer machine "invalidates whichever copy refreshes second" → "OAuth refresh failed for openai-codex" (`issue-analysis.yml:34-37`). Cross-machine copies of a rotating credential cannot be fixed by a file lock.
 
-**Lesson** — Once a non-idempotent remote side effect starts, finish and persist it regardless of caller cancellation, bounded by a timeout. Rotation demands cross-process mutual exclusion plus re-validation after acquiring the lock.
+**Fix · [[codex]]**
+- Symptom: users saw "refresh token was already used. Please log out and sign in again." Causes:
+  - The retry loop kept using the old token after a refresh (`d63e44ae29` 2025-08-25).
+  - App-server and multiple processes refreshed with stale in-memory refresh tokens after another process had rotated auth on disk (`999576f7b8` 2026-02-18, `f55f5c258f` 2026-03-23).
+  - Refresh storms after a permanent failure (`88694e8417` 2026-03-24).
+  - A duplicate refresh in `getAuthStatus` (`2c67a27a71` 2026-03-25).
+- Fixes:
+  - 401 recovery first reloads `auth.json`, guarded by account id, before refreshing; proactive refresh reuses the guarded flow.
+  - Permanent failures (`refresh_token_reused` 400, `6111791d0b` 2026-05-27; `invalid_grant`, `fdc23b93b8` 2026-08-19) are cached as terminal with specific relogin messages (`codex-rs/login/src/auth/manager.rs:206-211,1850-1862`).
+  - No cross-process file lock appears in the findings (unverified).
 
-Related: [[subscription-oauth-auth]] · [[mcp-integration]] · [[pi--subscription-oauth-auth|pi]] · [[credential-file-lock-contention]] · [[abort-propagation]]
+**Lesson** — Once a non-idempotent remote side effect starts, finish and persist it regardless of caller cancellation, bounded by a timeout. Rotation demands cross-process coordination: a lock, or at least a reload from shared storage before refreshing, plus re-validation and caching of permanent refresh failures.
+
+Related: [[subscription-oauth-auth]] · [[mcp-integration]] · [[pi--subscription-oauth-auth|pi]] · [[credential-file-lock-contention]] · [[abort-propagation]] · [[codex--subscription-oauth-auth|codex]]

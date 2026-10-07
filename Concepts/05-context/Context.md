@@ -9,6 +9,8 @@ Scope: what the model sees each request and how it is kept inside the window —
 - [[message-conversion-layer]] — App-level message union converted to provider messages only at request boundary; custom message types.
 - [[context-transform-hook]] — Per-request hook rewriting messages sent to the model without mutating persisted history.
 - [[out-of-band-message-deferral]] — Buffer messages produced during a run (user shell, plugin notes) until turn boundary to keep tool-call adjacency.
+- [[world-state-diff-injection]] — Typed environment/config sections diffed per request; only changed sections appended with replace/remove notices; snapshots persisted as merge patches.
+- [[cross-session-memory]] — Background LLM pipeline distils past sessions into memory files; bounded summary injected into new sessions, details read on demand.
 ### Bounding inputs
 - [[tool-output-truncation]] — Bound tool output by lines OR bytes (first hit), direction per tool (head/tail/middle), actionable continuation notice.
 - [[tool-output-spill]] — Full output persisted to temp file; path named in result for later reads.
@@ -26,8 +28,9 @@ Scope: what the model sees each request and how it is kept inside the window —
 - [[background-compaction]] — Start summarizing below a soft threshold without blocking; apply at idle boundary.
 - [[overflow-recovery]] — On overflow (explicit/silent/length) compact then retry exactly once.
 - [[branch-summary]] — LLM summary of an abandoned session-tree branch injected where the new branch continues.
+- [[model-requested-context-reset]] — Model sees remaining budget and can request a fresh window (no summary); continuity via model notes + searchable history.
 
 ## Neighbours
 [[context-overflow-detection]] · [[max-tokens-context-clamp]] (02) · [[context-file-hierarchy]] · [[skill-progressive-disclosure]] · [[env-vars-as-context]] (04) · [[cache-retention-control]] (06) · [[context-projection]] · [[context-edit-overlay]] · [[session-tree]] (08) · [[session-handoff]] (09)
 
-Failures: [[Context Failures]].
+Failures: [[Context Failures]] · Axis: [[compaction-locus]].

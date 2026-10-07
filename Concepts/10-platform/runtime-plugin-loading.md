@@ -24,6 +24,7 @@ Loading uncompiled plugin code into a running harness: host-module aliasing so p
 - **Stale handles**: silently keep working vs throw explicit error (pi) vs stable facade proxy that re-binds (pi Chord `use()` facades).
 - **Memory**: ESM import (leaks generations) vs `node:vm` `compileFunction` CJS (pi Chord).
 - **Placement**: one process vs facets per environment (worker / TUI / web) with dependency graph validation (pi Chord).
+- codex: absent — no runtime code loading; extensions are compiled Rust crates (`codex-rs/ext/*`) and plugins are declarative (`codex-rs/plugin/src/manifest.rs:8-58`) → [[no-executable-plugins]]. Reload is of *data*: skills roots and filesystem watched by the app-server (`codex-rs/app-server/src/skills_watcher.rs`, `codex-rs/app-server/src/fs_watch.rs`, crate `codex-rs/file-watcher` `c579da41b1` 2026-05-08), user config hot-reloaded on batch writes (`a684a36091` 2026-03-08), `Op::RefreshMcpServers` / `Op::ReloadUserConfig` (`codex-rs/core/src/session/handlers.rs:492-720`).
 
 ## Implementations
 - [[pi--runtime-plugin-loading|pi]] — jiti + virtualModules, two-phase transactional factory load, `/reload` full rebuild, stale-ctx invalidation; experimental Chord facets with shape-preserving generation swap and `node:vm` bundles.
@@ -36,6 +37,7 @@ Loading uncompiled plugin code into a running harness: host-module aliasing so p
 - [[module-cache-retains-plugin-generations]]
 - [[reload-cannot-drain-in-flight-calls]]
 - [[settled-draft-then-probe-throws]]
+- [[untrusted-repo-loads-executable-config]] (07-safety) — Starting pi in a freshly cloned repository silently loaded and executed the repo's .pi/extensions, applied…
 
 ## Related
-[[extension-event-hooks]] · [[harness-package-distribution]] · [[replaceable-builtin-extension]] · [[client-server-session-split]] · [[project-trust-gate]] · [[sdk-embedding]] · [[no-auto-hot-reload]]
+[[extension-event-hooks]] · [[harness-package-distribution]] · [[replaceable-builtin-extension]] · [[client-server-session-split]] · [[project-trust-gate]] · [[sdk-embedding]] · [[no-auto-hot-reload]] · [[extensibility-model]]

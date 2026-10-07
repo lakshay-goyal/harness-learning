@@ -18,6 +18,7 @@ On the Nth compaction, the previous summary is passed alongside only the *new* m
 - Permission to drop: pi allows "If something is no longer relevant, you may remove it" — trades bounded size against loss.
 - Range start: previous compaction marker (buggy) vs previous `firstKept` ✔ pi.
 - Split-turn interplay: if nothing new to summarize, pi reuses `previousSummary` verbatim ("No prior history." if none) and only adds the turn prefix.
+- codex: absent — "No special handling": previous summaries are recognized by `SUMMARY_PREFIX` and excluded from the kept user messages (`codex-rs/core/src/compact.rs:583-603`), but the summarizer only sees them as ordinary history; no merge template (`0b28e72b66`) → [[codex--auto-compaction]].
 
 ## Implementations
 - [[pi--iterative-summary-update|pi]] — `UPDATE_SUMMARIZATION_PROMPT` with 6 merge rules + section hints "(preserve all previous, add new)"; previous summary passed in `<previous-summary>` after `<conversation>`; range starts at previous kept entries.
@@ -26,4 +27,4 @@ On the Nth compaction, the previous summary is passed alongside only the *new* m
 - [[repeated-compaction-drops-kept-messages]]
 
 ## Related
-[[structured-compaction-summary]] · [[auto-compaction]] · [[compaction-cut-point]] · [[file-op-tracking]] · [[transcript-serialization-for-summary]]
+[[structured-compaction-summary]] · [[auto-compaction]] · [[compaction-cut-point]] · [[file-op-tracking]] · [[transcript-serialization-for-summary]] · [[compaction-locus]]

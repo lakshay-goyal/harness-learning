@@ -1,7 +1,7 @@
 ---
 type: failure
-concepts: [errors-as-stream-events, auto-retry-backoff]
-harnesses: [pi]
+concepts: [errors-as-stream-events, auto-retry-backoff, subscription-usage-limits]
+harnesses: [pi, codex]
 ---
 **Symptom**
 - Responses and Azure 5xx/429 errors were not auto-retried (#4232).
@@ -19,6 +19,17 @@ harnesses: [pi]
 - `371adcf37` 2026-06-24: explicit "please retry" texts. The classifier moved into `packages/ai/src/utils/retry.ts` (#6019).
 - The pattern list itself is covered in [[retry-classifier-regex-sprawl]].
 
-**Lesson** With string-classified retry, error formatting is part of the retry contract. Structured error kinds would decouple adapters from the classifier.
+**Fix · [[codex]]** — The inverse problem: deterministic failures were retried, or classified into the wrong bucket.
+- Symptom:
+  - Quota, credit and spend-limit errors were retried as transient (reports of "intermittent retry behaviors").
+  - `slow_down` was treated as a terminal overload.
+  - HTTP 429 quota errors were reported as retry-limit failures.
+- `0c647bc566` 2025-11-06 (#6340): don't retry `insufficient_quota`.
+- `102fc57e4a` 2026-09-10: HTTP quota codes → `QuotaExceeded`.
+- `31ffe2bc9a` 2026-09-15: `slow_down` is retryable; `credit_balance_exhausted|organization_spend_limit_exceeded|project_spend_limit_exceeded` are terminal.
+- Now: code tables classify by structured code, not text (`codex-rs/codex-api/src/sse/responses_error.rs:47-99`, and the 429 branch of `map_api_error_details` in `codex-rs/codex-api/src/api_bridge.rs`, with `insufficient_quota` at `:221`). Retryability is a property of the typed error (`CodexErr::retry_delay`, `codex-rs/protocol/src/error.rs:397-445`).
+- See also [[hidden-sdk-retries-double-retry]] (`invalid_prompt`, bio-policy, invalid images).
 
-Related: [[errors-as-stream-events]] · [[auto-retry-backoff]] · [[retry-classifier-regex-sprawl]] · [[rate-limit-misread-as-overflow]] · [[foreign-sdk-error-shape-skips-retry]] · [[pi--errors-as-stream-events|pi]]
+**Lesson** — With string-classified retry, error formatting is part of the retry contract. Classifying by structured error code decouples adapters from the classifier, and must keep "retry later" separate from "plan or balance exhausted".
+
+Related: [[errors-as-stream-events]] · [[auto-retry-backoff]] · [[retry-classifier-regex-sprawl]] · [[rate-limit-misread-as-overflow]] · [[foreign-sdk-error-shape-skips-retry]] · [[pi--errors-as-stream-events|pi]] · [[subscription-usage-limits]] · [[codex--errors-as-stream-events|codex]] · [[hidden-sdk-retries-double-retry]]

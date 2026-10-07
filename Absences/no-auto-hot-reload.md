@@ -35,4 +35,6 @@ harnesses: [pi]
 - Deterministic: a half-saved extension file never loads mid-turn. The cost is a manual step in the extension dev loop.
 - Because reload is a full session_shutdown → session_start cycle, plugins must be written to survive it. Stale-context invalidation exists for exactly that reason.
 
-Related: [[runtime-plugin-loading]] · [[extension-event-hooks]] · [[replaceable-builtin-extension]] · [[harness-package-distribution]] · [[durable-execution]] · [[Absences]]
+**codex** — *partly present* (not an absence). The app-server watches skills roots and the filesystem (`codex-rs/app-server/src/skills_watcher.rs`, `codex-rs/app-server/src/fs_watch.rs`; crate `codex-rs/file-watcher` born `c579da41b1` 2026-05-08), hot-reloads user config on batch writes (`a684a36091` 2026-03-08), and refreshes AGENTS.md (test suite `codex-rs/core/tests/suite/agents_md_refresh.rs`); explicit ops `Op::RefreshMcpServers` / `Op::ReloadUserConfig` (`codex-rs/core/src/session/handlers.rs:492-720`). What is reloaded is data (skills, config, instructions), never code — codex has no runtime code plugins ([[no-executable-plugins]]).
+
+Related: [[runtime-plugin-loading]] · [[extension-event-hooks]] · [[replaceable-builtin-extension]] · [[harness-package-distribution]] · [[durable-execution]] · [[Absences]] · [[cross-session-prompt-history]] · [[codex--layered-settings|codex settings]]

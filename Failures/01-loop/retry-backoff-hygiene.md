@@ -1,7 +1,7 @@
 ---
 type: failure
-concepts: [auto-retry-backoff, abort-propagation]
-harnesses: [pi]
+concepts: [auto-retry-backoff, abort-propagation, steering-queue]
+harnesses: [pi, codex]
 ---
 **Symptom** — Esc did not interrupt provider retry sleeps (#6911/#6980) or "Working…" after auto-retry (#568); long server-requested waits (Gemini CLI) silently stalled the agent (#1123); an unparseable `Retry-After` HTTP-date fired retries immediately (#9571); agent backoff grew unbounded during outages (#8826); retries after abort were reported as success.
 
@@ -16,6 +16,11 @@ harnesses: [pi]
 - `2bbfcca43` 2026-09-30 `Number.isFinite` guards → exponential fallback (`provider-retry.ts:55-65`) (#9571).
 - Agent-level sleep abortable via `_retryAbortController` (`packages/coding-agent/src/core/agent-session.ts:3789-3798`).
 
-**Lesson** — Every wait in the loop must be abortable and bounded; validate every server-supplied number; if you can't cancel the vendor's backoff, re-implement it.
+**Fix · [[codex]]**
+- Symptom: 10 stream retries with factor 1.3 hammered the backend → `548466df09` 2025-08-07 "[client] Tune retries and backoff (#1956)": 10→5 retries ("10 is a bit excessive"), factor 1.3→2.0; `d32e4f25cf` 2025-08-25 user retry config capped at 100 (`codex-rs/model-provider-info/src/lib.rs:72-75`).
+- Symptom: with instant interrupt, new user input waited for an unfinished response or "stream retry backoff" (`f92655d07f` 2026-09-25 #48141) → retry sleep wrapped `.or_cancel(&preempt).or_cancel(&cancellation_token)` (`codex-rs/core/src/session/turn.rs:1705-1729`).
+- Backoff delay itself is uncapped (bounded by retry count) (`codex-rs/async-utils/src/backoff.rs:7-17`).
 
-Related: [[auto-retry-backoff]] · [[abort-propagation]] · [[hidden-sdk-retries-double-retry]] · [[pi--auto-retry-backoff|pi]]
+**Lesson** — Every wait in the loop (incl. backoff sleeps) must be abortable by both abort and steer, and bounded; validate every server-supplied number; if you can't cancel the vendor's backoff, re-implement it.
+
+Related: [[auto-retry-backoff]] · [[abort-propagation]] · [[hidden-sdk-retries-double-retry]] · [[pi--auto-retry-backoff|pi]] · [[steering-queue]] · [[server-retry-advice-ignored]] · [[codex--auto-retry-backoff|codex]]

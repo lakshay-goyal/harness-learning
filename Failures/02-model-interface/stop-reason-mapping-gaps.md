@@ -1,7 +1,7 @@
 ---
 type: failure
-concepts: [unified-provider-api]
-harnesses: [pi]
+concepts: [unified-provider-api, errors-as-stream-events]
+harnesses: [pi, codex]
 ---
 **Symptom**
 - Google responses with a tool call but a `MAX_TOKENS` or error stop were treated as normal tool use, hiding truncation (#8059).
@@ -25,6 +25,17 @@ harnesses: [pi]
 - Raw reason preserved in `rawStopReason`: `926eb15c1` (Anthropic), `637737ca7` (Bedrock), `fe1c9b6d5` (completions) and `23cb385b6` (Google), all 2026-07-29. `c3e7bc60a` 2026-08-07: Codex `end_turn` recorded to `output.endTurn`.
 - Current exhaustive `never` checks: Google `google-shared.ts:441-469`; Responses status map `openai-responses-shared.ts:779-809`.
 
-**Lesson** Make stop-reason maps total, with an explicit "unknown means error with the raw reason" arm. Tool presence never overrides a length or error stop.
+**Fix · [[codex]]** — Chat Completions era, through proxies.
+- Symptom: Claude models behind OpenAI-compatible proxies returned only 1–4 characters. The proxies sent `finish_reason: ""` mid-stream, and Codex treated any non-null `finish_reason` as termination (`de1768d3ba` 2025-11-17, `de1768d3ba:codex-rs/core/src/chat_completions.rs`).
+- Related fixes:
+  - `bba5e5e0d4` 2026-01-05: handle the Chat Completions `[DONE]` sentinel.
+  - `acb8ed493f` 2025-12-08: a missing tool name crashed LiteLLM.
+  - `649badd102` / `5f80ad6da8`: multiple and parallel tool calls were broken on chat.
+- Resolution: the whole Chat Completions path was deleted in `d2394a2494` 2026-02-03 ([[no-chat-completions-wire]]).
+- What remains on Responses:
+  - `response.incomplete` with reason `content_filter` → ContentFilter.
+  - Any other reason except `interrupted` → a retryable Stream error (`codex-rs/codex-api/src/sse/responses.rs:418-433`).
 
-Related: [[unified-provider-api]] · [[server-side-refusal-fallback]] · [[terminal-event-required]] · [[truncated-stream-accepted-as-success]] · [[pi--unified-provider-api|pi]]
+**Lesson** — Make stop-reason maps total, with an explicit "unknown means error, keep the raw reason" arm, and never let tool presence override a length or error stop. Compatibility layers for a second wire protocol accrue a long tail of such quirks; deleting the layer is a legitimate fix.
+
+Related: [[unified-provider-api]] · [[server-side-refusal-fallback]] · [[terminal-event-required]] · [[truncated-stream-accepted-as-success]] · [[pi--unified-provider-api|pi]] · [[codex--unified-provider-api|codex]] · [[no-chat-completions-wire]] · [[provider-breadth]]

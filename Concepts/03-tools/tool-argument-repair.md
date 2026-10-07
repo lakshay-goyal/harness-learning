@@ -2,8 +2,8 @@
 type: concept
 stage: tool-design
 tier: candidate
-aliases: [prepareArguments, prepareEditArguments, model-arg-repair, lenient-tool-arg-validation, validateToolArguments coercion]
-harnesses: [pi]
+aliases: [prepareArguments, prepareEditArguments, model-arg-repair, lenient-tool-arg-validation, validateToolArguments coercion, ParseMode::Lenient, PARSE_IN_STRICT_MODE]
+harnesses: [pi, codex]
 ---
 A pre-validation shim that coerces common malformed argument shapes (stringified JSON, single object for array, legacy field names, numeric strings, stray nulls) into the canonical schema instead of rejecting the call.
 
@@ -20,15 +20,24 @@ A pre-validation shim that coerces common malformed argument shapes (stringified
 - Upstream prevention via constrained decoding → [[constrained-tool-sampling]]; downstream salvage of malformed streamed JSON → [[streaming-json-repair]].
 - Reject out-of-range values with explanation rather than silently clamping (pi bash timeout).
 - Mutate args in place vs repair on a copy (pi coding-agent mutates; pi durable copies).
+- Repair the free-text envelope rather than JSON shapes (✔ codex: strip `<<'EOF'` heredoc wrappers for all models, accept `applypatch`, re-route `apply_patch` heredocs sent through the shell).
+- Clamp out-of-range waits instead of rejecting (✔ codex `yield_time_ms` → [250, 30000], short `wait_agent` timeouts → floor) vs reject with explanation (✔ pi bash timeout).
+- Refuse with the exact corrected invocation in the error (✔ codex `patch detected without explicit call to apply_patch. Rerun as ["apply_patch", "<patch>"]`).
+- Tolerate legacy enum values after they leave the schema (✔ codex `view_image.detail`).
+- User hooks may rewrite arguments before dispatch (✔ codex PreToolUse `updated_input`).
 
 ## Implementations
 - [[pi--tool-argument-repair|pi]] — `prepareArguments` hook (edit: JSON-string edits, single object, legacy oldText/newText) + pi-ai `validateToolArguments` coercion.
+- [[codex--tool-argument-repair|codex]] — lenient `apply_patch` parser + `applypatch` alias + shell interception; clamps for yield/wait; legacy value tolerance; PreToolUse input rewrite.
 
 ## Failures
 - [[tool-arg-shape-drift]]
 - [[tool-arg-coercion-breaks-unions]]
 - [[edit-tool-dual-mode-confusion]]
 - [[bash-timeout-clamped-to-immediate]]
+- [[patch-wrapped-in-heredoc-by-model]]
+- [[tool-name-training-artifact]]
+- [[patch-body-executed-as-shell]]
 
 ## Related
-[[tool-description-design]] · [[tool-error-as-result]] · [[constrained-tool-sampling]] · [[streaming-json-repair]] · [[search-replace-edit]] · [[session-migration]]
+[[tool-description-design]] · [[tool-error-as-result]] · [[constrained-tool-sampling]] · [[streaming-json-repair]] · [[search-replace-edit]] · [[session-migration]] · [[patch-envelope-edit]] · [[tool-schema-normalization]]

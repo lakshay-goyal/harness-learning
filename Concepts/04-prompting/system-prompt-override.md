@@ -2,8 +2,8 @@
 type: concept
 stage: messages
 tier: candidate
-aliases: [SYSTEM.md, APPEND_SYSTEM.md, "--system-prompt", "--append-system-prompt", before_agent_start, forceSystemPrompt, systemPromptOptions]
-harnesses: [pi]
+aliases: [SYSTEM.md, APPEND_SYSTEM.md, "--system-prompt", "--append-system-prompt", before_agent_start, forceSystemPrompt, systemPromptOptions, model_instructions_file, developer_instructions, "config.base_instructions", include_permissions_instructions, include_environment_context]
+harnesses: [pi, codex]
 ---
 User and plugin control over the base prompt: append, replace the harness base while keeping environment sections, or fully force a prompt — plus a structured hook to mutate named sections.
 
@@ -19,9 +19,15 @@ User and plugin control over the base prompt: append, replace the harness base w
 - Replace everything (**pi** `before_agent_start` returning `systemPrompt` → `forceSystemPrompt`, projected not recorded).
 - **Structured mutable options with named sections, chained across handlers** (**pi** `systemPromptOptions`).
 - Project-local overrides gated by trust (**pi**) vs always honored.
+- **Replace the model's catalog prompt** via config (`base_instructions`, `model_instructions_file` — "Users are STRONGLY DISCOURAGED from using this field") while all dynamic fragments (permissions, AGENTS.md, environment) still arrive as separate messages ✔ codex.
+- **Append as a separate developer-role message** (`developer_instructions`) rather than into the system prompt ✔ codex → [[message-role-layering]].
+- Per-block kill switches for harness-injected fragments (`include_permissions_instructions`, `include_apps_instructions`, `include_collaboration_mode_instructions`, `include_environment_context`) ✔ codex.
+- Side-prompt overrides: compaction prompt (`compact_prompt` / `experimental_compact_prompt_file`) ✔ codex; personality section removal (`personality = "none"`) ✔ codex.
+- Internal replacement for sub-tasks: review child gets `base_instructions = REVIEW_PROMPT` ✔ codex → [[review-subagent]].
 
 ## Implementations
 - [[pi--system-prompt-override|pi]] — three tiers; hook chained; forced prompt projected onto request head; project files trust-gated.
+- [[codex--system-prompt-override|codex]] — config replaces the catalog prompt wholesale; `developer_instructions` appended as developer message; per-fragment include toggles; compaction prompt override; no plugin hook.
 
 ## Failures
 - [[forced-system-prompt-applied-as-late-update]]
@@ -29,4 +35,4 @@ User and plugin control over the base prompt: append, replace the harness base w
 - [[markdown-boundaries-ingested-inconsistently]]
 
 ## Related
-[[minimal-system-prompt]] · [[transcript-carried-system-prompt]] · [[extension-event-hooks]] · [[project-trust-gate]] · [[context-file-hierarchy]] · [[harness-evals]]
+[[minimal-system-prompt]] · [[transcript-carried-system-prompt]] · [[extension-event-hooks]] · [[project-trust-gate]] · [[context-file-hierarchy]] · [[harness-evals]] · [[prompt-ownership]]

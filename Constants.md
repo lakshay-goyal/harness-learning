@@ -1,6 +1,6 @@
 ---
 type: constants
-harnesses: [pi]
+harnesses: [pi, codex]
 ---
 # Constants
 
@@ -8,301 +8,447 @@ Cross-harness hardcoded values. One row per constant (some rows bundle 2–5 sib
 
 - **pi** @ `b30a6dd77` (2026-10-07), [[pi]]. Source census: `git grep` of UPPER_CASE numerics (395 hits minus tests/examples/easter eggs), `??`/`||` defaults, `setTimeout(…, N)`, `git log -S/-G` for history. Per-model rows of `packages/ai/src/models.generated.ts` skipped; generator-wide defaults kept. 238 rows (~300 distinct values).
 - Structural fact: `packages/agent/src` (the core loop) has **zero numeric literals ≥ 10** — no turn cap, step limit or loop timeout (`grep -rnE '[0-9]{2,}' packages/agent/src` → empty; `maxTurns|maxSteps|maxIterations` → no hits in `packages/*/src`). Every limit lives at the edges: provider, tools, compaction, TUI. See [[no-turn-cap]].
-- Paths are repo-relative to the pi repo. Values in backticks are literal source.
+- **codex** @ `622e9e3696` (2026-10-08), [[codex]]. Source: per-organ miners' constants tables (grep of `const`/`static` numerics, `Duration::from_*`, defaults in config structs), each re-checked by group writers; 196 rows, 51 placed beside the equivalent pi row, the rest appended per group with `—` in the pi columns. Structural fact: no turn/step cap in the codex loop either (`codex-rs/core/src/session/turn.rs:424-837`, comment at `:588`) → [[no-turn-cap]].
+- Paths are repo-relative to each harness's repo (pi columns → pi repo, codex columns → codex repo). Values in backticks are literal source.
 
 ## 01-loop
 
-| constant (neutral) | pi | pi location | tradeoff | history |
-|---|---|---|---|---|
-| Max agent turns per prompt · [[turn-loop]] · [[no-turn-cap]] | none (absent) | `packages/agent/src/agent-loop.ts` (no numeric literals) | Trust the model / user Esc instead of hard stop; risk runaway loops | deliberate absence (no `maxTurns` anywhere) |
-| Agent-level retry enabled · [[auto-retry-backoff]] | `retry.enabled` = `true` | `packages/coding-agent/src/core/settings-manager.ts:1011` | Auto-recover transient 429/5xx/overloaded vs surfacing errors | bb445d24f (2025-12-10) introduced |
-| Agent-level max retries · [[auto-retry-backoff]] | `retry.maxRetries` = `3` | `packages/coding-agent/src/core/settings-manager.ts:1026` | Bounded attempts; initial call not counted | bb445d24f: "exponential backoff (2s, 4s, 8s)", fixes #157; unchanged since |
-| Agent-level backoff base · [[auto-retry-backoff]] | `retry.baseDelayMs` = `2000` ms | `packages/coding-agent/src/core/settings-manager.ts:1027` | `base * 2^(n-1)` → 2s/4s/8s | bb445d24f introduced; unchanged |
-| Agent-level backoff cap · [[auto-retry-backoff]] | `DEFAULT_MAX_AGENT_RETRY_DELAY_MS` = `60_000` ms | `packages/ai/src/utils/retry.ts:126` | Cap per-attempt sleep so large `maxRetries` doesn't sleep hours | moved to ai pkg to share with SDK (comment `packages/ai/src/utils/retry.ts:110-115`) |
-| Backoff formula · [[auto-retry-backoff]] | `retryDelayMs()` = `base * 2 ** (attempt-1)`, min(cap) | `packages/ai/src/utils/retry.ts:128-131` | No jitter at agent level (jitter only at provider level) | — |
-| Steering queue delivery · [[steering-queue]] | `steeringMode` = `"one-at-a-time"` | `packages/coding-agent/src/core/settings-manager.ts:854` | Mid-run user messages injected one per turn, not batched | 0119d7610 (2025-12-09, AgentSession queue mode) |
-| Follow-up queue delivery · [[follow-up-queue]] | `followUpMode` = `"one-at-a-time"` | `packages/coding-agent/src/core/settings-manager.ts:864` | Same as above for post-run queue | — |
-| Default thinking level · [[thinking-level-abstraction]] | `DEFAULT_THINKING_LEVEL` = `"medium"` | `packages/coding-agent/src/core/defaults.ts:3` | Moderate reasoning cost by default | — |
-| Default tool set · [[minimal-default-toolset]] | `DEFAULT_TOOL_NAMES` = `read, bash, edit, write` | `packages/coding-agent/src/core/settings-manager.ts:215` | Minimal 4-tool surface; grep/find/ls opt-in | — |
-| Durable harness retry policy · [[auto-retry-backoff]] · [[durable-execution]] | `DEFAULT_RETRY_POLICY` = `{3, 2000ms, 60000ms}` | `packages/durable/src/harness/agent.ts:19-24` | Mirrors coding-agent defaults in new durable harness | ed0d6b91b-era durable packages (2026-09) |
-| Durable progress emit interval · [[durable-execution]] | `DEFAULT_PROGRESS_POLICY` = `partial 100ms / output 100ms` | `packages/durable/src/harness/agent.ts:33-36` | Throttle persisted streaming deltas | — |
-| Durable generation poll · [[durable-execution]] · [[deferred-responses]] | `DEFAULT_POLL_AFTER_MS` = `5000` ms | `packages/durable/src/harness/generation.ts:109` | Poll cadence for async generation | (unverified purpose detail) |
-| Process kill escalation · [[process-tree-kill]] | SIGTERM → SIGKILL after `5000` ms | `packages/coding-agent/src/core/exec.ts:61` | Grace for cleanup vs hung children | — |
-| Child stdio drain after exit · [[shell-execution]] | `EXIT_STDIO_GRACE_MS` = `100` ms | `packages/coding-agent/src/utils/child-process.ts:16` | Catch trailing output vs exit latency | — |
-| RPC client wait defaults · [[headless-rpc-mode]] | `waitForIdle/collectEvents/promptAndWait` = `60000` ms | `packages/coding-agent/src/modes/rpc/rpc-client.ts:471,491,513` | Test/SDK convenience timeouts | — |
+| constant (neutral) | pi | pi location | codex | codex location | tradeoff | history |
+|---|---|---|---|---|---|---|
+| Max agent turns per prompt · [[turn-loop]] · [[no-turn-cap]] | none (absent) | `packages/agent/src/agent-loop.ts` (no numeric literals) | none (no counter in `run_turn` loop) | `codex-rs/core/src/session/turn.rs:424-837` | Trust the model / user Esc instead of hard stop; risk runaway loops | deliberate absence (no `maxTurns` anywhere) · codex: — |
+| Agent-level retry enabled · [[auto-retry-backoff]] | `retry.enabled` = `true` | `packages/coding-agent/src/core/settings-manager.ts:1011` | always on (stream layer in `run_sampling_request`) | `codex-rs/core/src/session/turn.rs:1638-1729` | Auto-recover transient 429/5xx/overloaded vs surfacing errors | bb445d24f (2025-12-10) introduced · codex: `04a8580f33` 2026-05-26 |
+| Agent-level max retries · [[auto-retry-backoff]] | `retry.maxRetries` = `3` | `packages/coding-agent/src/core/settings-manager.ts:1026` | `DEFAULT_STREAM_MAX_RETRIES` = `5` (per sampling request) | `codex-rs/model-provider-info/src/lib.rs:67` | Bounded attempts; initial call not counted | bb445d24f: "exponential backoff (2s, 4s, 8s)", fixes #157; unchanged since · codex: `548466df09` 2025-08-07 (10→5) |
+| Agent-level backoff base · [[auto-retry-backoff]] | `retry.baseDelayMs` = `2000` ms | `packages/coding-agent/src/core/settings-manager.ts:1027` | `INITIAL_DELAY_MS` = `200` ms | `codex-rs/async-utils/src/backoff.rs:7` | `base * 2^(n-1)` → 2s/4s/8s | bb445d24f introduced; unchanged · codex: `548466df09` |
+| Agent-level backoff cap · [[auto-retry-backoff]] | `DEFAULT_MAX_AGENT_RETRY_DELAY_MS` = `60_000` ms | `packages/ai/src/utils/retry.ts:126` | none (uncapped; bounded by retry count, ~3.2 s at 5 retries) | `codex-rs/async-utils/src/backoff.rs:7-17` | Cap per-attempt sleep so large `maxRetries` doesn't sleep hours | moved to ai pkg to share with SDK (comment `packages/ai/src/utils/retry.ts:110-115`) · codex: — |
+| Backoff formula · [[auto-retry-backoff]] | `retryDelayMs()` = `base * 2 ** (attempt-1)`, min(cap) | `packages/ai/src/utils/retry.ts:128-131` | `200ms * 2^(n-1)` ±10% jitter (attempts 0 and 1 both 200 ms) | `codex-rs/async-utils/src/backoff.rs:7-17` | No jitter at agent level (jitter only at provider level) | codex: `548466df09` (factor 1.3→2.0) |
+| Steering queue delivery · [[steering-queue]] | `steeringMode` = `"one-at-a-time"` | `packages/coding-agent/src/core/settings-manager.ts:854` | — | — | Mid-run user messages injected one per turn, not batched | 0119d7610 (2025-12-09, AgentSession queue mode) |
+| Follow-up queue delivery · [[follow-up-queue]] | `followUpMode` = `"one-at-a-time"` | `packages/coding-agent/src/core/settings-manager.ts:864` | durable `ext/queue`: head dispatched on thread idle via `start_turn_if_idle(turn_trigger:"queue")`; never after interrupt | `codex-rs/ext/queue/src/service.rs:405-470`, `:549-553` | Same as above for post-run queue | codex: `bc8b25ea02` 2026-08-06 |
+| Default thinking level · [[thinking-level-abstraction]] | `DEFAULT_THINKING_LEVEL` = `"medium"` | `packages/coding-agent/src/core/defaults.ts:3` | — | — | Moderate reasoning cost by default | — |
+| Default tool set · [[minimal-default-toolset]] | `DEFAULT_TOOL_NAMES` = `read, bash, edit, write` | `packages/coding-agent/src/core/settings-manager.ts:215` | no fixed set: per-turn plan; core `exec_command` + `write_stdin` + `apply_patch` (+ `view_image`, web search, collab tools when gated on); `update_plan` off | `codex-rs/core/src/tools/spec_plan.rs:1082-1374` | Minimal 4-tool surface; grep/find/ls opt-in | codex: 83decfa300 2026-05-13; 8a40095ea3 2026-08-20; a9519cbcdd 2026-08-31 |
+| Durable harness retry policy · [[auto-retry-backoff]] · [[durable-execution]] | `DEFAULT_RETRY_POLICY` = `{3, 2000ms, 60000ms}` | `packages/durable/src/harness/agent.ts:19-24` | — | — | Mirrors coding-agent defaults in new durable harness | ed0d6b91b-era durable packages (2026-09) |
+| Durable progress emit interval · [[durable-execution]] | `DEFAULT_PROGRESS_POLICY` = `partial 100ms / output 100ms` | `packages/durable/src/harness/agent.ts:33-36` | — | — | Throttle persisted streaming deltas | — |
+| Durable generation poll · [[durable-execution]] · [[deferred-responses]] | `DEFAULT_POLL_AFTER_MS` = `5000` ms | `packages/durable/src/harness/generation.ts:109` | — | — | Poll cadence for async generation | (unverified purpose detail) |
+| Process kill escalation · [[process-tree-kill]] | SIGTERM → SIGKILL after `5000` ms | `packages/coding-agent/src/core/exec.ts:61` | `CANCELLATION_TERMINATION_GRACE_PERIOD` = 50 ms (TERM → KILL group on cancel; timeout = immediate group SIGKILL) | `codex-rs/core/src/exec.rs:71` | Grace for cleanup vs hung children | codex: a2fdfce02a 2025-11-07 kill process groups on timeout |
+| Child stdio drain after exit · [[shell-execution]] | `EXIT_STDIO_GRACE_MS` = `100` ms | `packages/coding-agent/src/utils/child-process.ts:16` | `POST_EXIT_CLOSE_WAIT_CAP` = 50 ms (unified exec); legacy `IO_DRAIN_TIMEOUT_MS` = 2_000 ms | `codex-rs/core/src/unified_exec/process_manager.rs:1578`; `codex-rs/core/src/exec.rs:94` | Catch trailing output vs exit latency | codex: 73ed30d7e5 2025-11-12; c2ca51273f 2026-02-09 |
+| RPC client wait defaults · [[headless-rpc-mode]] | `waitForIdle/collectEvents/promptAndWait` = `60000` ms | `packages/coding-agent/src/modes/rpc/rpc-client.ts:471,491,513` | — | — | Test/SDK convenience timeouts | — |
+| Retry config hard cap · [[auto-retry-backoff]] | — | — | `MAX_STREAM_MAX_RETRIES` = `MAX_REQUEST_MAX_RETRIES` = `100` | `codex-rs/model-provider-info/src/lib.rs:72-75` | User-configurable up to cap | `d32e4f25cf` 2025-08-25 |
+| Unbounded connection-retry delay · [[auto-retry-backoff]] | — | — | `INITIAL_CONNECTION_RETRY_DELAY` 5 s → ×2 → `MAX_CONNECTION_RETRY_DELAY` 60 s, unbounded count | `codex-rs/core/src/responses_retry.rs:23-24` | Survive offline laptops (feature-gated, not internal/Bedrock) | `5a0d0929e2` 2026-08-07 |
+| Remote compaction stream retries · [[auto-retry-backoff]] · [[auto-compaction]] | — | — | min(provider, `2`) | `codex-rs/core/src/compact_remote_v2.rs:77` | Long requests, fewer retries | `dac98cb635` 2026-05-22 |
+| Graceful task-abort wait · [[abort-propagation]] | — | — | `GRACEFULL_INTERRUPTION_TIMEOUT_MS` = `100` ms, then hard abort | `codex-rs/core/src/tasks/mod.rs:71` | Interrupt feels instant; synthetic aborted outputs fill gaps | `c03e31ecf5` 2025-10-17 |
+| Stop-hook / command hook timeout · [[turn-lifecycle-hooks]] | — | — | default `600` s per command hook; SessionEnd 1 s default / 3 s max | `codex-rs/hooks/src/engine/discovery.rs:764`; `codex-rs/hooks/src/events/session_end.rs:20-23` | Slow Stop/PreToolUse hook stalls the turn (cancellable); shutdown stays fast | — |
+| Concurrent async hooks · [[turn-lifecycle-hooks]] | — | — | `MAX_CONCURRENT_ASYNC_HOOKS` = `8` | `codex-rs/hooks/src/engine/command_runner.rs:54` | Bounds fire-and-forget hook processes | — |
+| Analytics tool-call ids per response · [[turn-loop]] | — | — | `MAX_ANALYTICS_TOOL_CALL_IDS_PER_RESPONSE` = `256` | `codex-rs/core/src/session/turn.rs:2588` | Telemetry bound only | — |
+| Async runtime thread stack · [[turn-loop]] | — | — | `16` MiB | `codex-rs/async-utils/src/lib.rs:9` | Huge `run_turn` future state machine | — |
+| Max pending queued submissions per thread · [[follow-up-queue]] | — | — | `100` | `codex-rs/state/src/lib.rs:113` | — | — |
+| Instant-interrupt preemption · [[steering-queue]] | — | — | `instant_interrupt` UnderDevelopment, default off | `codex-rs/features/src/lib.rs:1166-1171` | Cancel in-flight response on new input vs finish sampling first | `f92655d07f` 2026-09-25 |
+| Goal harness breakers · [[persistent-goal-continuation]] | — | — | 3 consecutive empty automatic turns / 3 exec-failure turns → Blocked; model audit: same blocker ≥ 3 consecutive goal turns | `codex-rs/ext/goal/src/accounting.rs:160`, `:229`; `codex-rs/ext/goal/templates/goals/continuation.md:50` | Runaway protection vs transient errors | `0735c51978`, `62b458c931`, `0d344aca9b` |
+| Goal token charge · [[persistent-goal-continuation]] | — | — | (input − cached input) + output, descendants charged to root | `codex-rs/ext/goal/src/accounting.rs:527-531`, `:278` | Cached input free | `a9dee37f9c` 2026-08-10 |
+| Session token budget weighting · [[session-token-budget]] | — | — | `output × sampling_token_weight + non_cached_input × prefill_token_weight` (or server `codex_rollout_budget_units`); no default limit | `codex-rs/core/src/rollout_budget.rs:48-67`; `codex-rs/core/src/config/mod.rs:1320-1325` | Feature `rollout_budget` under development | `32a696dbac` 2026-06-18; `8b8fa7276f` 2026-08-03 |
+| Persistent-mode wait cadence · [[persistent-agent-mode]] | — | — | "often 1–3 minutes for active near-term work" (prompt) | `codex-rs/prompts/templates/persistent_mode.md` | Responsiveness vs token burn while waiting | `f1433fc71f` 2026-08-27 |
 
 ## 02-model-interface
 
-| constant (neutral) | pi | pi location | tradeoff | history |
-|---|---|---|---|---|
-| Provider (SDK) retries · [[auto-retry-backoff]] | `retry.provider.maxRetries` / `options.maxRetries ?? 0` = `0` | `packages/ai/src/utils/provider-retry.ts:111` | SDK retries disabled; app-level retry instead (abortable, visible) | bb445d24f set Anthropic SDK `maxRetries: 0`; 8fb1e877c (2026-05-26) "disable hidden provider 429 retries (#4991)" |
-| Provider backoff · [[auto-retry-backoff]] | `getRetryDelayMs` = `min(0.5*2^n, 8)s × (1 - rand*0.25)` | `packages/ai/src/utils/provider-retry.ts:67-68` | Mirrors OpenAI/Anthropic SDK policy, made abortable | — |
-| Max server-requested retry delay · [[auto-retry-backoff]] | `DEFAULT_MAX_RETRY_DELAY_MS` / `retry.provider.maxRetryDelayMs` = `60_000` ms | `packages/ai/src/utils/provider-retry.ts:1`; `packages/coding-agent/src/core/settings-manager.ts:1061` | Fail fast (and show user) instead of silently honoring hours-long `retry-after` | 030a61d88 (2026-02-01) "Gemini CLI requested hours"; renamed/migrated c06750410 (settings migration `packages/coding-agent/src/core/settings-manager.ts:561`) |
-| Retryable statuses · [[auto-retry-backoff]] | `isRetryableProviderError` = 408, 409, 429, ≥500, `x-should-retry` | `packages/ai/src/utils/provider-retry.ts:25-37` | SDK parity | — |
-| HTTP idle timeout · [[http-transport-hardening]] | `DEFAULT_HTTP_IDLE_TIMEOUT_MS` = `300_000` ms (choices 30s/1m/2m/5m/off) | `packages/coding-agent/src/core/http-dispatcher.ts:4,8-14` | Long thinking pauses vs dead-socket detection | 849f9d9c5 (2026-05-20, #4759) |
-| Happy-eyeballs attempt timeout · [[http-transport-hardening]] | `DEFAULT_AUTO_SELECT_FAMILY_ATTEMPT_TIMEOUT_MS` = `2_000` ms | `packages/coding-agent/src/core/http-dispatcher.ts:6` | Node's 250ms default kills high-latency connects | — |
-| WebSocket connect timeout · [[http-transport-hardening]] | `DEFAULT_WEBSOCKET_CONNECT_TIMEOUT_MS` = `15_000` ms | `packages/ai/src/api/openai-codex-responses.ts:57` | Handshake bound | — |
-| Codex retries · [[auto-retry-backoff]] | `DEFAULT_MAX_RETRIES` / `BASE_DELAY_MS` = `0` / `1000` ms | `packages/ai/src/api/openai-codex-responses.ts:54-55` | Same "no hidden retries" stance | 8fb1e877c |
-| Codex WS session cache TTL · [[http-transport-hardening]] · [[session-affinity-cache-routing]] | `SESSION_WEBSOCKET_CACHE_TTL_MS` = `5 * 60 * 1000` | `packages/ai/src/api/openai-codex-responses.ts:866` | Reuse WS (server-side cached context) for 5 min idle | a26a9cfab (2026-02-13) |
-| Codex WS max age · [[http-transport-hardening]] | `SESSION_WEBSOCKET_MAX_AGE_MS` = `55 * 60 * 1000` | `packages/ai/src/api/openai-codex-responses.ts:867` | Rotate before server's ~60 min limit | 23d146261 (2026-07-03) "rotate stale Codex websocket sessions", #6268 |
-| Codex request compression · [[http-transport-hardening]] | `REQUEST_COMPRESSION_ZSTD_LEVEL` = `3` | `packages/ai/src/api/openai-codex-responses.ts:60` | CPU vs upload size (matches Codex client) | — |
-| Mistral request timeout · [[http-transport-hardening]] | `60_000` ms | `packages/ai/src/api/mistral-conversations.ts:307` | Only provider with hard default timeout | — |
-| Mistral tool-call id length · [[tool-call-id-normalization]] | `MISTRAL_TOOL_CALL_ID_LENGTH` = `9` | `packages/ai/src/api/mistral-conversations.ts:28` | Provider requires 9-char ids | — |
-| Provider error body cap · [[errors-as-stream-events]] | `MAX_PROVIDER_ERROR_BODY_CHARS` = `4000` | `packages/ai/src/utils/error-body.ts:16` | Useful diagnostics vs flooding transcript | — |
-| Bedrock diagnostic value cap · [[errors-as-stream-events]] | `MAX_BEDROCK_DIAGNOSTIC_VALUE_CHARS` = `200` | `packages/ai/src/api/bedrock-converse-stream.ts:415` | — | — |
-| Diagnostic string cap · [[errors-as-stream-events]] | `maxLength` = `8192` | `packages/ai/src/api/pi-messages.ts:121` | — | — |
-| Default context window (custom models) · [[model-catalog]] | `definition.contextWindow ?? 128000` = `128000` | `packages/coding-agent/src/core/provider-composer.ts:242` | Safe-ish assumption for unknown models | ef6af5ebb (2026-03-29) → 9993c9690 (2026-07-14 model runtime) |
-| Default max output tokens (custom models) · [[model-catalog]] | `definition.maxTokens ?? 16384` = `16384` | `packages/coding-agent/src/core/provider-composer.ts:243` | — | same |
-| Generator fallback context/max tokens · [[model-catalog]] | `limit?.context \|\| 4096` = `4096` | `packages/ai/scripts/generate-models.ts:1494-1495` (and ~15 sites) | Pessimistic when models.dev lacks data | — |
-| llama.cpp fallback context · [[model-catalog]] | `128000` | `packages/coding-agent/src/extensions/llama/provider.ts:78` | — | — |
-| Context safety margin for max_tokens clamp · [[max-tokens-context-clamp]] | `CONTEXT_SAFETY_TOKENS` = `4096` | `packages/ai/src/api/simple-options.ts:15` | `maxTokens = min(req, window - estimate - 4096)`; absorbs estimate error | 09f105957 (2026-06-25) "clamp streamSimple max tokens" #5595/#6061 |
-| Minimum max_tokens · [[max-tokens-context-clamp]] | `MIN_MAX_TOKENS` = `1` | `packages/ai/src/api/simple-options.ts:16` | Never send 0/negative | 09f105957 |
-| Answer room under thinking budget · [[thinking-level-abstraction]] | `MIN_ANSWER_TOKENS` = `1024` | `packages/ai/src/api/simple-options.ts:68` | Thinking can't eat whole response ceiling | d07889da0 (2026-08-05), b23741269 |
-| Thinking budgets · [[thinking-level-abstraction]] | `DEFAULT_THINKING_BUDGETS` = minimal 1024 / low 2048 / medium 8192 / high 16384 | `packages/ai/src/api/simple-options.ts:70-75` | xhigh/max clamp to high | values since 004de3c9d (2025-09-02); const named b23741269 |
-| Bedrock Claude budgets · [[thinking-level-abstraction]] | `defaultBudgets` = same + xhigh/max 16384 | `packages/ai/src/api/bedrock-converse-stream.ts:1282-1289` | — | fd268479a |
-| Anthropic budget floor · [[thinking-level-abstraction]] | `budget_tokens \|\| 1024`, `maxTokens - 1024` | `packages/ai/src/api/anthropic-messages.ts:974,1257` | Anthropic minimum budget is 1024 | — |
-| Gemini 2.5 budgets · [[thinking-level-abstraction]] | pro: 128/2048/8192/32768; flash: 128/2048/8192/24576; flash-lite min 512 | `packages/ai/src/api/google-generative-ai.ts:441-466` | Model-specific minima | 36e17933d |
-| OpenAI min output tokens · [[max-tokens-context-clamp]] | `OPENAI_RESPONSES_MIN_OUTPUT_TOKENS` = `16` | `packages/ai/src/api/openai-responses.ts:33`; `packages/ai/src/api/azure-openai-responses.ts:19` | API rejects <16 | — |
-| OpenAI prompt cache key length · [[session-affinity-cache-routing]] | `OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH` = `64` | `packages/ai/src/api/openai-prompt-cache.ts:1` | API limit | — |
-| OpenAI long-context pricing threshold · [[usage-cost-accounting]] | `OPENAI_LONG_CONTEXT_INPUT_THRESHOLD` = `272000` | `packages/ai/scripts/generate-models.ts:395` | 2x input / 1.5x output above | — |
-| Codex context windows · [[model-catalog]] | `CODEX_CONTEXT` / `CODEX_SPARK_CONTEXT` / `CODEX_MAX_TOKENS` = 272000 / 128000 / 128000 | `packages/ai/scripts/generate-models.ts:3261-3264` | — | — |
-| OpenAI decisions max images · [[structured-classifier-api]] | `MAX_IMAGES` = `128` | `packages/ai/src/api/openai-decisions.ts:33` | — | — |
-| Image request limits (provider) · [[image-normalization]] | `applyImageInputMetadata` = Anthropic 32 MiB req, 100 imgs (200k ctx) else 600; Bedrock 20/msg; OpenAI 512 MiB, 1500; Google 20 MiB, 3600 | `packages/ai/scripts/generate-models.ts:997-1009` | Encode provider caps as model metadata | f5c946480 (2026-09-20, #9631) |
-| Remote model catalog refresh · [[model-catalog]] | `REMOTE_CATALOG_REFRESH_INTERVAL_MS` = `4h` | `packages/coding-agent/src/core/remote-catalog-provider.ts:15` | Freshness vs network | — |
-| Remote catalog attempt timeout · [[model-catalog]] | `REMOTE_CATALOG_ATTEMPT_TIMEOUT_MS` = `4_000` ms | `packages/coding-agent/src/core/remote-catalog-provider.ts:14` | Startup not blocked | — |
-| Catalog refresh abort (interactive/RPC) · [[model-catalog]] | `15_000` ms | `packages/coding-agent/src/main.ts:941`; `packages/coding-agent/src/modes/interactive/interactive-mode.ts:1143` | — | — |
-| OAuth min validity before use · [[subscription-oauth-auth]] | `DEFAULT_OAUTH_MINIMUM_VALIDITY_MS` = `5 min` | `packages/ai/src/auth/resolve.ts:102` | Refresh early to avoid mid-request expiry | 99e34013d (2026-07-27) |
-| OAuth refresh timeout · [[subscription-oauth-auth]] | `DEFAULT_OAUTH_REFRESH_TIMEOUT_MS` = `15_000` | `packages/ai/src/auth/resolve.ts:103` | — | — |
-| Anthropic OAuth callback port · [[subscription-oauth-auth]] | `CALLBACK_PORT` = `53692` | `packages/ai/src/auth/oauth/anthropic.ts:20` | Fixed registered redirect | 92882dc4c (2026-03-13, #2119) |
-| OpenAI ChatGPT OAuth callback port · [[subscription-oauth-auth]] | `CALLBACK_PORT` = `1455` | `packages/ai/src/auth/oauth/openai-chatgpt.ts:23` | Same port as Codex CLI | 02eed88fd (2026-09-29) |
-| Radius OAuth callback port · [[subscription-oauth-auth]] | `CALLBACK_PORT` = `1456` | `packages/ai/src/auth/oauth/radius.ts:19` | — | — |
-| ChatGPT token expiry margin · [[subscription-oauth-auth]] | `EXPIRY_MARGIN_MS` = `3 min` | `packages/ai/src/auth/oauth/openai-chatgpt.ts:29` | — | — |
-| xAI refresh skew / default lifetime · [[subscription-oauth-auth]] | `REFRESH_SKEW_MS` / `DEFAULT_TOKEN_LIFETIME_SECONDS` = 5 min / 3600 s | `packages/ai/src/auth/oauth/xai.ts:13-14` | — | — |
-| Radius token skew · [[subscription-oauth-auth]] | `TOKEN_EXPIRY_SKEW_MS` = `60_000` | `packages/ai/src/auth/oauth/radius.ts:22` | — | — |
-| Device-code flow · [[subscription-oauth-auth]] | `MINIMUM_INTERVAL_MS` / `DEFAULT_POLL_INTERVAL_SECONDS` / `SLOW_DOWN_INTERVAL_INCREMENT_MS` = 1000 / 5 / 5000 | `packages/ai/src/auth/oauth/device-code.ts:5,7,9` | RFC 8628 compliance | — |
-| Device-code timeout (Codex, Kimi) · [[subscription-oauth-auth]] | `DEVICE_CODE_TIMEOUT_SECONDS` = `15*60` | `packages/ai/src/auth/oauth/openai-codex.ts:31`; `packages/ai/src/auth/oauth/kimi-coding.ts:16` | — | — |
-| Kimi refresh retries / request timeout · [[subscription-oauth-auth]] | `REFRESH_MAX_RETRIES` / `REQUEST_TIMEOUT_MS` = 3 / 30s | `packages/ai/src/auth/oauth/kimi-coding.ts:18-19` | — | — |
-| Meta API key lifetime · [[subscription-oauth-auth]] | `API_KEY_LIFETIME_MS` = `24h` | `packages/ai/src/auth/oauth/meta.ts:25` | — | — |
-| OpenRouter login / exchange timeout · [[subscription-oauth-auth]] | `LOGIN_TIMEOUT_MS` / `TOKEN_EXCHANGE_TIMEOUT_MS` = 5 min / 30s | `packages/ai/src/auth/oauth/openrouter.ts:21-22` | — | — |
-| Copilot token retry · [[subscription-oauth-auth]] | `500 * 2 ** retry`; `{maxRetries: 2, maxElapsedMs: 5000}` | `packages/ai/src/auth/oauth/github-copilot.ts:155,398` | — | — |
-| Bearer token min expiry for `auth print` · [[credential-resolution]] | `DEFAULT_BEARER_TOKEN_MIN_EXPIRY_MS` = `30 min` | `packages/coding-agent/src/cli/credential-print.ts:7` | External tools get usable token | 99e34013d |
-| llama.cpp classify readout · [[structured-classifier-api]] | `MIN_READOUT_DEPTH` / `READOUT_DEPTH_PER_LABEL` / `READOUT_ESCALATION` = 256 / 16 / [4096, 32768] | `packages/ai/src/api/llama-cpp-classify.ts:44-47` | — | — |
-| Faux provider token chunking · [[harness-evals]] | `DEFAULT_MIN/MAX_TOKEN_SIZE` = 3 / 5 | `packages/ai/src/providers/faux.ts:29-30` | Test provider | — |
+| constant (neutral) | pi | pi location | codex | codex location | tradeoff | history |
+|---|---|---|---|---|---|---|
+| Provider (SDK) retries · [[auto-retry-backoff]] | `retry.provider.maxRetries` / `options.maxRetries ?? 0` = `0` | `packages/ai/src/utils/provider-retry.ts:111` | `DEFAULT_REQUEST_MAX_RETRIES` = `4` (HTTP layer, 5xx/transport only) | `codex-rs/model-provider-info/src/lib.rs:68`, `:454-460` | SDK retries disabled; app-level retry instead (abortable, visible) | bb445d24f set Anthropic SDK `maxRetries: 0`; 8fb1e877c (2026-05-26) "disable hidden provider 429 retries (#4991)" · codex: `9846adeabf` 2025-07-18 |
+| Provider backoff · [[auto-retry-backoff]] | `getRetryDelayMs` = `min(0.5*2^n, 8)s × (1 - rand*0.25)` | `packages/ai/src/utils/provider-retry.ts:67-68` | — | — | Mirrors OpenAI/Anthropic SDK policy, made abortable | — |
+| Max server-requested retry delay · [[auto-retry-backoff]] | `DEFAULT_MAX_RETRY_DELAY_MS` / `retry.provider.maxRetryDelayMs` = `60_000` ms | `packages/ai/src/utils/provider-retry.ts:1`; `packages/coding-agent/src/core/settings-manager.ts:1061` | no cap; Retry-After honored as monotonic deadline, never extends retry budget | `codex-rs/protocol/src/error.rs:449-458`; `codex-rs/core/src/responses_retry.rs:1-3` | Fail fast (and show user) instead of silently honoring hours-long `retry-after` | 030a61d88 (2026-02-01) "Gemini CLI requested hours"; renamed/migrated c06750410 (settings migration `packages/coding-agent/src/core/settings-manager.ts:561`) · codex: `9d8de19674` 2026-09-23 |
+| Retryable statuses · [[auto-retry-backoff]] | `isRetryableProviderError` = 408, 409, 429, ≥500, `x-should-retry` | `packages/ai/src/utils/provider-retry.ts:25-37` | HTTP: `retry_429: false`, `retry_5xx: true`, `retry_transport: true`; stream: typed `CodexErr::retry_delay` (terminal / advice-only / backoff) | `codex-rs/model-provider-info/src/lib.rs:454-460`; `codex-rs/protocol/src/error.rs:397-446` | SDK parity | codex: `4502b1b263` 2025-11-25; `d5b29951ac` 2026-09-18 |
+| HTTP idle timeout · [[http-transport-hardening]] | `DEFAULT_HTTP_IDLE_TIMEOUT_MS` = `300_000` ms (choices 30s/1m/2m/5m/off) | `packages/coding-agent/src/core/http-dispatcher.ts:4,8-14` | `stream_idle_timeout_ms` = `300_000` ms (per SSE event; also WS receive and send) | `codex-rs/model-provider-info/src/lib.rs:66` | Long thinking pauses vs dead-socket detection | 849f9d9c5 (2026-05-20, #4759) · codex: 9846adeabf 2025-07-18; WS send bounded 35aaa5d9fc 2026-05-01 |
+| Happy-eyeballs attempt timeout · [[http-transport-hardening]] | `DEFAULT_AUTO_SELECT_FAMILY_ATTEMPT_TIMEOUT_MS` = `2_000` ms | `packages/coding-agent/src/core/http-dispatcher.ts:6` | `250` ms (WebSocket dialer) | `codex-rs/websocket-client/src/dialer.rs:34` | Node's 250ms default kills high-latency connects | codex: — |
+| WebSocket connect timeout · [[http-transport-hardening]] | `DEFAULT_WEBSOCKET_CONNECT_TIMEOUT_MS` = `15_000` ms | `packages/ai/src/api/openai-codex-responses.ts:57` | `DEFAULT_WEBSOCKET_CONNECT_TIMEOUT_MS` = `15_000` ms | `codex-rs/model-provider-info/src/lib.rs:71` | Handshake bound | codex: 6ea041032b 2026-03-17 (introduced as websocket_startup_timeout_ms) |
+| Codex retries · [[auto-retry-backoff]] | `DEFAULT_MAX_RETRIES` / `BASE_DELAY_MS` = `0` / `1000` ms | `packages/ai/src/api/openai-codex-responses.ts:54-55` | — | — | Same "no hidden retries" stance | 8fb1e877c |
+| Codex WS session cache TTL · [[http-transport-hardening]] · [[session-affinity-cache-routing]] | `SESSION_WEBSOCKET_CACHE_TTL_MS` = `5 * 60 * 1000` | `packages/ai/src/api/openai-codex-responses.ts:866` | — | — | Reuse WS (server-side cached context) for 5 min idle | a26a9cfab (2026-02-13) |
+| Codex WS max age · [[http-transport-hardening]] | `SESSION_WEBSOCKET_MAX_AGE_MS` = `55 * 60 * 1000` | `packages/ai/src/api/openai-codex-responses.ts:867` | none client-side; server limit 60 min (`websocket_connection_limit_reached` → retry) | `codex-rs/codex-api/src/endpoint/responses_websocket.rs:164-165` | Rotate before server's ~60 min limit | 23d146261 (2026-07-03) "rotate stale Codex websocket sessions", #6268 · codex: — |
+| Codex request compression · [[http-transport-hardening]] | `REQUEST_COMPRESSION_ZSTD_LEVEL` = `3` | `packages/ai/src/api/openai-codex-responses.ts:60` | zstd only with feature + ChatGPT/Codex-backend auth + OpenAI provider | `codex-rs/core/src/client.rs:1634-1643` | CPU vs upload size (matches Codex client) | codex: — |
+| Mistral request timeout · [[http-transport-hardening]] | `60_000` ms | `packages/ai/src/api/mistral-conversations.ts:307` | — | — | Only provider with hard default timeout | — |
+| Mistral tool-call id length · [[tool-call-id-normalization]] | `MISTRAL_TOOL_CALL_ID_LENGTH` = `9` | `packages/ai/src/api/mistral-conversations.ts:28` | — | — | Provider requires 9-char ids | — |
+| Provider error body cap · [[errors-as-stream-events]] | `MAX_PROVIDER_ERROR_BODY_CHARS` = `4000` | `packages/ai/src/utils/error-body.ts:16` | — | — | Useful diagnostics vs flooding transcript | — |
+| Bedrock diagnostic value cap · [[errors-as-stream-events]] | `MAX_BEDROCK_DIAGNOSTIC_VALUE_CHARS` = `200` | `packages/ai/src/api/bedrock-converse-stream.ts:415` | — | — | — | — |
+| Diagnostic string cap · [[errors-as-stream-events]] | `maxLength` = `8192` | `packages/ai/src/api/pi-messages.ts:121` | — | — | — | — |
+| Default context window (custom models) · [[model-catalog]] | `definition.contextWindow ?? 128000` = `128000` | `packages/coding-agent/src/core/provider-composer.ts:242` | `272_000` (95% effective, 10_000-byte tool output) | `codex-rs/models-manager/src/model_info.rs:126-132` | Safe-ish assumption for unknown models | ef6af5ebb (2026-03-29) → 9993c9690 (2026-07-14 model runtime) · codex: a1abd53b6a 2026-02-09 |
+| Default max output tokens (custom models) · [[model-catalog]] | `definition.maxTokens ?? 16384` = `16384` | `packages/coding-agent/src/core/provider-composer.ts:243` | — | — | — | same |
+| Generator fallback context/max tokens · [[model-catalog]] | `limit?.context \|\| 4096` = `4096` | `packages/ai/scripts/generate-models.ts:1494-1495` (and ~15 sites) | — | — | Pessimistic when models.dev lacks data | — |
+| llama.cpp fallback context · [[model-catalog]] | `128000` | `packages/coding-agent/src/extensions/llama/provider.ts:78` | — | — | — | — |
+| Context safety margin for max_tokens clamp · [[max-tokens-context-clamp]] | `CONTEXT_SAFETY_TOKENS` = `4096` | `packages/ai/src/api/simple-options.ts:15` | none — no `max_output_tokens` field sent | `codex-rs/codex-api/src/common.rs:279-304` | `maxTokens = min(req, window - estimate - 4096)`; absorbs estimate error | 09f105957 (2026-06-25) "clamp streamSimple max tokens" #5595/#6061 · codex: config read reverted c9e149fd5c / bce030ddb5 2025-11-21 |
+| Minimum max_tokens · [[max-tokens-context-clamp]] | `MIN_MAX_TOKENS` = `1` | `packages/ai/src/api/simple-options.ts:16` | — | — | Never send 0/negative | 09f105957 |
+| Answer room under thinking budget · [[thinking-level-abstraction]] | `MIN_ANSWER_TOKENS` = `1024` | `packages/ai/src/api/simple-options.ts:68` | — | — | Thinking can't eat whole response ceiling | d07889da0 (2026-08-05), b23741269 |
+| Thinking budgets · [[thinking-level-abstraction]] | `DEFAULT_THINKING_BUDGETS` = minimal 1024 / low 2048 / medium 8192 / high 16384 | `packages/ai/src/api/simple-options.ts:70-75` | — | — | xhigh/max clamp to high | values since 004de3c9d (2025-09-02); const named b23741269 |
+| Bedrock Claude budgets · [[thinking-level-abstraction]] | `defaultBudgets` = same + xhigh/max 16384 | `packages/ai/src/api/bedrock-converse-stream.ts:1282-1289` | — | — | — | fd268479a |
+| Anthropic budget floor · [[thinking-level-abstraction]] | `budget_tokens \|\| 1024`, `maxTokens - 1024` | `packages/ai/src/api/anthropic-messages.ts:974,1257` | — | — | Anthropic minimum budget is 1024 | — |
+| Gemini 2.5 budgets · [[thinking-level-abstraction]] | pro: 128/2048/8192/32768; flash: 128/2048/8192/24576; flash-lite min 512 | `packages/ai/src/api/google-generative-ai.ts:441-466` | — | — | Model-specific minima | 36e17933d |
+| OpenAI min output tokens · [[max-tokens-context-clamp]] | `OPENAI_RESPONSES_MIN_OUTPUT_TOKENS` = `16` | `packages/ai/src/api/openai-responses.ts:33`; `packages/ai/src/api/azure-openai-responses.ts:19` | — | — | API rejects <16 | — |
+| OpenAI prompt cache key length · [[session-affinity-cache-routing]] | `OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH` = `64` | `packages/ai/src/api/openai-prompt-cache.ts:1` | — | — | API limit | — |
+| OpenAI long-context pricing threshold · [[usage-cost-accounting]] | `OPENAI_LONG_CONTEXT_INPUT_THRESHOLD` = `272000` | `packages/ai/scripts/generate-models.ts:395` | — | — | 2x input / 1.5x output above | — |
+| Codex context windows · [[model-catalog]] | `CODEX_CONTEXT` / `CODEX_SPARK_CONTEXT` / `CODEX_MAX_TOKENS` = 272000 / 128000 / 128000 | `packages/ai/scripts/generate-models.ts:3261-3264` | gpt-5.6-*: 272k (872k max); gpt-5.5: 272k/272k | `codex-rs/models-manager/models.json` | — | codex: 5bb193aa88 2026-04-17 (max window) |
+| OpenAI decisions max images · [[structured-classifier-api]] | `MAX_IMAGES` = `128` | `packages/ai/src/api/openai-decisions.ts:33` | — | — | — | — |
+| Image request limits (provider) · [[image-normalization]] | `applyImageInputMetadata` = Anthropic 32 MiB req, 100 imgs (200k ctx) else 600; Bedrock 20/msg; OpenAI 512 MiB, 1500; Google 20 MiB, 3600 | `packages/ai/scripts/generate-models.ts:997-1009` | — | — | Encode provider caps as model metadata | f5c946480 (2026-09-20, #9631) |
+| Remote model catalog refresh · [[model-catalog]] | `REMOTE_CATALOG_REFRESH_INTERVAL_MS` = `4h` | `packages/coding-agent/src/core/remote-catalog-provider.ts:15` | `DEFAULT_MODEL_CACHE_TTL` = `300` s + `x-models-etag` refetch | `codex-rs/models-manager/src/manager.rs:35` | Freshness vs network | codex: 222a491570 2025-12-08; 66b7c673e9 2026-01-01 |
+| Remote catalog attempt timeout · [[model-catalog]] | `REMOTE_CATALOG_ATTEMPT_TIMEOUT_MS` = `4_000` ms | `packages/coding-agent/src/core/remote-catalog-provider.ts:14` | `MODELS_REFRESH_TIMEOUT` = `5` s | `codex-rs/model-provider/src/models_endpoint.rs:44` | Startup not blocked | codex: — |
+| Catalog refresh abort (interactive/RPC) · [[model-catalog]] | `15_000` ms | `packages/coding-agent/src/main.ts:941`; `packages/coding-agent/src/modes/interactive/interactive-mode.ts:1143` | — | — | — | — |
+| OAuth min validity before use · [[subscription-oauth-auth]] | `DEFAULT_OAUTH_MINIMUM_VALIDITY_MS` = `5 min` | `packages/ai/src/auth/resolve.ts:102` | `CHATGPT_ACCESS_TOKEN_REFRESH_WINDOW_MINUTES` = `5` (JWT exp); `TOKEN_REFRESH_INTERVAL` = 8 days when no exp | `codex-rs/login/src/auth/manager.rs:203-204` | Refresh early to avoid mid-request expiry | 99e34013d (2026-07-27) · codex: 7dc2cd2ebe 2026-03-24 (JWT exp); e5afe5bf8c 2026-05-28 (5 min) |
+| OAuth refresh timeout · [[subscription-oauth-auth]] | `DEFAULT_OAUTH_REFRESH_TIMEOUT_MS` = `15_000` | `packages/ai/src/auth/resolve.ts:103` | — | — | — | — |
+| Anthropic OAuth callback port · [[subscription-oauth-auth]] | `CALLBACK_PORT` = `53692` | `packages/ai/src/auth/oauth/anthropic.ts:20` | — | — | Fixed registered redirect | 92882dc4c (2026-03-13, #2119) |
+| OpenAI ChatGPT OAuth callback port · [[subscription-oauth-auth]] | `CALLBACK_PORT` = `1455` | `packages/ai/src/auth/oauth/openai-chatgpt.ts:23` | `1455`, fallback registered port `1457` | `codex-rs/login/src/server.rs:78-80` | Same port as Codex CLI | 02eed88fd (2026-09-29) · codex: 8d5da3ffe5 2026-04-29 |
+| Radius OAuth callback port · [[subscription-oauth-auth]] | `CALLBACK_PORT` = `1456` | `packages/ai/src/auth/oauth/radius.ts:19` | — | — | — | — |
+| ChatGPT token expiry margin · [[subscription-oauth-auth]] | `EXPIRY_MARGIN_MS` = `3 min` | `packages/ai/src/auth/oauth/openai-chatgpt.ts:29` | — | — | — | — |
+| xAI refresh skew / default lifetime · [[subscription-oauth-auth]] | `REFRESH_SKEW_MS` / `DEFAULT_TOKEN_LIFETIME_SECONDS` = 5 min / 3600 s | `packages/ai/src/auth/oauth/xai.ts:13-14` | — | — | — | — |
+| Radius token skew · [[subscription-oauth-auth]] | `TOKEN_EXPIRY_SKEW_MS` = `60_000` | `packages/ai/src/auth/oauth/radius.ts:22` | — | — | — | — |
+| Device-code flow · [[subscription-oauth-auth]] | `MINIMUM_INTERVAL_MS` / `DEFAULT_POLL_INTERVAL_SECONDS` / `SLOW_DOWN_INTERVAL_INCREMENT_MS` = 1000 / 5 / 5000 | `packages/ai/src/auth/oauth/device-code.ts:5,7,9` | — | — | RFC 8628 compliance | — |
+| Device-code timeout (Codex, Kimi) · [[subscription-oauth-auth]] | `DEVICE_CODE_TIMEOUT_SECONDS` = `15*60` | `packages/ai/src/auth/oauth/openai-codex.ts:31`; `packages/ai/src/auth/oauth/kimi-coding.ts:16` | `15` min | `codex-rs/login/src/device_code_auth.rs:108` | — | codex: — |
+| Kimi refresh retries / request timeout · [[subscription-oauth-auth]] | `REFRESH_MAX_RETRIES` / `REQUEST_TIMEOUT_MS` = 3 / 30s | `packages/ai/src/auth/oauth/kimi-coding.ts:18-19` | — | — | — | — |
+| Meta API key lifetime · [[subscription-oauth-auth]] | `API_KEY_LIFETIME_MS` = `24h` | `packages/ai/src/auth/oauth/meta.ts:25` | — | — | — | — |
+| OpenRouter login / exchange timeout · [[subscription-oauth-auth]] | `LOGIN_TIMEOUT_MS` / `TOKEN_EXCHANGE_TIMEOUT_MS` = 5 min / 30s | `packages/ai/src/auth/oauth/openrouter.ts:21-22` | — | — | — | — |
+| Copilot token retry · [[subscription-oauth-auth]] | `500 * 2 ** retry`; `{maxRetries: 2, maxElapsedMs: 5000}` | `packages/ai/src/auth/oauth/github-copilot.ts:155,398` | — | — | — | — |
+| Bearer token min expiry for `auth print` · [[credential-resolution]] | `DEFAULT_BEARER_TOKEN_MIN_EXPIRY_MS` = `30 min` | `packages/coding-agent/src/cli/credential-print.ts:7` | — | — | External tools get usable token | 99e34013d |
+| llama.cpp classify readout · [[structured-classifier-api]] | `MIN_READOUT_DEPTH` / `READOUT_DEPTH_PER_LABEL` / `READOUT_ESCALATION` = 256 / 16 / [4096, 32768] | `packages/ai/src/api/llama-cpp-classify.ts:44-47` | — | — | — | — |
+| Faux provider token chunking · [[harness-evals]] | `DEFAULT_MIN/MAX_TOKEN_SIZE` = 3 / 5 | `packages/ai/src/providers/faux.ts:29-30` | — | — | Test provider | — |
+| Response stream channel capacity · [[http-transport-hardening]] | — | — | `RESPONSE_STREAM_CHANNEL_CAPACITY` = `1600` events | `codex-rs/core/src/client.rs:2365` | — | — |
+| System proxy cache TTL · [[http-transport-hardening]] | — | — | `60` s success / `5` s unavailable | `codex-rs/http-client/src/outbound_proxy.rs:29-30` | — | — |
+| Max HTTP redirects · [[http-transport-hardening]] | — | — | `10` | `codex-rs/http-client/src/route_aware_redirect.rs:31` | — | — |
+| Connection-wait retry delay · [[http-transport-hardening]] | — | — | `5` s doubling to `60` s, unbounded count (feature `UnboundedConnectionRetries`) | `codex-rs/core/src/responses_retry.rs:23-24` | Survive offline laptops without consuming retry budget | 5a0d0929e2 2026-08-07; configurable da898490fc 2026-08-14 |
+| Model catalog max body · [[model-catalog]] | — | — | `MAX_MODEL_CATALOG_BYTES` = `1` MiB | `codex-rs/model-provider/src/models_endpoint.rs:47` | — | — |
+| Effective context window percent · [[model-catalog]] | — | — | `effective_context_window_percent` default `95` | `codex-rs/protocol/src/openai_models.rs:391-393` | Headroom for prompt/tools/output instead of an output-token clamp | b7fa7ca8e9 2025-12-11 |
+| Context-left baseline · [[usage-cost-accounting]] | — | — | `BASELINE_TOKENS` = `12000` | `codex-rs/protocol/src/protocol.rs:2477` | Context bar starts at 100% after first prompt | — |
+| Turn-cost poll interval · [[usage-cost-accounting]] | — | — | `POLL_INTERVAL` = `150` s (timeout 15 s, max 4096 turns, 5 stalled polls) | `codex-rs/app-server/src/turn_cost_worker.rs` | Server pricing settles late; no client price table | 04caa22c82 2026-08-17 |
+| Gateway OAuth refresh skew · [[subscription-oauth-auth]] | — | — | `30` s (HTTP timeout 20 s, browser timeout 180 s) | `codex-rs/login/src/gateway_auth.rs:54-55`; `codex-rs/login/src/gateway_auth_callback.rs:15` | — | — |
+| Agent identity bootstrap failure cooldown · [[subscription-oauth-auth]] | — | — | `1` h | `codex-rs/login/src/auth/manager.rs:112` | — | — |
+| Provider command-auth timeout / refresh · [[credential-resolution]] | — | — | `DEFAULT_PROVIDER_AUTH_TIMEOUT_MS` = `5_000` / `DEFAULT_PROVIDER_AUTH_REFRESH_INTERVAL_MS` = `300_000` (0 = only after 401) | `codex-rs/protocol/src/config_types.rs:564-565` | — | — |
+| OSS default ports · [[custom-provider-registration]] | — | — | Ollama `11434`, LM Studio `1234` | `codex-rs/model-provider-info/src/lib.rs:653-654` | — | — |
+| Ollama min version for Responses · [[custom-provider-registration]] | — | — | `0.13.4` | `codex-rs/ollama/src/lib.rs:46-48` | Responses-only wire | fe03320791 2026-01-13 |
+| Local server probe timeout · [[custom-provider-registration]] | — | — | `5` s | `codex-rs/ollama/src/client.rs:30`; `codex-rs/lmstudio/src/client.rs:16` | — | — |
+| Soft max outgoing request · [[request-attribution-metadata]] | — | — | `MAX_RESPONSE_MESSAGE_BYTES` = `15 MiB` (sheds tool metadata from wire copy) | `codex-rs/core/src/client_tool_metadata.rs:10` | Shed optional metadata, never prompt content | — |
+| MCP attribution metadata cap · [[request-attribution-metadata]] | — | — | `MAX_MCP_ATTRIBUTION_BYTES` = `16 KiB` | `codex-rs/core/src/responses_metadata.rs:47` | — | — |
+| Default reasoning effort · [[thinking-level-abstraction]] | — | — | `medium` (or catalog `default_reasoning_level`) | `codex-rs/protocol/src/openai_models.rs:60-73` | — | — |
 
 ## 03-tools
 
-| constant (neutral) | pi | pi location | tradeoff | history |
-|---|---|---|---|---|
-| Tool output max lines · [[tool-output-truncation]] | `DEFAULT_MAX_LINES` = `2000` | `packages/coding-agent/src/core/tools/truncate.ts:11` | Whichever of lines/bytes hits first | de77cd141 (2025-12-07) introduced |
-| Tool output max bytes · [[tool-output-truncation]] | `DEFAULT_MAX_BYTES` = `50 * 1024` | `packages/coding-agent/src/core/tools/truncate.ts:12` | Context cost vs needing re-reads | de77cd141: **30KB** → 306f9cc66 (same day, #134): **50KB** |
-| grep line length cap · [[tool-output-truncation]] | `GREP_MAX_LINE_LENGTH` = `500` chars | `packages/coding-agent/src/core/tools/truncate.ts:13` | Minified files blow budget | b813a8b92 (2025-12-07, #134) |
-| read truncation direction · [[tool-output-truncation]] | (head) = head | `packages/coding-agent/src/core/tools/read.ts:96` | Offset/limit continuation message | de77cd141 |
-| bash truncation direction · [[tool-output-truncation]] | (tail) = last 2000 lines/50KB; full output to temp file | `packages/coding-agent/src/core/tools/bash.ts:255` | Errors are at the end | de77cd141 |
-| bash default timeout · [[shell-execution]] · [[no-bash-default-timeout]] | **none** | `packages/coding-agent/src/core/tools/bash.ts:42` | Long builds allowed; model must opt in | 29900ce64 (2025-11-12): **30s → none** ("commands run until completion unless specified") |
-| bash max timeout · [[shell-execution]] · [[no-bash-default-timeout]] | `MAX_TIMEOUT_MS` = `2_147_483_647` ms (int32 setTimeout max) | `packages/coding-agent/src/core/tools/bash.ts:22` | Node timer overflow guard | — |
-| bash structured output (codemode) · [[structured-tool-output]] | `STRUCTURED_OUTPUT_MAX_BYTES` = `1024 * 1024` | `packages/coding-agent/src/core/tools/bash.ts:24` | Scripts get 20× more than model | 1ff5b6fdd (2026-09-29) |
-| bash render throttle · [[differential-tui-rendering]] | `BASH_UPDATE_THROTTLE_MS` = `100` ms | `packages/coding-agent/src/core/tools/renderers/bash.ts:19` | — | — |
-| bash preview lines (collapsed) · [[differential-tui-rendering]] | `BASH_PREVIEW_LINES` = `5` | `packages/coding-agent/src/core/tools/renderers/bash.ts:18` | — | — |
-| `!` command preview lines · [[differential-tui-rendering]] | `PREVIEW_LINES` = `20` | `packages/coding-agent/src/modes/interactive/components/bash-execution.ts:19` | — | — |
-| find result limit · [[search-tools]] | `DEFAULT_LIMIT` = `1000` | `packages/coding-agent/src/core/tools/find.ts:41` | — | de77cd141 |
-| grep match limit · [[search-tools]] | `DEFAULT_LIMIT` = `100` | `packages/coding-agent/src/core/tools/grep.ts:41` | — | de77cd141 |
-| ls entry limit · [[search-tools]] | `DEFAULT_LIMIT` = `500` | `packages/coding-agent/src/core/tools/ls.ts:23` | — | de77cd141 |
-| Collapsed tool args preview · [[differential-tui-rendering]] | `COLLAPSED_ARGS_CHARS` = `100` (80 in codemode) | `packages/coding-agent/src/core/tools/render-utils.ts:71`; `packages/coding-agent/src/extensions/codemode/renderer.ts:21` | — | — |
-| Fallback tool preview · [[differential-tui-rendering]] | `FALLBACK_PREVIEW_LINES` = `10` | `packages/coding-agent/src/modes/interactive/components/tool-execution.ts:23` | — | — |
-| Write highlight cutoff · [[differential-tui-rendering]] | `WRITE_PARTIAL_FULL_HIGHLIGHT_LINES` = `50` | `packages/coding-agent/src/core/tools/renderers/write.ts:29` | — | — |
-| Image max dimension · [[image-normalization]] | `DEFAULT_OPTIONS.maxWidth/maxHeight` = `2000 × 2000` | `packages/coding-agent/src/utils/image-resize-core.ts:35-36` | Model compatibility (many-image Anthropic limit is 2000px) | 4a32af253 (2026-01-02) |
-| Image max encoded bytes · [[image-normalization]] | `DEFAULT_MAX_BYTES` = `4.5 * 1024 * 1024` | `packages/coding-agent/src/utils/image-resize-core.ts:32` | Headroom under Anthropic's 5MB base64 limit | 69dc6b078 (2026-01-03, #424) |
-| JPEG quality ladder · [[image-normalization]] | `jpegQuality` / `qualitySteps` = 80 then 85,70,55,40 | `packages/coding-agent/src/utils/image-resize-core.ts:38,132` | — | 69dc6b078 |
-| Generated image resize default · [[image-normalization]] | `DEFAULT_IMAGE_RESIZE` = 2000/2000/4.5MiB/80 | `packages/ai/scripts/generate-models.ts:424-429` | "cache-safe" historical default for unknown providers | f5c946480 (2026-09-20) |
-| Image type sniff bytes · [[image-normalization]] | `IMAGE_TYPE_SNIFF_BYTES` = `4100` | `packages/coding-agent/src/utils/mime.ts:3` | file-type lib requirement | — |
-| MCP model-facing output cap · [[mcp-integration]] | `MCP_OUTPUT_MAX_BYTES` = `20 * 1024` (middle cut) | `packages/coding-agent/src/extensions/mcp/tools.ts:51` | Smaller than built-in 50KB | 8562bcf66 (2026-09-29) |
-| MCP tool name length · [[mcp-integration]] | `MAX_TOOL_NAME_LENGTH` = `64` | `packages/coding-agent/src/extensions/mcp/tools.ts:49` | Provider name rule | 8562bcf66 |
-| MCP per-call timeout · [[mcp-integration]] | `DEFAULT_TIMEOUT_SECONDS` = `60` s | `packages/coding-agent/src/extensions/mcp/runtime.ts:48` | Per-server overridable | 8562bcf66 |
-| MCP stderr tail · [[mcp-integration]] | `STDERR_TAIL_CHARS` = `2_000` | `packages/coding-agent/src/extensions/mcp/runtime.ts:49` | — | — |
-| MCP HTTP connect retry delays · [[mcp-integration]] · [[auto-retry-backoff]] | `CONNECT_RETRY_DELAYS_MS` = `[250, 1_000]` | `packages/coding-agent/src/extensions/mcp/runtime.ts:51` | 2 quick retries, only for URL servers | 8562bcf66 |
-| tool_search default results · [[deferred-tool-loading]] | `DEFAULT_TOOL_SEARCH_LIMIT` = `8` | `packages/coding-agent/src/extensions/tool-search/tool.ts:21` | — | 8562bcf66 |
-| Nested tool-call record limits · [[nested-tool-calls]] | `NESTED_CALL_LIMITS` = 256 calls, 8 KiB/call args, 32 KiB total, 500 error chars | `packages/coding-agent/src/core/nested-tool-calls.ts:25-30` | Bound transcript bloat from codemode | 8562bcf66 |
-| codemode script timeout · [[code-mode]] | `DEFAULT_TIMEOUT_MS` = `300_000` | `packages/codemode/src/runtime/host.ts:22` | — | — |
-| codemode heap · [[code-mode]] | `CODEMODE_MEMORY_LIMIT_BYTES` = `256 MiB` | `packages/coding-agent/src/extensions/codemode/execute.ts:56` | QuickJS shares process; else wasm 4 GiB | 8562bcf66 |
-| codemode output budget · [[code-mode]] | `DEFAULT_MAX_OUTPUT_TOKENS` = `10_000` tokens (chars/4) | `packages/coding-agent/src/extensions/codemode/execute.ts:246,248` | — | 8562bcf66 |
-| codemode concurrent model calls · [[code-mode]] | `MAX_CONCURRENT_MODEL_CALLS` = `4` | `packages/coding-agent/src/extensions/codemode/execute.ts:50` | Cost / rate-limit protection | — |
-| codemode store limits · [[code-mode]] | `MAX_STORE_VALUE_CHARS` / `MAX_STORE_TOTAL_CHARS` = 256 KiB / 1 MiB | `packages/codemode/src/runtime/prelude-source.ts:32-33` | — | — |
-| codemode raw output · [[code-mode]] | `MAX_OUTPUT_CHARS` / `MAX_OUTPUT_ITEMS` = 16 MiB / 100_000 | `packages/codemode/src/runtime/prelude-source.ts:40-41` | Prevent host OOM from print loops | — |
-| codemode preview chars · [[code-mode]] | `ARGS_PREVIEW_CHARS` / `ERROR_PREVIEW_CHARS` = 200 / 500 | `packages/coding-agent/src/extensions/codemode/execute.ts:47-48` | — | — |
-| Clipboard OSC52 cap | `MAX_OSC52_ENCODED_LENGTH` = `100_000` | `packages/coding-agent/src/utils/clipboard.ts:9` | Terminal limits | — |
-| Clipboard command timeout/buffer | 3000 ms / 50 MiB | `packages/coding-agent/src/utils/clipboard-command.ts:30,38` | — | — |
-| Durable truncation (mirror) · [[tool-output-truncation]] | `DEFAULT_MAX_LINES/BYTES` = 2000 / 50KB | `packages/durable/src/truncate.ts:11-12` | Copied into new harness | a5b27367d |
-| Durable read chunk · [[file-read-tool]] | `READ_CHUNK` = `64 KiB` | `packages/durable/src/tools/read.ts:39` | — | — |
-| Durable bash max timeout · [[shell-execution]] · [[no-bash-default-timeout]] | `MAX_TIMEOUT_SECONDS` = `2_147_483_647/1000` | `packages/durable/src/tools/bash.ts:8` | — | — |
-| Subagent example limits · [[subagent-as-subprocess]] · [[no-subagents-core]] | `MAX_PARALLEL_TASKS` / `MAX_CONCURRENCY` / `PER_TASK_OUTPUT_CAP` = 8 / 4 / 50 KiB | `packages/coding-agent/examples/extensions/subagent/index.ts:33-36` | Example only (subagents not core) | — |
+| constant (neutral) | pi | pi location | codex | codex location | tradeoff | history |
+|---|---|---|---|---|---|---|
+| Tool output max lines · [[tool-output-truncation]] | `DEFAULT_MAX_LINES` = `2000` | `packages/coding-agent/src/core/tools/truncate.ts:11` | — | — | Whichever of lines/bytes hits first | de77cd141 (2025-12-07) introduced |
+| Tool output max bytes · [[tool-output-truncation]] | `DEFAULT_MAX_BYTES` = `50 * 1024` | `packages/coding-agent/src/core/tools/truncate.ts:12` | `UNIFIED_EXEC_OUTPUT_MAX_BYTES` = 1 MiB collection buffer (head/tail halves); model budget separate (10_000 tokens) | `codex-rs/core/src/unified_exec/mod.rs:80` | Context cost vs needing re-reads | de77cd141: **30KB** → 306f9cc66 (same day, #134): **50KB** · codex: 6138909d6e 2026-07-10 (repeated drains had grown an uncapped buffer); fb24c47bea 2025-12-23 |
+| grep line length cap · [[tool-output-truncation]] | `GREP_MAX_LINE_LENGTH` = `500` chars | `packages/coding-agent/src/core/tools/truncate.ts:13` | — | — | Minified files blow budget | b813a8b92 (2025-12-07, #134) |
+| read truncation direction · [[tool-output-truncation]] | (head) = head | `packages/coding-agent/src/core/tools/read.ts:96` | — | — | Offset/limit continuation message | de77cd141 |
+| bash truncation direction · [[tool-output-truncation]] | (tail) = last 2000 lines/50KB; full output to temp file | `packages/coding-agent/src/core/tools/bash.ts:255` | middle elision (head + tail) with `... N bytes omitted ...` / `…N tokens truncated…`; no spill file | `codex-rs/core/src/unified_exec/head_tail_buffer.rs:11-19`; `codex-rs/utils/output-truncation/src/lib.rs:23-41` | Errors are at the end | de77cd141 · codex: 3de8790714 2025-11-18 |
+| bash default timeout · [[shell-execution]] · [[no-bash-default-timeout]] | **none** | `packages/coding-agent/src/core/tools/bash.ts:42` | none in unified exec (yield model: returns after `yield_time_ms`, process keeps running); one-shot fallback `DEFAULT_EXEC_COMMAND_TIMEOUT_MS` = 10_000 ms, exit 124 | `codex-rs/core/src/session/handlers.rs:305-312`; `codex-rs/core/src/exec.rs:63,70` | Long builds allowed; model must opt in | 29900ce64 (2025-11-12): **30s → none** ("commands run until completion unless specified") · codex: 9719dc502c "no timeout mode" reverted same day 928be5f515 (2026-02-19); b836aecd4d 2026-08-28 |
+| bash max timeout · [[shell-execution]] · [[no-bash-default-timeout]] | `MAX_TIMEOUT_MS` = `2_147_483_647` ms (int32 setTimeout max) | `packages/coding-agent/src/core/tools/bash.ts:22` | — | — | Node timer overflow guard | — |
+| bash structured output (codemode) · [[structured-tool-output]] | `STRUCTURED_OUTPUT_MAX_BYTES` = `1024 * 1024` | `packages/coding-agent/src/core/tools/bash.ts:24` | `exec_command` output_schema {chunk_id?, wall_time_seconds, exit_code?, session_id?, original_token_count?, output} (harness-side only) | `codex-rs/core/src/tools/handlers/shell_spec.rs:197-228` | Scripts get 20× more than model | 1ff5b6fdd (2026-09-29) · codex: da616136cc 2026-03-09 |
+| bash render throttle · [[differential-tui-rendering]] | `BASH_UPDATE_THROTTLE_MS` = `100` ms | `packages/coding-agent/src/core/tools/renderers/bash.ts:19` | — | — | — | — |
+| bash preview lines (collapsed) · [[differential-tui-rendering]] | `BASH_PREVIEW_LINES` = `5` | `packages/coding-agent/src/core/tools/renderers/bash.ts:18` | — | — | — | — |
+| `!` command preview lines · [[differential-tui-rendering]] | `PREVIEW_LINES` = `20` | `packages/coding-agent/src/modes/interactive/components/bash-execution.ts:19` | — | — | — | — |
+| find result limit · [[search-tools]] | `DEFAULT_LIMIT` = `1000` | `packages/coding-agent/src/core/tools/find.ts:41` | — | — | — | de77cd141 |
+| grep match limit · [[search-tools]] | `DEFAULT_LIMIT` = `100` | `packages/coding-agent/src/core/tools/grep.ts:41` | — | — | — | de77cd141 |
+| ls entry limit · [[search-tools]] | `DEFAULT_LIMIT` = `500` | `packages/coding-agent/src/core/tools/ls.ts:23` | — | — | — | de77cd141 |
+| Collapsed tool args preview · [[differential-tui-rendering]] | `COLLAPSED_ARGS_CHARS` = `100` (80 in codemode) | `packages/coding-agent/src/core/tools/render-utils.ts:71`; `packages/coding-agent/src/extensions/codemode/renderer.ts:21` | — | — | — | — |
+| Fallback tool preview · [[differential-tui-rendering]] | `FALLBACK_PREVIEW_LINES` = `10` | `packages/coding-agent/src/modes/interactive/components/tool-execution.ts:23` | — | — | — | — |
+| Write highlight cutoff · [[differential-tui-rendering]] | `WRITE_PARTIAL_FULL_HIGHLIGHT_LINES` = `50` | `packages/coding-agent/src/core/tools/renderers/write.ts:29` | — | — | — | — |
+| Image max dimension · [[image-normalization]] | `DEFAULT_OPTIONS.maxWidth/maxHeight` = `2000 × 2000` | `packages/coding-agent/src/utils/image-resize-core.ts:35-36` | — | — | Model compatibility (many-image Anthropic limit is 2000px) | 4a32af253 (2026-01-02) |
+| Image max encoded bytes · [[image-normalization]] | `DEFAULT_MAX_BYTES` = `4.5 * 1024 * 1024` | `packages/coding-agent/src/utils/image-resize-core.ts:32` | — | — | Headroom under Anthropic's 5MB base64 limit | 69dc6b078 (2026-01-03, #424) |
+| JPEG quality ladder · [[image-normalization]] | `jpegQuality` / `qualitySteps` = 80 then 85,70,55,40 | `packages/coding-agent/src/utils/image-resize-core.ts:38,132` | — | — | — | 69dc6b078 |
+| Generated image resize default · [[image-normalization]] | `DEFAULT_IMAGE_RESIZE` = 2000/2000/4.5MiB/80 | `packages/ai/scripts/generate-models.ts:424-429` | — | — | "cache-safe" historical default for unknown providers | f5c946480 (2026-09-20) |
+| Image type sniff bytes · [[image-normalization]] | `IMAGE_TYPE_SNIFF_BYTES` = `4100` | `packages/coding-agent/src/utils/mime.ts:3` | — | — | file-type lib requirement | — |
+| MCP model-facing output cap · [[mcp-integration]] | `MCP_OUTPUT_MAX_BYTES` = `20 * 1024` (middle cut) | `packages/coding-agent/src/extensions/mcp/tools.ts:51` | model truncation policy (10_000 tokens) + bounded text preview preserving isError; event copy `MCP_TOOL_CALL_EVENT_RESULT_MAX_BYTES` = 1 MiB; history preview 64 KiB | `codex-rs/utils/output-truncation/src/lib.rs:43-89`; `codex-rs/core/src/mcp_tool_call.rs:125` | Smaller than built-in 50KB | 8562bcf66 (2026-09-29) · codex: 3516cb9751 2026-04-30; 820f85cf59 2026-10-02 |
+| MCP tool name length · [[mcp-integration]] | `MAX_TOOL_NAME_LENGTH` = `64` | `packages/coding-agent/src/extensions/mcp/tools.ts:49` | `MAX_TOOL_NAME_LENGTH` = 128 bytes, 12-hex SHA-1 suffix on collision/overflow | `codex-rs/codex-mcp/src/tools.rs:226-227` | Provider name rule | 8562bcf66 · codex: 1bfabb21fe 2026-08-20 (64 → 128) |
+| MCP per-call timeout · [[mcp-integration]] | `DEFAULT_TIMEOUT_SECONDS` = `60` s | `packages/coding-agent/src/extensions/mcp/runtime.ts:48` | `DEFAULT_TOOL_TIMEOUT` = 300 s (startup 30 s), per-server `tool_timeout_sec` / `startup_timeout_sec` | `codex-rs/codex-mcp/src/rmcp_client.rs:106-107` | Per-server overridable | 8562bcf66 · codex: 41db093aa0 2026-06-15 (120 → 300 s) |
+| MCP stderr tail · [[mcp-integration]] | `STDERR_TAIL_CHARS` = `2_000` | `packages/coding-agent/src/extensions/mcp/runtime.ts:49` | — | — | — | — |
+| MCP HTTP connect retry delays · [[mcp-integration]] · [[auto-retry-backoff]] | `CONNECT_RETRY_DELAYS_MS` = `[250, 1_000]` | `packages/coding-agent/src/extensions/mcp/runtime.ts:51` | — | — | 2 quick retries, only for URL servers | 8562bcf66 |
+| tool_search default results · [[deferred-tool-loading]] | `DEFAULT_TOOL_SEARCH_LIMIT` = `8` | `packages/coding-agent/src/extensions/tool-search/tool.ts:21` | `TOOL_SEARCH_DEFAULT_LIMIT` = 8 (0 rejected) | `codex-rs/tools/src/tool_discovery.rs:7` | — | 8562bcf66 · codex: 78835d7e63 2026-04-14 |
+| Nested tool-call record limits · [[nested-tool-calls]] | `NESTED_CALL_LIMITS` = 256 calls, 8 KiB/call args, 32 KiB total, 500 error chars | `packages/coding-agent/src/core/nested-tool-calls.ts:25-30` | — | — | Bound transcript bloat from codemode | 8562bcf66 |
+| codemode script timeout · [[code-mode]] | `DEFAULT_TIMEOUT_MS` = `300_000` | `packages/codemode/src/runtime/host.ts:22` | none; yield `DEFAULT_EXEC_YIELD_TIME_MS` = 10_000 ms then resumable `wait(cell_id)` (wait yield 10_000 ms) | `codex-rs/code-mode-protocol/src/runtime.rs:15-16` | — | codex: d1b03f0d7f 2026-03-12 |
+| codemode heap · [[code-mode]] | `CODEMODE_MEMORY_LIMIT_BYTES` = `256 MiB` | `packages/coding-agent/src/extensions/codemode/execute.ts:56` | no explicit V8 heap limit (`CreateParams::default()`, unverified); isolation by separate `codex-code-mode-host` process (256 in-flight, 128 cells) | `codex-rs/code-mode-host/src/lib.rs:55-60` | QuickJS shares process; else wasm 4 GiB | 8562bcf66 · codex: da78d5fdc5 2026-06-25 |
+| codemode output budget · [[code-mode]] | `DEFAULT_MAX_OUTPUT_TOKENS` = `10_000` tokens (chars/4) | `packages/coding-agent/src/extensions/codemode/execute.ts:246,248` | `DEFAULT_MAX_OUTPUT_TOKENS_PER_EXEC_CALL` = 10_000 | `codex-rs/code-mode-protocol/src/runtime.rs:17` | — | 8562bcf66 · codex: d1b03f0d7f |
+| codemode concurrent model calls · [[code-mode]] | `MAX_CONCURRENT_MODEL_CALLS` = `4` | `packages/coding-agent/src/extensions/codemode/execute.ts:50` | — | — | Cost / rate-limit protection | — |
+| codemode store limits · [[code-mode]] | `MAX_STORE_VALUE_CHARS` / `MAX_STORE_TOTAL_CHARS` = 256 KiB / 1 MiB | `packages/codemode/src/runtime/prelude-source.ts:32-33` | — | — | — | — |
+| codemode raw output · [[code-mode]] | `MAX_OUTPUT_CHARS` / `MAX_OUTPUT_ITEMS` = 16 MiB / 100_000 | `packages/codemode/src/runtime/prelude-source.ts:40-41` | — | — | Prevent host OOM from print loops | — |
+| codemode preview chars · [[code-mode]] | `ARGS_PREVIEW_CHARS` / `ERROR_PREVIEW_CHARS` = 200 / 500 | `packages/coding-agent/src/extensions/codemode/execute.ts:47-48` | — | — | — | — |
+| Clipboard OSC52 cap | `MAX_OSC52_ENCODED_LENGTH` = `100_000` | `packages/coding-agent/src/utils/clipboard.ts:9` | — | — | Terminal limits | — |
+| Clipboard command timeout/buffer | 3000 ms / 50 MiB | `packages/coding-agent/src/utils/clipboard-command.ts:30,38` | — | — | — | — |
+| Durable truncation (mirror) · [[tool-output-truncation]] | `DEFAULT_MAX_LINES/BYTES` = 2000 / 50KB | `packages/durable/src/truncate.ts:11-12` | — | — | Copied into new harness | a5b27367d |
+| Durable read chunk · [[file-read-tool]] | `READ_CHUNK` = `64 KiB` | `packages/durable/src/tools/read.ts:39` | — | — | — | — |
+| Durable bash max timeout · [[shell-execution]] · [[no-bash-default-timeout]] | `MAX_TIMEOUT_SECONDS` = `2_147_483_647/1000` | `packages/durable/src/tools/bash.ts:8` | — | — | — | — |
+| Subagent example limits · [[subagent-as-subprocess]] · [[no-subagents-core]] | `MAX_PARALLEL_TASKS` / `MAX_CONCURRENCY` / `PER_TASK_OUTPUT_CAP` = 8 / 4 / 50 KiB | `packages/coding-agent/examples/extensions/subagent/index.ts:33-36` | — | — | Example only (subagents not core) | — |
+| Exec yield window · [[shell-execution]] | — | — | default 10_000 ms; clamp 250–30_000 ms; Windows floor 10_000 ms | `codex-rs/core/src/unified_exec/mod.rs:73-77,218-226`; `codex-rs/core/src/tools/handlers/shell_spec.rs:33` | Longer = fewer polls but slower feedback; floor avoids premature backgrounding | 0792a7953d 2025-11-13; e7a9988d1a 2026-06-15 (Windows 2000 ms) → fd41e813cb 2026-07-27 (10_000) |
+| Empty stdin-poll wait · [[shell-execution]] | — | — | min 5_000 ms, max `DEFAULT_MAX_BACKGROUND_TERMINAL_TIMEOUT_MS` = 300_000 ms (configurable) | `codex-rs/core/src/unified_exec/mod.rs:76,78` | Stops tight polling loops | 32b1795ff4 2026-01-14; 547f462385 2026-02-19 (30 s → 5 min) |
+| Exec output token budget · [[shell-execution]] · [[tool-output-truncation]] | — | — | `DEFAULT_MAX_OUTPUT_TOKENS` = 10_000 (model may lower; capped by per-model truncation policy tokens 10_000) | `codex-rs/core/src/unified_exec/mod.rs:79`; `codex-rs/models-manager/models.json:15-17`; `codex-rs/core/src/tools/context.rs:483-491` | Model-chosen budget bounded by policy | 3de8790714 2025-11-18 |
+| Background process store · [[shell-execution]] | — | — | `MAX_UNIFIED_EXEC_PROCESSES` = 64, LRU pruning protects 8 most recent | `codex-rs/core/src/unified_exec/mod.rs:82`; `codex-rs/core/src/unified_exec/process_manager.rs:1775` | Bounded background terminals without kill timeouts | — |
+| Exec trailing-output / early-exit grace · [[shell-execution]] | — | — | `TRAILING_OUTPUT_GRACE` = 100 ms / `EARLY_EXIT_GRACE_PERIOD` = 150 ms | `codex-rs/core/src/unified_exec/async_watcher.rs:34`; `codex-rs/core/src/unified_exec/process.rs:39` | — | b5dd189067 2025-11-20 (early exit) |
+| Exec output delta frame · [[shell-execution]] | — | — | `UNIFIED_EXEC_OUTPUT_DELTA_MAX_BYTES` = 8192 | `codex-rs/core/src/unified_exec/async_watcher.rs:42` | UI event size | 748d8ac834 2026-08-21 |
+| Reviewed stdin max · [[shell-execution]] · [[llm-approval-reviewer]] | — | — | `MAX_STDIN_APPROVAL_BYTES` = 8_000 (larger → rejected, not executed unreviewed) | `codex-rs/core/src/unified_exec/process_manager.rs:108` | Reject unreviewable input | bce96bcb43 2026-08-27 |
+| Exec error message cap · [[tool-error-as-result]] | — | — | `EXEC_COMMAND_REJECTION_MAX_BYTES` = 900 (middle-truncated) | `codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs:57` | — | — |
+| User `!cmd` timeout · [[user-shell-escape]] | — | — | `USER_SHELL_TIMEOUT_MS` = 3_600_000 (1 h), unsandboxed | `codex-rs/core/src/tasks/user_shell.rs:47` | User commands may be long | 89591e4246 2025-10-29 |
+| Shell snapshot capture timeout / retention · [[shell-environment-snapshot]] | — | — | `SNAPSHOT_TIMEOUT` = 10 s / `SNAPSHOT_RETENTION` = 3 days | `codex-rs/core/src/shell_snapshot.rs:105-106` | Slow rc files fail the snapshot | 7836aeddae 2025-12-09 |
+| Patch streaming preview throttle · [[patch-envelope-edit]] | — | — | `APPLY_PATCH_ARGUMENT_DIFF_BUFFER_INTERVAL` = 500 ms | `codex-rs/core/src/tools/handlers/apply_patch.rs:61` | UI update rate | 7995c66032 2026-04-16 |
+| Patch parser strictness · [[patch-envelope-edit]] · [[tool-argument-repair]] | — | — | `PARSE_IN_STRICT_MODE` = false (heredoc wrappers stripped for all models) | `codex-rs/apply-patch/src/parser.rs:53` | Tolerance vs one global code path | 6fcc528a43 2025-06-03 |
+| MCP optional startup grace · [[mcp-integration]] | — | — | `DEFAULT_OPTIONAL_MCP_STARTUP_GRACE` = 1 s (configurable) | `codex-rs/codex-mcp/src/mcp/mod.rs:197` | First-request latency vs tool availability | d9e1c9cd55 2026-07-28; 124e560b93 2026-08-27 |
+| MCP tool catalog cache · [[mcp-integration]] | — | — | 32 entries, 30 min TTL | `codex-rs/codex-mcp/src/tool_catalog_cache.rs:33-34` | Stale tools vs startup latency | 3bbf1fe757 2026-07-27 |
+| MCP catalog pagination caps · [[mcp-integration]] | — | — | 100 pages, 2048 items (8192 for codex_apps), 64 KiB cursor, 30 s | `codex-rs/codex-mcp/src/pagination.rs:9-13` | Runaway servers | — |
+| Tool schema compaction budget · [[tool-schema-normalization]] | — | — | `DEFAULT_COMPACT_TOOL_SCHEMA_BYTES` = 5_000, depth 3; agent-plugin MCP spec > 8_000 B → open schema; 64_000 B total | `codex-rs/tools/src/json_schema/compaction.rs:15-16`; `codex-rs/tools/src/responses_api.rs:14`; `codex-rs/core/src/mcp_tool_exposure.rs:18-19` | Prompt size vs schema guidance (lossy) | 339e981ba7 2026-09-24 |
+| tool_search source description budget · [[deferred-tool-loading]] | — | — | `MAX_TOOL_SEARCH_SOURCE_DESCRIPTION_BYTES` = 512 KiB | `codex-rs/core/src/tools/handlers/tool_search_spec.rs:8` | — | fcc4ca552f 2026-08-05 |
+| Code-mode host caps · [[code-mode]] | — | — | 256 in-flight requests, 128 active cells, 5 s shutdown; yield grace 1 s when yield ≥ 10 s | `codex-rs/code-mode-host/src/lib.rs:55-60`; `codex-rs/code-mode-runtime/src/service.rs:29-30` | Isolation process bounds | da78d5fdc5 2026-06-25 |
+| Sleep tool max · [[wall-clock-tools]] | — | — | `MAX_SLEEP_DURATION_MS` = 12 h | `codex-rs/core/src/tools/handlers/sleep.rs:28` | — | 08901fc8e1 2026-06-15 |
+| Question tool limits · [[structured-user-question-tool]] | — | — | ≤3 questions (prefer 1), 2-3 options + client "Other", header ≤12 chars | `codex-rs/core/src/tools/handlers/request_user_input_spec.rs:35-72` | Short blocking interruptions | 57ec3a8277 2026-01-19 |
+| Image generation · [[web-search-tool]] | — | — | model `gpt-image-2`, ≤5 edit images, ≤32 MiB output | `codex-rs/ext/image-generation/src/tool.rs:58-63` | — | — |
+| Exec-server client timeouts · [[pluggable-tool-backends]] | — | — | connect 10 s, initialize 10 s, environment info 30 s, status 10 s | `codex-rs/exec-server/src/client.rs:167-170` | Remote environment responsiveness | 81996fcde6 2026-03-19 |
 
 ## 04-prompting
 
-| constant (neutral) | pi | pi location | tradeoff | history |
-|---|---|---|---|---|
-| Skill name max · [[skill-progressive-disclosure]] | `MAX_NAME_LENGTH` = `64` | `packages/coding-agent/src/core/skills.ts:11` | Agent Skills spec | 05b7b8133 (2025-12-19 "Skills standard compliance") |
-| Skill description max · [[skill-progressive-disclosure]] | `MAX_DESCRIPTION_LENGTH` = `1024` | `packages/coding-agent/src/core/skills.ts:14` | Spec; bounds system-prompt skill list | 05b7b8133 |
-| MCP servers system-prompt section · [[mcp-integration]] · [[cache-stable-prompt-prefix]] | `MAX_SERVERS_SECTION_CHARS` = `4096` | `packages/coding-agent/src/extensions/mcp/index.ts:163` | Deferred servers listed cheaply | e029c3ed0 (2026-09-30) |
-| MCP server description chars · [[mcp-integration]] · [[cache-stable-prompt-prefix]] | `MAX_SERVER_DESCRIPTION_CHARS` = `250` | `packages/coding-agent/src/extensions/mcp/index.ts:158` | "as Codex allows for deferred namespaces" | e029c3ed0 |
-| codemode inline declaration budget · [[code-mode]] | `DEFAULT_CODEMODE_INLINE_BUDGET` / `codemode.inlineBudget` = `3000` tokens (chars/4) | `packages/coding-agent/src/extensions/codemode/tool.ts:156,158` | Overflow tools found via `searchTools()` | 8562bcf66 |
-| codemode input schema size · [[code-mode]] | `DEFAULT_INPUT_SCHEMA_MAX_CHARS` = `16_000` | `packages/codemode/src/declarations.ts:10` | — | — |
-| codemode $ref expansions · [[code-mode]] | `MAX_REF_EXPANSIONS` = `32` | `packages/codemode/src/declarations.ts:12` | Recursive schema guard | — |
-| Mid-run MCP wait at first prompt · [[mcp-integration]] | `DEFAULT_STARTUP_WAIT_MS` = `10_000` | `packages/coding-agent/src/extensions/mcp/index.ts:93` | Only servers with direct tools block first prompt | e029c3ed0 |
-| Widget lines · [[extension-ui-primitives]] | `MAX_WIDGET_LINES` = `10` | `packages/coding-agent/src/modes/interactive/interactive-mode.ts:2477` | — | — |
+| constant (neutral) | pi | pi location | codex | codex location | tradeoff | history |
+|---|---|---|---|---|---|---|
+| Skill name max · [[skill-progressive-disclosure]] | `MAX_NAME_LENGTH` = `64` | `packages/coding-agent/src/core/skills.ts:11` | — | — | Agent Skills spec | 05b7b8133 (2025-12-19 "Skills standard compliance") |
+| Skill description max · [[skill-progressive-disclosure]] | `MAX_DESCRIPTION_LENGTH` = `1024` | `packages/coding-agent/src/core/skills.ts:14` | `MAX_CATALOG_SKILL_DESCRIPTION_CHARS` = `1_024` (truncated with "...") | `codex-rs/ext/skills/src/render.rs:19-29` | Spec; bounds system-prompt skill list | 05b7b8133 · codex: — |
+| MCP servers system-prompt section · [[mcp-integration]] · [[cache-stable-prompt-prefix]] | `MAX_SERVERS_SECTION_CHARS` = `4096` | `packages/coding-agent/src/extensions/mcp/index.ts:163` | — | — | Deferred servers listed cheaply | e029c3ed0 (2026-09-30) |
+| MCP server description chars · [[mcp-integration]] · [[cache-stable-prompt-prefix]] | `MAX_SERVER_DESCRIPTION_CHARS` = `250` | `packages/coding-agent/src/extensions/mcp/index.ts:158` | — | — | "as Codex allows for deferred namespaces" | e029c3ed0 |
+| codemode inline declaration budget · [[code-mode]] | `DEFAULT_CODEMODE_INLINE_BUDGET` / `codemode.inlineBudget` = `3000` tokens (chars/4) | `packages/coding-agent/src/extensions/codemode/tool.ts:156,158` | — | — | Overflow tools found via `searchTools()` | 8562bcf66 |
+| codemode input schema size · [[code-mode]] | `DEFAULT_INPUT_SCHEMA_MAX_CHARS` = `16_000` | `packages/codemode/src/declarations.ts:10` | — | — | — | — |
+| codemode $ref expansions · [[code-mode]] | `MAX_REF_EXPANSIONS` = `32` | `packages/codemode/src/declarations.ts:12` | — | — | Recursive schema guard | — |
+| Mid-run MCP wait at first prompt · [[mcp-integration]] | `DEFAULT_STARTUP_WAIT_MS` = `10_000` | `packages/coding-agent/src/extensions/mcp/index.ts:93` | — | — | Only servers with direct tools block first prompt | e029c3ed0 |
+| Widget lines · [[extension-ui-primitives]] | `MAX_WIDGET_LINES` = `10` | `packages/coding-agent/src/modes/interactive/interactive-mode.ts:2477` | — | — | — | — |
+| Skill catalog budget · [[skill-progressive-disclosure]] | — | — | `2`% of context window, else `8_000` chars; configured ≤ `10_000` tokens; invoked body ≤ `8_000` bytes | `codex-rs/ext/skills/src/render.rs:19-29`, `:1111-1113` | Scale with window; degrade by dropping descriptions | 1e560f33e1 2026-04-24 |
+| Context-file byte budget · [[context-file-hierarchy]] | — | — | `project_doc_max_bytes` = `32768` shared across files and environments (crossing file truncated silently) | `codex-rs/config/src/config_toml.rs:75`; `codex-rs/config/defaults.toml:8` | Caps prompt growth; model not told about truncation | 2b122da087 2025-05-10; 85e0661c3b 2026-08-07 shared |
+| Host thread-instructions cap · [[context-file-hierarchy]] | — | — | `MAX_THREAD_INSTRUCTIONS_TOKENS` = `10_000` est. tokens (reject, not truncate) | `codex-rs/core/src/agents_md_manager.rs:186-200` | Hard error instead of silent loss | fc948f8c47 2026-09-11 |
+| Context-file ancestor probes · [[context-file-hierarchy]] | — | — | `MAX_CONCURRENT_ANCESTOR_PROBES` = `256`; root marker default `.git` | `codex-rs/core/src/agents_md.rs:54`, `:10-14` | Startup latency on remote fs | 6ad0e943cc 2026-07-10; 314937fb11 2025-12-22 |
+| Base system prompt size · [[per-model-system-prompt]] · [[minimal-system-prompt]] | — | — | fallback `20,903` bytes / 275 lines; catalog 17,297–21,769 chars; codex-tuned 6,647–7,589 bytes | `codex-rs/protocol/src/prompts/base_instructions/default.md`; `codex-rs/models-manager/models.json`; `codex-rs/core/gpt_5_codex_prompt.md` | Size tracks how in-distribution the model is | 31d0d7a305 5,709 bytes → 81b148bda2 rewrite; 916fdc2a37 per-family |
+| Catalog content-filter guidance cap · [[per-model-system-prompt]] | — | — | `512` UTF-8 bytes (else bundled guidance) | `codex-rs/protocol/src/openai_models.rs:547-549` | Guards against oversized remote text | — |
+| Unknown-model fallback · [[per-model-system-prompt]] · [[model-catalog]] | — | — | window `272_000`, effective `95`%, tool output bytes `10_000` | `codex-rs/models-manager/src/model_info.rs:126-132` | Generic prompt + conservative metadata | a1abd53b6a 2026-02-09 |
+| Current-time reminder interval · [[current-time-reminder]] | — | — | `reminder_interval_seconds` = `1` (0 = every request); `AnyInference`; feature off by default | `codex-rs/core/src/config/mod.rs:1336-1343`; `codex-rs/features/src/lib.rs:1861-1865` | Freshness vs history noise | 752ed90d78 2026-06-18; 9fe689783d debounce; cc78903379 interval 0 |
+| Plan-mode reasoning effort · [[plan-mode]] | — | — | `Medium` | `codex-rs/models-manager/src/collaboration_mode_presets.rs` | — | — |
+| Thread title · [[side-model-metadata-generation]] | — | — | max `36` chars / prompt `960` bytes / recent msgs `8`; model `gpt-5.6-luna` Low | `codex-rs/tui/src/app/thread_title.rs:29-32`, `:88-101` | Cheap side model outside transcript | b3c7e1a47f 2026-08-24 |
+| /init target length · [[prompt-template-expansion]] | — | — | 200-400 words | `codex-rs/tui/assets/prompt_for_init_command.md:10` | — | ffe24991b7 2025-08-06 |
+| Final-answer length rules · [[per-model-system-prompt]] | — | — | "no more than 10 lines"; preambles "8–12 words"; format retries "up to 3 times" | `codex-rs/protocol/src/prompts/base_instructions/default.md:191`, `:36`, `:155` | Prompt-level length/loop caps | 81b148bda2 2025-08-07 |
+| Removed: limits stated in prompt · [[prompt-states-stale-harness-limits]] | — | — | 250-line read chunks; 10 KB / 256 lines output (removed) | `90d892f4fd` added; `570eb5fe78` removed | Drifted from config | 570eb5fe78 2025-12-12 |
 
 ## 05-context
 
-| constant (neutral) | pi | pi location | tradeoff | history |
-|---|---|---|---|---|
-| Compaction enabled · [[auto-compaction]] | `compaction.enabled` = `true` | `packages/coding-agent/src/core/compaction/compaction.ts:127` | — | 6c2360af2 (2025-12-04, #92) |
-| Compaction reserve · [[auto-compaction]] | `reserveTokens` = `16384` | `packages/coding-agent/src/core/compaction/compaction.ts:128`; `packages/coding-agent/src/core/settings-manager.ts:24` | Trigger at `ctx > window - 16384`; "~8k summary + ~8k safety" | 5daef11b4 plan (2025-12-02); never changed; per-model overrides 46bde88a1 (2026-09-07, #8133) |
-| Compaction keep-recent · [[auto-compaction]] | `keepRecentTokens` = `20000` | `packages/coding-agent/src/core/compaction/compaction.ts:129`; `packages/coding-agent/src/core/settings-manager.ts:25` | Verbatim tail; "~20k" borrowed from Codex compact.rs | 5daef11b4 cites `codex-rs/core/src/compact.rs`; never changed |
-| Compaction trigger · [[auto-compaction]] | `shouldCompact` = `ctx > window - reserve` | `packages/coding-agent/src/core/compaction/compaction.ts:267-270` | No % threshold; fixed headroom | — |
-| Summary output budget · [[auto-compaction]] | `floor(0.8 * reserveTokens)` (=13107) | `packages/coding-agent/src/core/compaction/compaction.ts:713` | Leaves 20% of reserve for prompt overhead | 6c2360af2 |
-| Turn-prefix summary budget · [[split-turn-summary]] | `floor(0.5 * reserveTokens)` (=8192) | `packages/coding-agent/src/core/compaction/compaction.ts:1091` | Split-turn prefix gets smaller budget | a38e61909 (2025-12-09) |
-| Tool-result chars in summarizer input · [[transcript-serialization-for-summary]] | `TOOL_RESULT_MAX_CHARS` = `2000` | `packages/coding-agent/src/core/compaction/utils.ts:94` | Prevent summarization request itself overflowing | c950c692a (2026-03-06, #1796) |
-| Compaction token heuristic · [[token-estimation]] | `estimateTokens` = `chars / 4` | `packages/coding-agent/src/core/compaction/compaction.ts:298-344` | "Conservative (overestimates)" — comment | since fd13b53b1/earlier |
-| Request token heuristic (ai) · [[token-estimation]] | `CHARS_PER_TOKEN` = `3.5` | `packages/ai/src/utils/estimate.ts:15` | More tokens per char → safer max_tokens clamp | 27075fe07 (2026-10-06, #10497): **4 → 3.5** (DeepSeek V4 Flash overflow) |
-| Image token estimate · [[token-estimation]] · [[image-normalization]] | `ESTIMATED_IMAGE_CHARS` = `4800` (≈1200 tok @4, ≈1371 @3.5) | `packages/ai/src/utils/estimate.ts:16`; `packages/coding-agent/src/core/compaction/compaction.ts:276` | Duplicated in two estimators | — |
-| Branch summary reserve · [[branch-summary]] | `branchSummary.reserveTokens` = `16384` | `packages/coding-agent/src/core/settings-manager.ts:1001`; `packages/coding-agent/src/core/compaction/branch-summarization.ts:305` | — | dc5fc4fc4 (2025-12-29): replaced `maxTokens = 100000` with reserve 16384 |
-| Branch summary fallback window · [[branch-summary]] | `128000` | `packages/coding-agent/src/core/compaction/branch-summarization.ts:312` | — | — |
-| Durable compaction policy · [[background-compaction]] · [[auto-compaction]] | `DEFAULT_COMPACTION_POLICY` = 16384 / 20000 / background 32768 | `packages/durable/src/harness/agent.ts:26-31` | New: background compaction starts 32k below blocking threshold | ed0d6b91b (2026-09-30), b56702ad3 |
-| Durable context retention · [[durable-execution]] | `DEFAULT_CONTEXT_RETENTION_MS` = `600_000` (10 min) | `packages/durable/src/harness/agent.ts:53` | (unverified semantics: in-memory context lifetime) | — |
-| Durable summarizer tool-result cap · [[transcript-serialization-for-summary]] | `TOOL_RESULT_MAX_CHARS` = `2000` | `packages/durable/src/harness/compaction.ts:55` | Mirror | ed0d6b91b |
-| Images auto-resize · [[image-normalization]] | `images.autoResize` = `true` | `packages/coding-agent/src/core/settings-manager.ts:1427` | — | — |
-| Block images · [[image-normalization]] | `images.blockImages` = `false` | `packages/coding-agent/src/core/settings-manager.ts:1440` | — | — |
-| Context % display · [[token-estimation]] | `tokens/contextWindow*100` | `packages/coding-agent/src/core/agent-session.ts:4272` | Display only | — |
-| Transcript script char cap · [[token-estimation]] | `MAX_CHARS_PER_FILE` = `100_000` ("~20k tokens") | `scripts/session-transcripts.ts:20` | Note: comment implies 5 chars/token | — |
+| constant (neutral) | pi | pi location | codex | codex location | tradeoff | history |
+|---|---|---|---|---|---|---|
+| Compaction enabled · [[auto-compaction]] | `compaction.enabled` = `true` | `packages/coding-agent/src/core/compaction/compaction.ts:127` | — | — | — | 6c2360af2 (2025-12-04, #92) |
+| Compaction reserve · [[auto-compaction]] | `reserveTokens` = `16384` | `packages/coding-agent/src/core/compaction/compaction.ts:128`; `packages/coding-agent/src/core/settings-manager.ts:24` | `effective_context_window_percent` = `95` (hard cap forces compaction) | `codex-rs/protocol/src/openai_models.rs:391-393` | Trigger at `ctx > window - 16384`; "~8k summary + ~8k safety" | 5daef11b4 plan (2025-12-02); never changed; per-model overrides 46bde88a1 (2026-09-07, #8133) · codex: 049a61bcfc 2025-10-20 |
+| Compaction keep-recent · [[auto-compaction]] | `keepRecentTokens` = `20000` | `packages/coding-agent/src/core/compaction/compaction.ts:129`; `packages/coding-agent/src/core/settings-manager.ts:25` | `COMPACT_USER_MESSAGE_MAX_TOKENS` = `20_000` (user messages only) | `codex-rs/core/src/compact.rs:63` | Verbatim tail; "~20k" borrowed from Codex compact.rs | 5daef11b4 cites `codex-rs/core/src/compact.rs`; never changed · codex: c415827ac2 2025-09-22 |
+| Compaction trigger · [[auto-compaction]] | `shouldCompact` = `ctx > window - reserve` | `packages/coding-agent/src/core/compaction/compaction.ts:267-270` | `auto_compact_token_limit()` = min(catalog/config, 90% of window) | `codex-rs/protocol/src/openai_models.rs:527-539` | No % threshold; fixed headroom | codex: 049a61bcfc 2025-10-20 (~90%); 40de788c4d 2026-02-11 clamp; b90eeabd74 220k→250k 2025-09-24 |
+| Summary output budget · [[auto-compaction]] | `floor(0.8 * reserveTokens)` (=13107) | `packages/coding-agent/src/core/compaction/compaction.ts:713` | none — requests carry no `max_output_tokens` | `codex-rs/codex-api/src/common.rs:279-304` | Leaves 20% of reserve for prompt overhead | 6c2360af2 · codex: c9e149fd5c / bce030ddb5 2025-11-21 (config attempt reverted) |
+| Turn-prefix summary budget · [[split-turn-summary]] | `floor(0.5 * reserveTokens)` (=8192) | `packages/coding-agent/src/core/compaction/compaction.ts:1091` | — | — | Split-turn prefix gets smaller budget | a38e61909 (2025-12-09) |
+| Tool-result chars in summarizer input · [[transcript-serialization-for-summary]] | `TOOL_RESULT_MAX_CHARS` = `2000` | `packages/coding-agent/src/core/compaction/utils.ts:94` | no separate cap (history already truncated per model policy); overflow → drop oldest item and retry | `codex-rs/core/src/compact.rs:330-346` | Prevent summarization request itself overflowing | c950c692a (2026-03-06, #1796) · codex: 687a13bbe5 2025-10-08 |
+| Compaction token heuristic · [[token-estimation]] | `estimateTokens` = `chars / 4` | `packages/coding-agent/src/core/compaction/compaction.ts:298-344` | `APPROX_BYTES_PER_TOKEN` = `4` (bytes, ceil) | `codex-rs/utils/string/src/truncate.rs:4` | "Conservative (overestimates)" — comment | since fd13b53b1/earlier · codex: fd0673e457 2025-10-22 tiktoken added → 52d0ec4cd8 2025-11-20 deleted |
+| Request token heuristic (ai) · [[token-estimation]] | `CHARS_PER_TOKEN` = `3.5` | `packages/ai/src/utils/estimate.ts:15` | — | — | More tokens per char → safer max_tokens clamp | 27075fe07 (2026-10-06, #10497): **4 → 3.5** (DeepSeek V4 Flash overflow) |
+| Image token estimate · [[token-estimation]] · [[image-normalization]] | `ESTIMATED_IMAGE_CHARS` = `4800` (≈1200 tok @4, ≈1371 @3.5) | `packages/ai/src/utils/estimate.ts:16`; `packages/coding-agent/src/core/compaction/compaction.ts:276` | `RESIZED_IMAGE_BYTES_ESTIMATE` = `7373` (~1,844 tok); original detail = 32-px patches ≤10_000 | `codex-rs/core/src/context_manager/history.rs:1078-1086` | Duplicated in two estimators | codex: — |
+| Branch summary reserve · [[branch-summary]] | `branchSummary.reserveTokens` = `16384` | `packages/coding-agent/src/core/settings-manager.ts:1001`; `packages/coding-agent/src/core/compaction/branch-summarization.ts:305` | — | — | — | dc5fc4fc4 (2025-12-29): replaced `maxTokens = 100000` with reserve 16384 |
+| Branch summary fallback window · [[branch-summary]] | `128000` | `packages/coding-agent/src/core/compaction/branch-summarization.ts:312` | — | — | — | — |
+| Durable compaction policy · [[background-compaction]] · [[auto-compaction]] | `DEFAULT_COMPACTION_POLICY` = 16384 / 20000 / background 32768 | `packages/durable/src/harness/agent.ts:26-31` | — | — | New: background compaction starts 32k below blocking threshold | ed0d6b91b (2026-09-30), b56702ad3 |
+| Durable context retention · [[durable-execution]] | `DEFAULT_CONTEXT_RETENTION_MS` = `600_000` (10 min) | `packages/durable/src/harness/agent.ts:53` | — | — | (unverified semantics: in-memory context lifetime) | — |
+| Durable summarizer tool-result cap · [[transcript-serialization-for-summary]] | `TOOL_RESULT_MAX_CHARS` = `2000` | `packages/durable/src/harness/compaction.ts:55` | — | — | Mirror | ed0d6b91b |
+| Images auto-resize · [[image-normalization]] | `images.autoResize` = `true` | `packages/coding-agent/src/core/settings-manager.ts:1427` | — | — | — | — |
+| Block images · [[image-normalization]] | `images.blockImages` = `false` | `packages/coding-agent/src/core/settings-manager.ts:1440` | — | — | — | — |
+| Context % display · [[token-estimation]] | `tokens/contextWindow*100` | `packages/coding-agent/src/core/agent-session.ts:4272` | — | — | Display only | — |
+| Transcript script char cap · [[token-estimation]] | `MAX_CHARS_PER_FILE` = `100_000` ("~20k tokens") | `scripts/session-transcripts.ts:20` | — | — | Note: comment implies 5 chars/token | — |
+| Post-turn compaction threshold · [[auto-compaction]] | — | — | `model_post_turn_compact_threshold_percent` = `0` (disabled; 0..=100) | `codex-rs/core/src/config/mod.rs:3266-3269`, `:4325` | Compact at idle vs mid-task | 49e248d4c3 2026-09-18 |
+| Remote compaction retained budget · [[compaction-cut-point]] | — | — | `RETAINED_MESSAGE_TOKEN_BUDGET` = `64_000`; max retained agent message `10_000` | `codex-rs/core/src/compact_remote_v2.rs:73-74` | More retained context vs smaller window | 94442b7f95 2026-05-21 |
+| Remote compaction stream retries · [[auto-compaction]] · [[auto-retry-backoff]] | — | — | `MAX_REMOTE_COMPACTION_V2_STREAM_RETRIES` = min(provider, `2`) | `codex-rs/core/src/compact_remote_v2.rs:75-77` | Compaction requests run long; fewer retries | dac98cb635 2026-05-22 |
+| Encrypted reasoning estimate · [[token-estimation]] | — | — | `len*3/4 − 650` (added unless `ServerReasoningIncluded`) | `codex-rs/core/src/context_manager/history.rs:1053-1059`, `:893-933` | Hidden reasoning occupies the window | b519267d05 2025-11-21; 1fc72c647f 2026-01-15 |
+| Tool output truncation budget · [[tool-output-truncation]] | — | — | catalog `truncation_policy` = tokens `10_000` per model (unknown model: bytes `10_000`); ×1.2 serialization allowance | `codex-rs/models-manager/models.json:15-18`; `codex-rs/models-manager/src/model_info.rs:126`; `codex-rs/utils/output-truncation/src/lib.rs:17-21` | Per-model token budget, middle elision, applied at history record | 3de8790714 2025-11-18; aa88a0333c 2026-09-09 per-item budget persisted |
+| Exec output collection buffer · [[tool-output-truncation]] · [[shell-execution]] | — | — | `UNIFIED_EXEC_OUTPUT_MAX_BYTES` = `1 MiB` head/tail | `codex-rs/core/src/unified_exec/mod.rs:80`; `codex-rs/core/src/unified_exec/head_tail_buffer.rs:11-19` | Bound memory separately from model budget | fb24c47bea 2025-12-23; 6138909d6e 2026-07-10 |
+| Image resize limits · [[image-normalization]] | — | — | high/auto `2048` px / `2_500` patches; original `6000` px / `10_000` patches | `codex-rs/utils/image/src/lib.rs:26`, `:75-83` | Patch-based (OpenAI) rather than byte-based | 120bbf46c1 2026-04-17; 0a0ebb8535 2026-08-06 |
+| Prompt image cache · [[image-normalization]] | — | — | `MAX_IMAGE_CACHE_BYTES` = `64 MiB`; input sanity cap 1 GiB | `codex-rs/utils/image/src/lib.rs:30-32` | — | — |
+| Turn diff render timeout · [[file-op-tracking]] | — | — | `DIFF_TIMEOUT` = `100` ms (coarse fallback) | `codex-rs/core/src/turn_diff_tracker.rs:17` | Responsiveness vs exact diff | b389b950e1 2026-06-10 |
+| Injected memory summary · [[cross-session-memory]] | — | — | `2_500` tokens | `codex-rs/ext/memories/src/lib.rs:16` | Bounded standing cost of memory | — |
+| Memory extraction gates · [[cross-session-memory]] | — | — | per startup `2` / max age `10` days / min idle `6` h / rate-limit floor `25`% | `codex-rs/config/src/types.rs:55-58` | Bounded background cost; don't burn user quota | — |
+| Memory consolidation · [[cross-session-memory]] | — | — | max raw memories `256` / max unused days `30`; phase-1 effort Low ×8 concurrency, phase-2 Medium | `codex-rs/config/src/types.rs:59-60`; `codex-rs/memories/write/src/lib.rs:81-83`, `:104-109` | Usage-ranked retention | 74d3a5bf10 2026-09-08 v2 |
+| Memory phase-1 input share · [[cross-session-memory]] | — | — | `70`% of context window (fallback `150_000` tokens); tool output `2_000` tokens, row `10_000` bytes | `codex-rs/memories/write/src/lib.rs:94-101`; `codex-rs/memories/write/src/rollout_input.rs:24-25` | Room for prompt + output | — |
+| History-notes backend · [[model-requested-context-reset]] | — | — | timeout `35` s; note file ≤ `1,000,000` bytes | `codex-rs/ext/history-notes/src/backend.rs:15`; `codex-rs/ext/history-notes/src/tools.rs:28` | — | daa48072f4 2026-08-21 |
 
 ## 06-caching
 
-| constant (neutral) | pi | pi location | tradeoff | history |
-|---|---|---|---|---|
-| Anthropic cache lifetimes · [[cache-retention-control]] | `ANTHROPIC_PROMPT_CACHE` = `{short: 300, long: 3600}` s | `packages/ai/scripts/generate-models.ts:983` | Only direct Anthropic annotated; OpenAI deliberately not | c596d09d9 (2026-09-19, #9668) |
-| Long retention TTL · [[cache-retention-control]] | `ttl: "1h"` when `retention === "long"` | `packages/ai/src/api/anthropic-messages.ts:88` | Higher write cost vs survival | — |
-| Default retention · [[cache-retention-control]] | `PI_CACHE_RETENTION` = `"short"` unless env `long` | `packages/coding-agent/src/core/cache-warmer.ts:42` | — | — |
-| Cache warming mode · [[cache-warming]] | `cacheWarming` = `"streaming"` (global only) | `packages/coding-agent/src/core/settings-manager.ts:1048` (doc `:182`) | Keep cache warm during runs; "each refresh costs money" | c596d09d9 |
-| Warm refresh point · [[cache-warming]] | `getCacheWarmingDelayMs` = `min(0.9·TTL, TTL−10s)` (5m → 270s) | `packages/coding-agent/src/core/cache-warmer.ts:29-31` | — | c596d09d9 |
-| Streaming warming horizon · [[cache-warming]] | `MAX_WARMING_AGE_MS` = `60 min` | `packages/coding-agent/src/core/cache-warmer.ts:16` | — | c596d09d9 |
-| Idle warming horizon · [[cache-warming]] | `MAX_IDLE_WARMING_AGE_MS` = `30 min` | `packages/coding-agent/src/core/cache-warmer.ts:18` | Continuation estimates degrade | c596d09d9 |
-| Min expected savings · [[cache-warming]] | `CACHE_WARMING_MINIMUM_EXPECTED_SAVINGS` = `$0.05` | `packages/coding-agent/src/core/cache-warmer.ts:20` | EV-gated refresh | c596d09d9 |
-| Idle continuation probability · [[cache-warming]] | `IDLE_CONTINUATION_PROBABILITY` = `0.15` | `packages/coding-agent/src/core/cache-warmer.ts:26` | "Measured from our own usage; per-session estimates were not better" | c596d09d9 |
-| Warm probe output · [[cache-warming]] | `maxTokens: 1` | `packages/coding-agent/src/core/cache-warmer.ts:335` | Cheapest refresh; not for budget-thinking Claude (`isReplayable`) | c596d09d9 |
-| Cache miss idle threshold · [[cache-miss-accounting]] | `CACHE_TTL_MS` = `5 min` | `packages/coding-agent/src/core/cache-stats.ts:8` | Attribute misses to idle gap | 3f9aa5d10 (2026-07-09, #6427) |
-| Cache miss noise floor · [[cache-miss-accounting]] | `NOISE_FLOOR_TOKENS` = `1024` | `packages/coding-agent/src/core/cache-stats.ts:11` | Breakpoint granularity noise | 3f9aa5d10 |
-| Summaries skip cache writes · [[cache-retention-control]] | `cacheRetention: "none"` | `packages/coding-agent/src/core/compaction/compaction.ts:631` | One-off request shouldn't pay write premium | — |
-| Show cache-miss notices · [[cache-miss-accounting]] | `showCacheMissNotices` = `false` | `packages/coding-agent/src/core/settings-manager.ts:1074` | — | — |
+| constant (neutral) | pi | pi location | codex | codex location | tradeoff | history |
+|---|---|---|---|---|---|---|
+| Anthropic cache lifetimes · [[cache-retention-control]] | `ANTHROPIC_PROMPT_CACHE` = `{short: 300, long: 3600}` s | `packages/ai/scripts/generate-models.ts:983` | — | — | Only direct Anthropic annotated; OpenAI deliberately not | c596d09d9 (2026-09-19, #9668) |
+| Long retention TTL · [[cache-retention-control]] | `ttl: "1h"` when `retention === "long"` | `packages/ai/src/api/anthropic-messages.ts:88` | — | — | Higher write cost vs survival | — |
+| Default retention · [[cache-retention-control]] | `PI_CACHE_RETENTION` = `"short"` unless env `long` | `packages/coding-agent/src/core/cache-warmer.ts:42` | none — no retention/TTL field; OpenAI automatic caching | `codex-rs/codex-api/src/common.rs:279-304` | — | codex: — |
+| Cache warming mode · [[cache-warming]] | `cacheWarming` = `"streaming"` (global only) | `packages/coding-agent/src/core/settings-manager.ts:1048` (doc `:182`) | — | — | Keep cache warm during runs; "each refresh costs money" | c596d09d9 |
+| Warm refresh point · [[cache-warming]] | `getCacheWarmingDelayMs` = `min(0.9·TTL, TTL−10s)` (5m → 270s) | `packages/coding-agent/src/core/cache-warmer.ts:29-31` | — | — | — | c596d09d9 |
+| Streaming warming horizon · [[cache-warming]] | `MAX_WARMING_AGE_MS` = `60 min` | `packages/coding-agent/src/core/cache-warmer.ts:16` | — | — | — | c596d09d9 |
+| Idle warming horizon · [[cache-warming]] | `MAX_IDLE_WARMING_AGE_MS` = `30 min` | `packages/coding-agent/src/core/cache-warmer.ts:18` | — | — | Continuation estimates degrade | c596d09d9 |
+| Min expected savings · [[cache-warming]] | `CACHE_WARMING_MINIMUM_EXPECTED_SAVINGS` = `$0.05` | `packages/coding-agent/src/core/cache-warmer.ts:20` | — | — | EV-gated refresh | c596d09d9 |
+| Idle continuation probability · [[cache-warming]] | `IDLE_CONTINUATION_PROBABILITY` = `0.15` | `packages/coding-agent/src/core/cache-warmer.ts:26` | — | — | "Measured from our own usage; per-session estimates were not better" | c596d09d9 |
+| Warm probe output · [[cache-warming]] | `maxTokens: 1` | `packages/coding-agent/src/core/cache-warmer.ts:335` | — | — | Cheapest refresh; not for budget-thinking Claude (`isReplayable`) | c596d09d9 |
+| Cache miss idle threshold · [[cache-miss-accounting]] | `CACHE_TTL_MS` = `5 min` | `packages/coding-agent/src/core/cache-stats.ts:8` | — | — | Attribute misses to idle gap | 3f9aa5d10 (2026-07-09, #6427) |
+| Cache miss noise floor · [[cache-miss-accounting]] | `NOISE_FLOOR_TOKENS` = `1024` | `packages/coding-agent/src/core/cache-stats.ts:11` | — | — | Breakpoint granularity noise | 3f9aa5d10 |
+| Summaries skip cache writes · [[cache-retention-control]] | `cacheRetention: "none"` | `packages/coding-agent/src/core/compaction/compaction.ts:631` | — | — | One-off request shouldn't pay write premium | — |
+| Show cache-miss notices · [[cache-miss-accounting]] | `showCacheMissNotices` = `false` | `packages/coding-agent/src/core/settings-manager.ts:1074` | — | — | — | — |
+| Prompt cache key · [[session-affinity-cache-routing]] | — | — | session id (internal sessions `"{source}:{parent_thread_id}"`; override wins) | `codex-rs/core/src/client.rs:581-593` | Shared by root, subagents, ephemeral forks | 6a6bf99e2c 2025-08-11; thread→session 4aa950d456 2026-07-14 |
+| Responses WebSocket beta header · [[session-affinity-cache-routing]] | — | — | `responses_websockets=2026-02-06` | `codex-rs/core/src/client.rs:175` | v2 protocol (delta + previous_response_id) | 1fbf5ed06f 2026-02-06 |
 
 ## 07-safety
 
-| constant (neutral) | pi | pi location | tradeoff | history |
-|---|---|---|---|---|
-| Project trust default · [[project-trust-gate]] | `defaultProjectTrust` = `"ask"` (global only) | `packages/coding-agent/src/core/settings-manager.ts:151` | Project extensions/settings gated | — |
-| Output file mode · [[tool-output-spill]] | `OUTPUT_FILE_MODE` = `0o600` | `packages/coding-agent/src/utils/output-files.ts:15` | Temp full-output files private | — |
-| Unix socket mode · [[client-server-session-split]] | `DEFAULT_SOCKET_MODE` = `0o600` | `packages/server/src/transports/unix/listener.ts:11` | — | — |
-| MCP OAuth refresh skew / timeout · [[mcp-integration]] · [[subscription-oauth-auth]] | `REFRESH_SKEW_MS` / `REFRESH_REQUEST_TIMEOUT_MS` = 30s / 15s | `packages/coding-agent/src/extensions/mcp/oauth.ts:46,48` | — | — |
-| MCP OAuth refresh lock · [[mcp-integration]] · [[subscription-oauth-auth]] | `REFRESH_LOCK_STALE_MS` / `WAIT` / `RETRY` = 20s / 25s / 100ms | `packages/coding-agent/src/extensions/mcp/oauth.ts:50-53` | Cross-process refresh races | — |
-| MCP login timeout · [[mcp-integration]] | `DEFAULT_LOGIN_TIMEOUT_SECONDS` = `300` | `packages/coding-agent/src/extensions/mcp/cli.ts:77` | — | — |
-| Auth file lock (sync) · [[subscription-oauth-auth]] · [[credential-resolution]] | 10 attempts × 20ms busy-wait | `packages/coding-agent/src/core/auth-storage.ts:70-71` | Sync API kept | — |
-| Auth file lock (async) · [[subscription-oauth-auth]] · [[credential-resolution]] | stale 30s, max delay 2s, jittered | `packages/coding-agent/src/core/auth-storage.ts:120-121,144` | — | — |
-| Settings lock · [[layered-settings]] | 10 × 20ms | `packages/coding-agent/src/core/settings-manager.ts:328-329` | — | — |
-| Trust file lock · [[project-trust-gate]] | 10 × 20ms | `packages/coding-agent/src/core/trust-manager.ts:141-142` | — | — |
-| Crash log retention | `MAX_CRASH_RECORDS` / `MAX_AGE` = 5 / 7 days | `packages/coding-agent/src/core/crash-log.ts:18-19` | — | — |
-| Install telemetry · [[install-telemetry]] | `enableInstallTelemetry` = `true` | `packages/coding-agent/src/core/settings-manager.ts:1165` | Opt-out | — |
-| Analytics · [[install-telemetry]] | `enableAnalytics` = `false` | `packages/coding-agent/src/core/settings-manager.ts:1175` | Opt-in | — |
-| Anthropic extra-usage warning · [[usage-cost-accounting]] | `warnings.anthropicExtraUsage` = `true` | `packages/coding-agent/src/core/settings-manager.ts:91` | — | — |
-| Lockfile check · [[supply-chain-pinning]] | `PI_ALLOW_LOCKFILE_CHANGE=1` = env override | `scripts/check-lockfile-commit.mjs:119` | Repo hygiene | — |
-| Model catalog publish floor · [[model-catalog]] | `MINIMUM_MODEL_COUNT` = `500` | `scripts/publish-model-catalog.mjs:33` | Guard against publishing truncated catalog | — |
+| constant (neutral) | pi | pi location | codex | codex location | tradeoff | history |
+|---|---|---|---|---|---|---|
+| Project trust default · [[project-trust-gate]] | `defaultProjectTrust` = `"ask"` (global only) | `packages/coding-agent/src/core/settings-manager.ts:151` | undecided → prompt + read-only profile; trusted → on-request + workspace-write; untrusted → approve every unmatched command | `codex-rs/core/src/config/mod.rs:3759-3770`; `codex-rs/core/src/config/permissions.rs:50-61` | Project extensions/settings gated | codex: 17801b4206 2026-08-04 (auto-trust reverted same day) |
+| Output file mode · [[tool-output-spill]] | `OUTPUT_FILE_MODE` = `0o600` | `packages/coding-agent/src/utils/output-files.ts:15` | — | — | Temp full-output files private | — |
+| Unix socket mode · [[client-server-session-split]] | `DEFAULT_SOCKET_MODE` = `0o600` | `packages/server/src/transports/unix/listener.ts:11` | — | — | — | — |
+| MCP OAuth refresh skew / timeout · [[mcp-integration]] · [[subscription-oauth-auth]] | `REFRESH_SKEW_MS` / `REFRESH_REQUEST_TIMEOUT_MS` = 30s / 15s | `packages/coding-agent/src/extensions/mcp/oauth.ts:46,48` | — | — | — | — |
+| MCP OAuth refresh lock · [[mcp-integration]] · [[subscription-oauth-auth]] | `REFRESH_LOCK_STALE_MS` / `WAIT` / `RETRY` = 20s / 25s / 100ms | `packages/coding-agent/src/extensions/mcp/oauth.ts:50-53` | — | — | Cross-process refresh races | — |
+| MCP login timeout · [[mcp-integration]] | `DEFAULT_LOGIN_TIMEOUT_SECONDS` = `300` | `packages/coding-agent/src/extensions/mcp/cli.ts:77` | — | — | — | — |
+| Auth file lock (sync) · [[subscription-oauth-auth]] · [[credential-resolution]] | 10 attempts × 20ms busy-wait | `packages/coding-agent/src/core/auth-storage.ts:70-71` | — | — | Sync API kept | — |
+| Auth file lock (async) · [[subscription-oauth-auth]] · [[credential-resolution]] | stale 30s, max delay 2s, jittered | `packages/coding-agent/src/core/auth-storage.ts:120-121,144` | — | — | — | — |
+| Settings lock · [[layered-settings]] | 10 × 20ms | `packages/coding-agent/src/core/settings-manager.ts:328-329` | — | — | — | — |
+| Trust file lock · [[project-trust-gate]] | 10 × 20ms | `packages/coding-agent/src/core/trust-manager.ts:141-142` | — | — | — | — |
+| Crash log retention | `MAX_CRASH_RECORDS` / `MAX_AGE` = 5 / 7 days | `packages/coding-agent/src/core/crash-log.ts:18-19` | — | — | — | — |
+| Install telemetry · [[install-telemetry]] | `enableInstallTelemetry` = `true` | `packages/coding-agent/src/core/settings-manager.ts:1165` | OTEL metrics exporter = Statsig (OTLP/HTTP to `ab.chatgpt.com`), on by default; logs/traces off | `codex-rs/config/src/types.rs:670-682`; `codex-rs/otel/src/config.rs:9-32` | Opt-out | codex: — |
+| Analytics · [[install-telemetry]] | `enableAnalytics` = `false` | `packages/coding-agent/src/core/settings-manager.ts:1175` | — | — | Opt-in | — |
+| Anthropic extra-usage warning · [[usage-cost-accounting]] | `warnings.anthropicExtraUsage` = `true` | `packages/coding-agent/src/core/settings-manager.ts:91` | — | — | — | — |
+| Lockfile check · [[supply-chain-pinning]] | `PI_ALLOW_LOCKFILE_CHANGE=1` = env override | `scripts/check-lockfile-commit.mjs:119` | — | — | Repo hygiene | — |
+| Model catalog publish floor · [[model-catalog]] | `MINIMUM_MODEL_COUNT` = `500` | `scripts/publish-model-catalog.mjs:33` | — | — | Guard against publishing truncated catalog | — |
+| Default sandbox network · [[os-level-sandbox]] | — | — | off (`network_access=false`, `NetworkAccess::Restricted`) | `codex-rs/protocol/src/protocol.rs:1093-1147` | Breaks installs unless proxy/allowlist or escalation | — |
+| macOS sandbox executable · [[os-level-sandbox]] | — | — | `/usr/bin/sandbox-exec` (absolute) | `codex-rs/sandboxing/src/seatbelt.rs:62` | Avoids PATH hijack; deprecated Apple API | e9d16d3c2b 2025-04-27 |
+| Linux seccomp always-denied · [[os-level-sandbox]] | — | — | `io_uring_setup/enter/register` (+ `ptrace`, `process_vm_*` non-VM); default Allow, match → EPERM | `codex-rs/linux-sandbox/src/landlock.rs:183-231`, `:280-284` | Denylist filter; each new socket path needs a fix | 8896ca0ee6 2026-02-06 |
+| Landlock ABI (legacy backend) · [[os-level-sandbox]] | — | — | V5 | `codex-rs/linux-sandbox/src/landlock.rs:150` | Legacy only since bwrap default | 04892b4ceb 2026-03-11 |
+| Windows restricted token flags · [[os-level-sandbox]] | — | — | `DISABLE_MAX_PRIVILEGE \| LUA_TOKEN \| WRITE_RESTRICTED` | `codex-rs/windows-sandbox-rs/src/token.rs:42-44` | Write-restricted only; reads broadly allowed | 87cce88f48 2025-10-30 |
+| Windows no-network sink · [[os-level-sandbox]] | — | — | `HTTP(S)_PROXY=http://127.0.0.1:9`, `GIT_SSH_COMMAND=cmd /c exit 1`, offline flags | `codex-rs/windows-sandbox-rs/src/env.rs:126-160` | Advisory only (non-elevated); raw sockets bypass | — |
+| Windows sandbox service IPC limits · [[os-level-sandbox]] | — | — | request 4096 B / response 512 B / idle 5 s | `codex-rs/windows-sandbox-service/src/ipc.rs:45-48` | Small privileged attack surface | 501931b399 2026-09-02 |
+| Protected workspace metadata · [[protected-workspace-metadata]] | — | — | `.git`, `.agents`, `.codex`, `.aws` | `codex-rs/protocol/src/permissions.rs:40-51` | Each new escalation vector needs a list edit | 80555d4ff2, 9a487f9c18, 1d804e91b7 |
+| Default approval policy · [[approval-policy-modes]] | — | — | `OnRequest` (model decides when to escalate); default `ReviewDecision` = Denied | `codex-rs/protocol/src/protocol.rs:1035-1038`, `:4209-4214` | Fewer prompts; relies on model + sandbox | 725dd6be6a 2025-08-05 |
+| Sandbox denial quick-reject exit codes · [[sandbox-escalation-retry]] | — | — | 2, 126, 127 (Linux 128+SIGSYS = denial) | `codex-rs/sandboxing/src/denial.rs:25-39` | Avoid false escalation prompts | e3565a3f43 2025-08-03 |
+| Sandbox denial keywords · [[sandbox-escalation-retry]] | — | — | 7 strings ("operation not permitted", "permission denied", "read-only file system", "seccomp", "sandbox", "landlock", "failed to write file") | `codex-rs/sandboxing/src/denial.rs:49-57` | Heuristic; any output text can match | ca6a0358de 2025-10-09 |
+| Rules files · [[command-rule-policy]] | — | — | `<layer>/rules/*.rules`, `default.rules` | `codex-rs/core/src/exec_policy.rs:54-56` | Per config layer; admin overlay | e0d7ac51d3 2025-12-11 |
+| Banned model-suggested rule prefixes · [[command-rule-policy]] | — | — | 88 prefixes (shells, interpreters, `git`, `sudo`, `rm`, `env`, `npm run`…) | `codex-rs/core/src/exec_policy.rs:57-146` | Blocks too-broad persistent rules | e6e4c5fa3a 2026-02-12 |
+| Dangerous wrapper depth · [[dangerous-command-heuristics]] | — | — | 8 (deeper ⇒ dangerous) | `codex-rs/shell-command/src/command_safety/is_dangerous_command.rs:34` | Unwrap sudo/env/sh -lc | — |
+| Reviewer timeout / attempts · [[llm-approval-reviewer]] | — | — | 90 s / 3 | `codex-rs/ext/guardian-reviewer/src/lib.rs:40-41` | Timeout = TimedOut (deny) | e84ee33cc0 2026-03-07 |
+| Reviewer denial circuit breaker · [[llm-approval-reviewer]] | — | — | 3 consecutive or 10 of last 50 per turn (cyber 1/1) | `codex-rs/ext/guardian-reviewer/src/circuit_breaker.rs:3-7` | Stops deny→workaround loops; may interrupt legit work | ed4def8286 2026-04-22 |
+| Reviewer input budget · [[llm-approval-reviewer]] | — | — | 128,000 tokens (10,000 image reserve); reason 512, root msg 900 | `codex-rs/guardian-context/src/budget.rs:55-57`; `codex-rs/core/src/guardian/prompt.rs:41`; `codex-rs/core/src/guardian/mod.rs:76` | Over budget → ask user unless reviewer required | — |
+| Async risk scorer · [[llm-approval-reviewer]] | — | — | `gpt-6-luna`, deadline 6 s, threshold 0.5 (legacy 0.8), max tool-call lag 2 | `codex-rs/ext/guardian-v2/src/async_scorer/decisions.rs:30-35`; `codex-rs/ext/guardian-v2/src/async_scorer/config.rs:28-30` | Fast path vs full review | a7b8c074b5, a9e7920da1 |
+| Egress proxy ports · [[egress-policy-proxy]] | — | — | HTTP 127.0.0.1:3128, SOCKS5 127.0.0.1:8081 | `codex-rs/network-proxy/README.md:5-6` | Loopback-only; Windows port ranges | 77222492f9 2026-01-23 |
+| Proxy limited-mode methods · [[egress-policy-proxy]] | — | — | GET, HEAD, OPTIONS (HTTPS needs MITM) | `codex-rs/network-proxy/README.md:143` | Read-only web vs MITM complexity | — |
+| Credential broker min secret length · [[egress-policy-proxy]] | — | — | 16 | `codex-rs/network-proxy/src/credential_broker.rs:45` | Avoid substituting short strings | eea28321ad 2026-08-11 |
+| Process hardening failure exits · [[harness-process-hardening]] | — | — | 5 (prctl) / 6 (PT_DENY_ATTACH) / 7 (RLIMIT_CORE) | `codex-rs/process-hardening/src/lib.rs:28-41` | Refuse to run unhardened | d61dea6fe6 2025-09-25 |
+| Permission prompt path cap · [[permission-state-prompt]] | — | — | `MAX_PERMISSION_PATH_BYTES` = 32 KiB | `codex-rs/prompts/src/permissions_instructions.rs:40` | Omission notice keeps restrictions in force | — |
+| Secret redaction patterns · [[secret-handling]] | — | — | `sk-…{20,}`, `AKIA…{16}`, `Bearer …{16,}`, key/token/secret/password assignment {8,} → `[REDACTED_SECRET]` | `codex-rs/secrets/src/sanitizer.rs:4-20` | Display-only; regex coverage | — |
+| Child-env default excludes · [[secret-handling]] | — | — | `*KEY*`, `*SECRET*`, `*TOKEN*` — off by default (`ignore_default_excludes = true`) | `codex-rs/protocol/src/shell_environment.rs:125-130`; `codex-rs/config/src/shell_environment_policy.rs:136` | Compatibility vs leaking env secrets | 9fb9ed6cea 2025-12-18 |
+| .env forbidden prefix · [[secret-handling]] | — | — | `CODEX_` | `codex-rs/arg0/src/lib.rs:297` | Stops .env overriding harness config | — |
+| WebSocket auth · [[remote-host-trust]] | — | — | clock skew 30 s, signed-bearer secret ≥ 32 B; non-loopback bind refused without auth | `codex-rs/websocket-auth/src/lib.rs:26-27`; `codex-rs/app-server-transport/src/transport/websocket.rs:135-142` | — | 51bfb5f3b1, c44deff7b1 |
+| Package release-age gate · [[supply-chain-pinning]] | — | — | pnpm `minimumReleaseAge: 10080` (7 d), `strictDepBuilds`, `trustPolicy: no-downgrade` | `pnpm-workspace.yaml:6-19` | Fresh-malware window vs update latency | dee5f5ea38 2026-04-24 |
+| Cargo source policy · [[supply-chain-pinning]] | — | — | unknown registry/git = deny; license confidence 0.8; 10 justified RUSTSEC ignores | `codex-rs/deny.toml:65-85`, `:151`, `:299-305` | — | ec49b56874 2025-11-24 |
 
 ## 08-state
 
-| constant (neutral) | pi | pi location | tradeoff | history |
-|---|---|---|---|---|
-| Session format version · [[session-migration]] | `CURRENT_SESSION_VERSION` = `3` | `packages/coding-agent/src/core/session-manager.ts:41` | Migrations on load | — |
-| Session read buffer · [[session-tree]] | `SESSION_READ_BUFFER_SIZE` = `1 MiB` | `packages/coding-agent/src/core/session-manager.ts:604` | — | — |
-| Session header read buffer · [[session-tree]] | `SESSION_HEADER_READ_BUFFER_SIZE` = `4096` | `packages/coding-agent/src/core/session-manager.ts:605` | — | — |
-| Header scan bound · [[session-tree]] | `MAX_SESSION_HEADER_SCAN_BYTES` = `1 MiB` | `packages/coding-agent/src/core/session-manager.ts:607` | Large cwd/metadata allowed | — |
-| Session list concurrency · [[session-tree]] | `MAX_CONCURRENT_SESSION_INFO_LOADS` / `DISCOVERY_LOADS` = 10 / 64 | `packages/coding-agent/src/core/session-manager.ts:891-892` | — | — |
-| Session list publish batch · [[session-tree]] | `CURRENT_/ALL_SESSION_LIST_PUBLISH_INTERVAL` = 10 / 100 | `packages/coding-agent/src/core/session-manager.ts:893-894` | Progressive UI | — |
-| Session file size limit · [[session-tree]] | **none** (unverified: no cap found) | — | Append-only JSONL grows unbounded | absence |
-| Bug report schema | `BUG_REPORT_SCHEMA_VERSION` = `1` | `packages/coding-agent/src/core/bug-report.ts:18` | — | — |
-| Footer git watch debounce · [[extension-ui-primitives]] | `WATCH_DEBOUNCE_MS` = `500` | `packages/coding-agent/src/core/footer-data-provider.ts:101` | — | — |
-| FS watch retry | `FS_WATCH_RETRY_DELAY_MS` = `5000` | `packages/coding-agent/src/utils/fs-watch.ts:3` | — | — |
-| MCP log size · [[mcp-integration]] | `MAX_LOG_BYTES` = `5 MiB` | `packages/coding-agent/src/extensions/mcp/log.ts:10` | — | — |
-| SQLite WAL / busy · [[durable-execution]] | `DEFAULT_WAL_AUTO_CHECKPOINT_PAGES` / `DEFAULT_BUSY_TIMEOUT_MS` = 1000 / 5000 | `packages/durable/src/storage/sqlite/node.ts:16-17` | — | — |
-| Durable scan page · [[durable-execution]] | `SCAN_PAGE_SIZE` = `256` | `packages/durable/src/harness/harness.ts:57` (+5 sites) | — | — |
-| Durable JSONL format · [[durable-execution]] | `FORMAT_VERSION` = `1` | `packages/durable/src/storage/jsonl/storage.ts:28` | — | 898ab8040 |
-| Durable pending watch frames · [[durable-execution]] | `MAX_PENDING_WATCH_FRAMES` = `100` | `packages/durable/src/session/observation.ts:15` | — | — |
-| Durable output progress rate · [[durable-execution]] | `PROGRESS_BYTES_PER_SECOND` = `100 KiB/s` | `packages/durable/src/harness/output.ts:261` | — | — |
-| Durable watcher · [[remote-execution-env]] | `DEBOUNCE_MS`/`FSEVENTS_SETTLE_MS`/`DEFAULT_POLL_MS`/`DEFAULT_MAX_DIRECTORIES`/`HASH_MAX_BYTES` = 50 / 500 / 2000 / 10_000 / 256 KiB | `packages/durable/src/env/node-watch.ts:46-58` | — | — |
-| Durable spill high-water · [[remote-execution-env]] | `SPILL_HIGH_WATER_MARK` = `1 MiB` | `packages/durable/src/env/node.ts:53` | — | — |
-| Chord delta limits · [[replicated-state]] | `MAX_DELTA_OPERATIONS` / `MAX_IDENTITY_CANDIDATES` / `MAX_SEMANTIC_CELLS` / `DEFAULT_OVERLAP_SCAN` = 4096 / 200_000 / 65_536 / 65_536 | `packages/chord/src/delta/diff.ts:4-5,86-87` | Bounded diff cost | — |
+| constant (neutral) | pi | pi location | codex | codex location | tradeoff | history |
+|---|---|---|---|---|---|---|
+| Session format version · [[session-migration]] | `CURRENT_SESSION_VERSION` = `3` | `packages/coding-agent/src/core/session-manager.ts:41` | — | — | Migrations on load | — |
+| Session read buffer · [[session-tree]] | `SESSION_READ_BUFFER_SIZE` = `1 MiB` | `packages/coding-agent/src/core/session-manager.ts:604` | — | — | — | — |
+| Session header read buffer · [[session-tree]] | `SESSION_HEADER_READ_BUFFER_SIZE` = `4096` | `packages/coding-agent/src/core/session-manager.ts:605` | — | — | — | — |
+| Header scan bound · [[session-tree]] | `MAX_SESSION_HEADER_SCAN_BYTES` = `1 MiB` | `packages/coding-agent/src/core/session-manager.ts:607` | — | — | Large cwd/metadata allowed | — |
+| Session list concurrency · [[session-tree]] | `MAX_CONCURRENT_SESSION_INFO_LOADS` / `DISCOVERY_LOADS` = 10 / 64 | `packages/coding-agent/src/core/session-manager.ts:891-892` | — | — | — | — |
+| Session list publish batch · [[session-tree]] | `CURRENT_/ALL_SESSION_LIST_PUBLISH_INTERVAL` = 10 / 100 | `packages/coding-agent/src/core/session-manager.ts:893-894` | — | — | Progressive UI | — |
+| Session file size limit · [[session-tree]] | **none** (unverified: no cap found) | — | no file cap; persisted MCP result / command output capped at `64 KiB` each (`PERSISTED_MCP_RESULT_MAX_BYTES`, `PERSISTED_COMMAND_OUTPUT_MAX_BYTES`); function-call outputs uncapped | `codex-rs/rollout/src/policy.rs:16-17` | Append-only JSONL grows unbounded | absence · codex: 3516cb9751 2026-04-30 |
+| Bug report schema | `BUG_REPORT_SCHEMA_VERSION` = `1` | `packages/coding-agent/src/core/bug-report.ts:18` | — | — | — | — |
+| Footer git watch debounce · [[extension-ui-primitives]] | `WATCH_DEBOUNCE_MS` = `500` | `packages/coding-agent/src/core/footer-data-provider.ts:101` | — | — | — | — |
+| FS watch retry | `FS_WATCH_RETRY_DELAY_MS` = `5000` | `packages/coding-agent/src/utils/fs-watch.ts:3` | — | — | — | — |
+| MCP log size · [[mcp-integration]] | `MAX_LOG_BYTES` = `5 MiB` | `packages/coding-agent/src/extensions/mcp/log.ts:10` | — | — | — | — |
+| SQLite WAL / busy · [[durable-execution]] | `DEFAULT_WAL_AUTO_CHECKPOINT_PAGES` / `DEFAULT_BUSY_TIMEOUT_MS` = 1000 / 5000 | `packages/durable/src/storage/sqlite/node.ts:16-17` | — | — | — | — |
+| Durable scan page · [[durable-execution]] | `SCAN_PAGE_SIZE` = `256` | `packages/durable/src/harness/harness.ts:57` (+5 sites) | — | — | — | — |
+| Durable JSONL format · [[durable-execution]] | `FORMAT_VERSION` = `1` | `packages/durable/src/storage/jsonl/storage.ts:28` | — | — | — | 898ab8040 |
+| Durable pending watch frames · [[durable-execution]] | `MAX_PENDING_WATCH_FRAMES` = `100` | `packages/durable/src/session/observation.ts:15` | — | — | — | — |
+| Durable output progress rate · [[durable-execution]] | `PROGRESS_BYTES_PER_SECOND` = `100 KiB/s` | `packages/durable/src/harness/output.ts:261` | — | — | — | — |
+| Durable watcher · [[remote-execution-env]] | `DEBOUNCE_MS`/`FSEVENTS_SETTLE_MS`/`DEFAULT_POLL_MS`/`DEFAULT_MAX_DIRECTORIES`/`HASH_MAX_BYTES` = 50 / 500 / 2000 / 10_000 / 256 KiB | `packages/durable/src/env/node-watch.ts:46-58` | — | — | — | — |
+| Durable spill high-water · [[remote-execution-env]] | `SPILL_HIGH_WATER_MARK` = `1 MiB` | `packages/durable/src/env/node.ts:53` | — | — | — | — |
+| Chord delta limits · [[replicated-state]] | `MAX_DELTA_OPERATIONS` / `MAX_IDENTITY_CANDIDATES` / `MAX_SEMANTIC_CELLS` / `DEFAULT_OVERLAP_SCAN` = 4096 / 200_000 / 65_536 / 65_536 | `packages/chord/src/delta/diff.ts:4-5,86-87` | — | — | Bounded diff cost | — |
+| Rollout cold compression age · [[session-tree]] | — | — | `MIN_ROLLOUT_AGE` = 7 days → `.jsonl.zst`; worker max 5 h, run marker stale 6 h | `codex-rs/rollout/src/compression.rs:364-367` | disk vs read cost | — |
+| Session index DB file · [[sqlite-session-index]] | — | — | `STATE_DB_FILENAME` = `state_5.sqlite` (+ `logs_2`, `goals_1`, `memories_1`, `queue_1`, `thread_history_1`) | `codex-rs/state/src/sqlite.rs:34-39` | version suffix = breaking schema reset; split DBs isolate contention | eace7c6610 2026-02-23; aad59a0916 2026-05-26 |
+| Index DB busy timeout · [[sqlite-session-index]] | — | — | `DEFAULT_BUSY_TIMEOUT` = 5 s | `codex-rs/state/src/sqlite.rs:32` | — | — |
+| Index DB open-time integrity check · [[sqlite-session-index]] | — | — | `PRAGMA quick_check` budget 100 ms | `codex-rs/state/src/sqlite.rs:414-419` | bounded startup cost vs corruption detection | 3620b2caf8 2026-09-30 |
+| Min bundled SQLite · [[sqlite-session-index]] | — | — | 3.51.3 (compile-time assert, WAL-reset fix) | `codex-rs/state/src/lib.rs:7-10` | — | 3691fe5b76 2026-06-10 |
+| Thread attachment payload cap · [[sqlite-session-index]] | — | — | `MAX_THREAD_ATTACHMENT_PAYLOAD_BYTES` = 64 KiB; 100 attachments/thread | `codex-rs/state/src/lib.rs:116-128` | — | — |
+| Suspend grace before abort · [[durable-execution]] | — | — | 100 ms | `codex-rs/core/src/session/turn_suspension.rs:1-119` | let turn wind down vs fast handoff | 4f39251a01 2026-08-22 |
+| Sub-agent fork default · [[session-fork]] | — | — | `fork_turns` = `"all"` (partial forks removed; integers ⇒ all) | `codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs:279-302` | cache-prefix reuse vs child context size | 15b8cde2a4 2026-04-21; 6221a217e2 2026-10-06 |
 
 ## 09-subagents
 Scope: subagents and multi-process (no core subagent tool — see [[no-subagents-core]]).
 
 Subagents exist only as an example extension (`subagent/`) and the experimental session-worker/coordinator.
 
-| constant (neutral) | pi | pi location | tradeoff | history |
-|---|---|---|---|---|
-| Example subagent parallelism · [[subagent-as-subprocess]] · [[no-subagents-core]] | `MAX_PARALLEL_TASKS` / `MAX_CONCURRENCY` = 8 / 4 | `packages/coding-agent/examples/extensions/subagent/index.ts:33-34` | — | — |
-| Example per-task output cap · [[subagent-as-subprocess]] · [[no-subagents-core]] | `PER_TASK_OUTPUT_CAP` = `50 KiB` | `packages/coding-agent/examples/extensions/subagent/index.ts:36` | = tool truncation limit | — |
-| Worker startup/shutdown/discovery/demand · [[client-server-session-split]] | `WORKER_*_TIMEOUT_MS` = 15s / 10s / 5s / 5s | `packages/coding-agent/src/experimental/session-worker-manager.ts:31-34` | — | — |
-| Worker demand grace · [[client-server-session-split]] | `DEFAULT_INITIAL/ORPHAN_DEMAND_GRACE_MS` = 10s / 30s | `packages/coding-agent/src/experimental/session-worker.ts:307-308` | — | — |
-| Worker lock retries · [[client-server-session-split]] | 320 × 25ms, max 8s | `packages/coding-agent/src/experimental/session-worker.ts:521` | — | — |
-| Coordinator · [[client-server-session-split]] | `COORDINATOR_PROTOCOL_VERSION` / start timeout / retry = 3 / 10s / 10ms | `packages/coding-agent/src/experimental/coordinator.ts:14-16` | — | — |
-| Coordinator empty grace · [[client-server-session-split]] | `EMPTY_STARTUP/SHUTDOWN_GRACE_MS` = 30s / 250ms | `packages/coding-agent/src/experimental/coordinator.ts:263-264` | — | — |
-| Server lock · [[client-server-session-split]] | `LOCK_STALE_MS` / `LOCK_RETRY_MS` / `LOCK_WAIT_MS` = 30s / 25ms / 30s | `packages/coding-agent/src/experimental/server.ts:73-75` | — | — |
-| Auto-server grace · [[client-server-session-split]] | `AUTO_SERVER_STARTUP/IDLE_GRACE_MS` = 10s / 1s | `packages/coding-agent/src/experimental/server.ts:244-245` | — | — |
-| Control line max · [[client-server-session-split]] | `MAX_CONTROL_LINE_BYTES` = `128 MiB` | `packages/coding-agent/src/experimental/process.ts:100` | — | — |
-| Radius relay backoff · [[client-server-session-split]] | `HOST/CLIENT_RETRY_INITIAL_MS` / `_MAX_MS` = 1s → 30s | `packages/coding-agent/src/experimental/radius-relay.ts:16-20` | — | — |
-| Relay drain threshold · [[client-server-session-split]] | `DRAIN_THRESHOLD_BYTES` = `1 MiB` | `packages/coding-agent/src/experimental/radius-relay.ts:15` | — | — |
+| constant (neutral) | pi | pi location | codex | codex location | tradeoff | history |
+|---|---|---|---|---|---|---|
+| Example subagent parallelism · [[subagent-as-subprocess]] · [[no-subagents-core]] | `MAX_PARALLEL_TASKS` / `MAX_CONCURRENCY` = 8 / 4 | `packages/coding-agent/examples/extensions/subagent/index.ts:33-34` | V1 `DEFAULT_AGENT_MAX_THREADS` = `6`/session; V2 `4` threads incl. root (→ 3 children) | `codex-rs/core/src/config/mod.rs:257-258`, `:1633-1646` | — | codex: `8fea8f73d6` 2026-01-25 (12→6); `f8c527e529` 2026-04-27 |
+| Example per-task output cap · [[subagent-as-subprocess]] · [[no-subagents-core]] | `PER_TASK_OUTPUT_CAP` = `50 KiB` | `packages/coding-agent/examples/extensions/subagent/index.ts:36` | final answer uncapped; error text `900` tokens (1000 − 100 envelope) | `codex-rs/core/src/session_prefix.rs:9-12` | = tool truncation limit | codex: — |
+| Worker startup/shutdown/discovery/demand · [[client-server-session-split]] | `WORKER_*_TIMEOUT_MS` = 15s / 10s / 5s / 5s | `packages/coding-agent/src/experimental/session-worker-manager.ts:31-34` | — | — | — | — |
+| Worker demand grace · [[client-server-session-split]] | `DEFAULT_INITIAL/ORPHAN_DEMAND_GRACE_MS` = 10s / 30s | `packages/coding-agent/src/experimental/session-worker.ts:307-308` | — | — | — | — |
+| Worker lock retries · [[client-server-session-split]] | 320 × 25ms, max 8s | `packages/coding-agent/src/experimental/session-worker.ts:521` | — | — | — | — |
+| Coordinator · [[client-server-session-split]] | `COORDINATOR_PROTOCOL_VERSION` / start timeout / retry = 3 / 10s / 10ms | `packages/coding-agent/src/experimental/coordinator.ts:14-16` | — | — | — | — |
+| Coordinator empty grace · [[client-server-session-split]] | `EMPTY_STARTUP/SHUTDOWN_GRACE_MS` = 30s / 250ms | `packages/coding-agent/src/experimental/coordinator.ts:263-264` | — | — | — | — |
+| Server lock · [[client-server-session-split]] | `LOCK_STALE_MS` / `LOCK_RETRY_MS` / `LOCK_WAIT_MS` = 30s / 25ms / 30s | `packages/coding-agent/src/experimental/server.ts:73-75` | — | — | — | — |
+| Auto-server grace · [[client-server-session-split]] | `AUTO_SERVER_STARTUP/IDLE_GRACE_MS` = 10s / 1s | `packages/coding-agent/src/experimental/server.ts:244-245` | — | — | — | — |
+| Control line max · [[client-server-session-split]] | `MAX_CONTROL_LINE_BYTES` = `128 MiB` | `packages/coding-agent/src/experimental/process.ts:100` | — | — | — | — |
+| Radius relay backoff · [[client-server-session-split]] | `HOST/CLIENT_RETRY_INITIAL_MS` / `_MAX_MS` = 1s → 30s | `packages/coding-agent/src/experimental/radius-relay.ts:16-20` | — | — | — | — |
+| Relay drain threshold · [[client-server-session-split]] | `DRAIN_THRESHOLD_BYTES` = `1 MiB` | `packages/coding-agent/src/experimental/radius-relay.ts:15` | — | — | — | — |
+| Subagent max depth · [[subagent-concurrency-limits]] | — | — | V1 `DEFAULT_AGENT_MAX_DEPTH` = `1` (only root spawns); V2 none | `codex-rs/core/src/config/mod.rs:267`; `codex-rs/core/src/tools/spec_plan.rs:726-729` | No recursive delegation (V1) vs catalog-bounded (V2) | `70ac0f123c` 2026-04-29 |
+| Subagent wait timeout · [[subagent-result-mailbox]] | — | — | default `30_000` / min `10_000` / max `3_600_000` ms (clamped up to min) | `codex-rs/core/src/config/mod.rs:259-261` | Min prevents busy polling | `375a5ef051` 2026-01-26; `4d7e3e90d9` 2026-08-07 |
+| Multi-agent tool namespace · [[in-process-subagent-threads]] | — | — | `"collaboration"` | `codex-rs/core/src/config/mod.rs:262` | Groups V2 tools in a Responses namespace | — |
+| Spawn model overrides listed · [[subagent-config-inheritance]] | — | — | `MAX_SPAWN_AGENT_MODEL_OVERRIDES` = `5` | `codex-rs/core/src/agent/child_config.rs:20` | Error brevity; inherited model preferred | `54bd07d28c` 2026-04-20 |
+| Subagent nickname pool · [[agent-roles]] | — | — | `101` names, ordinal suffix after exhaustion | `codex-rs/core/assets/agent/agent_names.txt` | — | `0f9eed3a6f` 2026-02-20 |
+| Agent message board caps · [[agent-message-board]] | — | — | post 64 KiB / channel name 128 B / read 20 000 chars; tool response 8 000 B; remote notice 1 024 B | `codex-rs/ext/agent-message-board/src/local.rs:52-54`; `codex-rs/ext/agent-message-board/src/tools.rs:39`; `codex-rs/core/src/agent_message_board.rs:233-245` | Context safety; untrusted remote metadata | `293de27177`, `68e1a421f5` |
+| Cloud task attempts / RPC timeout · [[cloud-task-delegation]] | — | — | best-of-N `1..4`; gRPC `REQUEST_TIMEOUT` 150 s, never retried | `codex-rs/cloud-tasks/src/cli.rs:52-61`; `codex-rs/cloud-client/src/lib.rs:5`, `:32` | Cost vs quality; avoid duplicate Resume | — |
+| Realtime voice budgets · [[voice-frontend-delegation]] | — | — | startup context 5 300 / output 1 000 tokens; handoff flush 200 ms; model `gpt-realtime-1.5` | `codex-rs/core/src/realtime_conversation.rs:102-113` | — | `6817f0be8a` 2026-02-20 |
+| Review rubric limits · [[review-subagent]] | — | — | ≤ 3 lines code per comment; ranges ≤ 5–10 lines; title ≤ 80 chars; P0–P3 | `codex-rs/prompts/templates/review/rubric.md` | Focused findings | `90a0fd342f` 2025-09-12 |
 
 ## 10-platform
 Scope: TUI, protocol, remote env, MCP transport, packaging.
 
-| constant (neutral) | pi | pi location | tradeoff | history |
-|---|---|---|---|---|
-| TUI frame budget · [[differential-tui-rendering]] | `MIN_RENDER_INTERVAL_MS` = `16` ms (~60fps) | `packages/tui/src/tui.ts:507` | Coalesce `requestRender()` under streaming; `force` bypasses | 6f5f37f85 (2026-04-06) |
-| Max render write · [[differential-tui-rendering]] | `MAX_RENDER_WRITE_CHARS` = `1 MiB` | `packages/tui/src/tui-main-screen.ts:9` | — | — |
-| Lone-ESC timeout · [[differential-tui-rendering]] | `DEFAULT_ESCAPE_TIMEOUT_MS` = `10` ms (100 over SSH) | `packages/tui/src/terminal.ts:115-116` | Esc responsiveness vs split Alt+key sequences | 06ed87167 (2026-08-11, #7899), 2a95ef70d |
-| Stdin sequence timeouts · [[differential-tui-rendering]] | `DEFAULT_SEQUENCE_TIMEOUT_MS` / `DEFAULT_ESCAPE_TIMEOUT_MS` = 50 / 10 | `packages/tui/src/stdin-buffer.ts:23-24` | — | — |
-| Kitty keyboard flags / reply timeout · [[differential-tui-rendering]] | `DESIRED_KITTY_KEYBOARD_PROTOCOL_FLAGS` / `..._FRAGMENT_TIMEOUT_MS` = 7 / 150ms | `packages/tui/src/terminal.ts:12-13` | — | — |
-| Terminal progress keepalive · [[differential-tui-rendering]] | `TERMINAL_PROGRESS_KEEPALIVE_MS` = `1000` | `packages/tui/src/terminal.ts:8` | — | — |
-| Theme query timeout · [[differential-tui-rendering]] | `TERMINAL_QUERY_TIMEOUT_MS` = `100` | `packages/coding-agent/src/modes/interactive/theme/theme-controller.ts:25` | — | — |
-| Loader spinner · [[differential-tui-rendering]] | `DEFAULT_INTERVAL_MS` = `80` | `packages/tui/src/components/loader.ts:12` | — | — |
-| Wheel scroll · [[differential-tui-rendering]] | `BURST_GAP_MS`/`GESTURE_GAP_MS`/`REFERENCE_GAP_MS`/`MAX_AUTO_LINES` = 5 / 200 / 100 / 6 | `packages/tui/src/wheel-scroll.ts:6-11` | — | — |
-| Alt-screen · [[differential-tui-rendering]] | `PAGE_SCROLL_OVERLAP`/`ALT_WHEEL_SCROLL_MULTIPLIER`/`DOUBLE_CLICK_INTERVAL_MS` = 4 / 5 / 500 | `packages/tui/src/tui-alt-screen.ts:76-81` | — | — |
-| Offscreen kitty image cache · [[differential-tui-rendering]] | `MAX_CACHED_OFFSCREEN_KITTY_*` = 16 imgs / 32 MiB tx / 64 MiB decoded | `packages/tui/src/tui-alt-screen.ts:78-80` | — | — |
-| Width cache · [[differential-tui-rendering]] | `WIDTH_CACHE_SIZE` = `512` | `packages/tui/src/utils.ts:51` | — | — |
-| Inline image width · [[image-normalization]] | `terminal.imageWidthCells` = `60` | `packages/coding-agent/src/core/settings-manager.ts:59` | — | — |
-| Autocomplete visible · [[differential-tui-rendering]] | `autocompleteMaxVisible` = `5` (3–20) | `packages/coding-agent/src/core/settings-manager.ts:1522` | — | — |
-| TUI mode · [[differential-tui-rendering]] | `tuiMode` = `"fullscreen"` | `packages/coding-agent/src/core/settings-manager.ts:1372` | — | — |
-| Protocol version · [[client-server-session-split]] | `PROTOCOL_VERSION` = `8` | `packages/protocol/src/protocol.ts:5` | — | — |
-| Frame size · [[client-server-session-split]] | `DEFAULT_MAX_FRAME_LENGTH` = `16 MiB` (4-byte header) | `packages/protocol/src/framing.ts:1,6` | — | — |
-| CBOR limits · [[client-server-session-split]] | `DEFAULT_MAX_CBOR_BYTE_LENGTH`/`CONTAINER_LENGTH`/`DEPTH` = 16 MiB / 1_000_000 / 64 | `packages/protocol/src/cbor/options.ts:6-8` | DoS bounds | — |
-| Server handshake · [[client-server-session-split]] | `DEFAULT_HANDSHAKE_TIMEOUT_MS` = `5_000` | `packages/server/src/server.ts:42` | — | — |
-| Unix listener close / probe · [[client-server-session-split]] | `DEFAULT_GRACEFUL_CLOSE_TIMEOUT_MS` / `SOCKET_PROBE_TIMEOUT_MS` = 5s / 1s | `packages/server/src/transports/unix/listener.ts:12,15` | — | — |
-| Client discovery · [[client-server-session-split]] | `DEFAULT_DISCOVERY_TIMEOUT_MS` / `MAX_CONCURRENT_DISCOVERY_PROBES` = 1s / 16 | `packages/client/src/unix.ts:14,17` | — | — |
-| Env (remote) frame / heartbeat · [[remote-execution-env]] · [[remote-host-trust]] | `MAX_FRAME` / `PING_INTERVAL_MS` / `SILENCE_LIMIT_MS` / `START_TIMEOUT_MS` = 16 MiB / 5s / 30s / 60s | `packages/env/src/connection.ts:12-17` | 6 missed pings = dead | ba03e03f2 (2026-10-05) |
-| Env remote IO chunks · [[remote-execution-env]] · [[remote-host-trust]] | `READ_CHUNK`/`WRITE_CHUNK`/`READ_DEPTH` = 256 KiB / 512 KiB / 8 | `packages/env/src/remote-env.ts:36-40` | Pipelined IO | ba03e03f2 |
-| SSH timeouts · [[remote-execution-env]] · [[remote-host-trust]] | `SSH_TIMEOUT_MS` / `UPLOAD_TIMEOUT_MS` / `ServerAliveInterval` = 60s / 300s / 15 | `packages/env/src/ssh.ts:123-124,103` | — | ba03e03f2 |
-| Env watch reconnect · [[remote-execution-env]] · [[remote-host-trust]] | `RECONNECT_FIRST_MS` / `RECONNECT_MAX_MS` = 1s / 30s | `packages/env/src/watch.ts:16-17` | — | — |
-| MCP request timeout (client lib) · [[mcp-integration]] | `DEFAULT_REQUEST_TIMEOUT_MS` = `30_000` | `packages/mcp/src/client.ts:38` | (coding-agent overrides with 60s per server) | 8562bcf66 |
-| MCP list pagination · [[mcp-integration]] | `MAX_LIST_PAGES` = `1_000` | `packages/mcp/src/client.ts:39` | Infinite cursor guard | — |
-| MCP max message · [[mcp-integration]] | `DEFAULT_MAX_MESSAGE_BYTES` = `16 MiB` | `packages/mcp/src/transports/transport.ts:3` | — | — |
-| MCP stdio stderr / close · [[mcp-integration]] | `DEFAULT_MAX_STDERR_BYTES` / `DEFAULT_CLOSE_TIMEOUT_MS` / `STDIN_CLOSE_GRACE_MS` = 64 KiB / 2s / 500ms | `packages/mcp/src/transports/stdio.ts:7-10` | — | 8562bcf66 |
-| MCP streamable-http reconnect · [[mcp-integration]] | `DEFAULT_RECONNECT_INITIAL/MAX_DELAY_MS` / `MAX_RETRIES` = 1s / 30s / 5 | `packages/mcp/src/transports/streamable-http.ts:16-18` | — | — |
-| MCP HTTP error body · [[mcp-integration]] | `MAX_ERROR_BODY_BYTES` / `ERROR_MESSAGE_BODY_CHARS` = 8 KiB / 500 | `packages/mcp/src/transports/streamable-http.ts:14-15` | — | — |
-| Package manager network · [[harness-package-distribution]] | `NETWORK_TIMEOUT_MS` / concurrency = 10s / 4 / 4 | `packages/coding-agent/src/core/package-manager.ts:50-52` | — | — |
-| Tool binary download · [[search-tools]] | `NETWORK_TIMEOUT_MS` / `DOWNLOAD_TIMEOUT_MS` = 10s / 120s | `packages/coding-agent/src/utils/tools-manager.ts:11-12` | fd/rg auto-download | — |
-| Version check | `DEFAULT_VERSION_CHECK_TIMEOUT_MS` = `10000` | `packages/coding-agent/src/utils/version-check.ts:6` | — | — |
-| Config value command · [[credential-resolution]] | `timeout: 10000` | `packages/coding-agent/src/core/resolve-config-value.ts:160,189` | `!cmd` API-key resolution | — |
-| Shell detection · [[shell-execution]] | `timeout: 5000` | `packages/coding-agent/src/utils/shell.ts:30,47` | — | — |
-| Clipboard image · [[image-normalization]] | `DEFAULT_LIST_TIMEOUT_MS` / `DEFAULT_POWERSHELL_TIMEOUT_MS` = 1s / 5s | `packages/coding-agent/src/utils/clipboard-image.ts:19-20` | — | — |
-| Release announcement | `RETRY_DELAY_MS`/`RETRY_TIMEOUT_MS`/`MAX_POINTER_UPDATE_ATTEMPTS` = 5s / 10 min / 5 | `scripts/publish-release-announcement.mjs:14-16` | — | — |
+| constant (neutral) | pi | pi location | codex | codex location | tradeoff | history |
+|---|---|---|---|---|---|---|
+| TUI frame budget · [[differential-tui-rendering]] | `MIN_RENDER_INTERVAL_MS` = `16` ms (~60fps) | `packages/tui/src/tui.ts:507` | — | — | Coalesce `requestRender()` under streaming; `force` bypasses | 6f5f37f85 (2026-04-06) |
+| Max render write · [[differential-tui-rendering]] | `MAX_RENDER_WRITE_CHARS` = `1 MiB` | `packages/tui/src/tui-main-screen.ts:9` | — | — | — | — |
+| Lone-ESC timeout · [[differential-tui-rendering]] | `DEFAULT_ESCAPE_TIMEOUT_MS` = `10` ms (100 over SSH) | `packages/tui/src/terminal.ts:115-116` | — | — | Esc responsiveness vs split Alt+key sequences | 06ed87167 (2026-08-11, #7899), 2a95ef70d |
+| Stdin sequence timeouts · [[differential-tui-rendering]] | `DEFAULT_SEQUENCE_TIMEOUT_MS` / `DEFAULT_ESCAPE_TIMEOUT_MS` = 50 / 10 | `packages/tui/src/stdin-buffer.ts:23-24` | — | — | — | — |
+| Kitty keyboard flags / reply timeout · [[differential-tui-rendering]] | `DESIRED_KITTY_KEYBOARD_PROTOCOL_FLAGS` / `..._FRAGMENT_TIMEOUT_MS` = 7 / 150ms | `packages/tui/src/terminal.ts:12-13` | — | — | — | — |
+| Terminal progress keepalive · [[differential-tui-rendering]] | `TERMINAL_PROGRESS_KEEPALIVE_MS` = `1000` | `packages/tui/src/terminal.ts:8` | — | — | — | — |
+| Theme query timeout · [[differential-tui-rendering]] | `TERMINAL_QUERY_TIMEOUT_MS` = `100` | `packages/coding-agent/src/modes/interactive/theme/theme-controller.ts:25` | — | — | — | — |
+| Loader spinner · [[differential-tui-rendering]] | `DEFAULT_INTERVAL_MS` = `80` | `packages/tui/src/components/loader.ts:12` | — | — | — | — |
+| Wheel scroll · [[differential-tui-rendering]] | `BURST_GAP_MS`/`GESTURE_GAP_MS`/`REFERENCE_GAP_MS`/`MAX_AUTO_LINES` = 5 / 200 / 100 / 6 | `packages/tui/src/wheel-scroll.ts:6-11` | — | — | — | — |
+| Alt-screen · [[differential-tui-rendering]] | `PAGE_SCROLL_OVERLAP`/`ALT_WHEEL_SCROLL_MULTIPLIER`/`DOUBLE_CLICK_INTERVAL_MS` = 4 / 5 / 500 | `packages/tui/src/tui-alt-screen.ts:76-81` | — | — | — | — |
+| Offscreen kitty image cache · [[differential-tui-rendering]] | `MAX_CACHED_OFFSCREEN_KITTY_*` = 16 imgs / 32 MiB tx / 64 MiB decoded | `packages/tui/src/tui-alt-screen.ts:78-80` | — | — | — | — |
+| Width cache · [[differential-tui-rendering]] | `WIDTH_CACHE_SIZE` = `512` | `packages/tui/src/utils.ts:51` | — | — | — | — |
+| Inline image width · [[image-normalization]] | `terminal.imageWidthCells` = `60` | `packages/coding-agent/src/core/settings-manager.ts:59` | — | — | — | — |
+| Autocomplete visible · [[differential-tui-rendering]] | `autocompleteMaxVisible` = `5` (3–20) | `packages/coding-agent/src/core/settings-manager.ts:1522` | — | — | — | — |
+| TUI mode · [[differential-tui-rendering]] | `tuiMode` = `"fullscreen"` | `packages/coding-agent/src/core/settings-manager.ts:1372` | — | — | — | — |
+| Protocol version · [[client-server-session-split]] | `PROTOCOL_VERSION` = `8` | `packages/protocol/src/protocol.ts:5` | — | — | — | — |
+| Frame size · [[client-server-session-split]] | `DEFAULT_MAX_FRAME_LENGTH` = `16 MiB` (4-byte header) | `packages/protocol/src/framing.ts:1,6` | — | — | — | — |
+| CBOR limits · [[client-server-session-split]] | `DEFAULT_MAX_CBOR_BYTE_LENGTH`/`CONTAINER_LENGTH`/`DEPTH` = 16 MiB / 1_000_000 / 64 | `packages/protocol/src/cbor/options.ts:6-8` | — | — | DoS bounds | — |
+| Server handshake · [[client-server-session-split]] | `DEFAULT_HANDSHAKE_TIMEOUT_MS` = `5_000` | `packages/server/src/server.ts:42` | — | — | — | — |
+| Unix listener close / probe · [[client-server-session-split]] | `DEFAULT_GRACEFUL_CLOSE_TIMEOUT_MS` / `SOCKET_PROBE_TIMEOUT_MS` = 5s / 1s | `packages/server/src/transports/unix/listener.ts:12,15` | — | — | — | — |
+| Client discovery · [[client-server-session-split]] | `DEFAULT_DISCOVERY_TIMEOUT_MS` / `MAX_CONCURRENT_DISCOVERY_PROBES` = 1s / 16 | `packages/client/src/unix.ts:14,17` | — | — | — | — |
+| Env (remote) frame / heartbeat · [[remote-execution-env]] · [[remote-host-trust]] | `MAX_FRAME` / `PING_INTERVAL_MS` / `SILENCE_LIMIT_MS` / `START_TIMEOUT_MS` = 16 MiB / 5s / 30s / 60s | `packages/env/src/connection.ts:12-17` | — | — | 6 missed pings = dead | ba03e03f2 (2026-10-05) |
+| Env remote IO chunks · [[remote-execution-env]] · [[remote-host-trust]] | `READ_CHUNK`/`WRITE_CHUNK`/`READ_DEPTH` = 256 KiB / 512 KiB / 8 | `packages/env/src/remote-env.ts:36-40` | — | — | Pipelined IO | ba03e03f2 |
+| SSH timeouts · [[remote-execution-env]] · [[remote-host-trust]] | `SSH_TIMEOUT_MS` / `UPLOAD_TIMEOUT_MS` / `ServerAliveInterval` = 60s / 300s / 15 | `packages/env/src/ssh.ts:123-124,103` | — | — | — | ba03e03f2 |
+| Env watch reconnect · [[remote-execution-env]] · [[remote-host-trust]] | `RECONNECT_FIRST_MS` / `RECONNECT_MAX_MS` = 1s / 30s | `packages/env/src/watch.ts:16-17` | — | — | — | — |
+| MCP request timeout (client lib) · [[mcp-integration]] | `DEFAULT_REQUEST_TIMEOUT_MS` = `30_000` | `packages/mcp/src/client.ts:38` | — | — | (coding-agent overrides with 60s per server) | 8562bcf66 |
+| MCP list pagination · [[mcp-integration]] | `MAX_LIST_PAGES` = `1_000` | `packages/mcp/src/client.ts:39` | — | — | Infinite cursor guard | — |
+| MCP max message · [[mcp-integration]] | `DEFAULT_MAX_MESSAGE_BYTES` = `16 MiB` | `packages/mcp/src/transports/transport.ts:3` | — | — | — | — |
+| MCP stdio stderr / close · [[mcp-integration]] | `DEFAULT_MAX_STDERR_BYTES` / `DEFAULT_CLOSE_TIMEOUT_MS` / `STDIN_CLOSE_GRACE_MS` = 64 KiB / 2s / 500ms | `packages/mcp/src/transports/stdio.ts:7-10` | — | — | — | 8562bcf66 |
+| MCP streamable-http reconnect · [[mcp-integration]] | `DEFAULT_RECONNECT_INITIAL/MAX_DELAY_MS` / `MAX_RETRIES` = 1s / 30s / 5 | `packages/mcp/src/transports/streamable-http.ts:16-18` | — | — | — | — |
+| MCP HTTP error body · [[mcp-integration]] | `MAX_ERROR_BODY_BYTES` / `ERROR_MESSAGE_BODY_CHARS` = 8 KiB / 500 | `packages/mcp/src/transports/streamable-http.ts:14-15` | — | — | — | — |
+| Package manager network · [[harness-package-distribution]] | `NETWORK_TIMEOUT_MS` / concurrency = 10s / 4 / 4 | `packages/coding-agent/src/core/package-manager.ts:50-52` | — | — | — | — |
+| Tool binary download · [[search-tools]] | `NETWORK_TIMEOUT_MS` / `DOWNLOAD_TIMEOUT_MS` = 10s / 120s | `packages/coding-agent/src/utils/tools-manager.ts:11-12` | — | — | fd/rg auto-download | — |
+| Version check | `DEFAULT_VERSION_CHECK_TIMEOUT_MS` = `10000` | `packages/coding-agent/src/utils/version-check.ts:6` | — | — | — | — |
+| Config value command · [[credential-resolution]] | `timeout: 10000` | `packages/coding-agent/src/core/resolve-config-value.ts:160,189` | — | — | `!cmd` API-key resolution | — |
+| Shell detection · [[shell-execution]] | `timeout: 5000` | `packages/coding-agent/src/utils/shell.ts:30,47` | — | — | — | — |
+| Clipboard image · [[image-normalization]] | `DEFAULT_LIST_TIMEOUT_MS` / `DEFAULT_POWERSHELL_TIMEOUT_MS` = 1s / 5s | `packages/coding-agent/src/utils/clipboard-image.ts:19-20` | — | — | — | — |
+| Release announcement | `RETRY_DELAY_MS`/`RETRY_TIMEOUT_MS`/`MAX_POINTER_UPDATE_ATTEMPTS` = 5s / 10 min / 5 | `scripts/publish-release-announcement.mjs:14-16` | — | — | — | — |
+| Prompt history soft cap · [[cross-session-prompt-history]] | — | — | `HISTORY_SOFT_CAP_RATIO` = 0.8 of `history.max_bytes` | `codex-rs/message-history/src/lib.rs:56` | avoid trimming on every write | — |
+| Prompt history lock retries · [[cross-session-prompt-history]] | — | — | `MAX_RETRIES` × `RETRY_SLEEP` = 10 × 100 ms | `codex-rs/message-history/src/lib.rs:58-59` | — | — |
+| Submission queue capacity · [[agent-event-stream]] | — | — | `SUBMISSION_CHANNEL_CAPACITY` = 512 (event channel unbounded) | `codex-rs/core/src/session/mod.rs:515`, `:603-604` | backpressure on input, never on output | — |
+| Thread-created channel · [[agent-event-stream]] | — | — | `THREAD_CREATED_CHANNEL_CAPACITY` = 1024 | `codex-rs/core/src/thread_manager.rs:126` | — | — |
+| App-server outgoing channel · [[client-server-session-split]] | — | — | `CHANNEL_CAPACITY` = 128; default listen `stdio://` | `codex-rs/app-server-transport/src/transport/mod.rs:24`, `:120` | — | — |
+| In-process app-server shutdown · [[client-server-session-split]] | — | — | `SHUTDOWN_TIMEOUT` / `IN_PROCESS_SHUTDOWN_TIMEOUT` = 5 s / 45 s | `codex-rs/app-server-client/src/lib.rs:86-88` | drain + analytics flush vs exit latency | — |
+| App-server daemon start · [[client-server-session-split]] | — | — | `START_TIMEOUT` / `START_POLL_INTERVAL` = 10 s / 50 ms; control-socket response 2 s | `codex-rs/app-server-daemon/src/lib.rs:49-50`; `codex-rs/app-server-daemon/src/client.rs:25` | — | 0c8d42525e 2026-05-08 |
+| Config layer precedence · [[layered-settings]] | — | — | PackagedDefaults −10 / Mdm 0 / System 10 / EnterpriseManaged 15 / User 20 / Profile 21 / Project 25 / SessionFlags 30 / LegacyManagedFile 40 / LegacyManagedMdm 50 | `codex-rs/config/src/config_layer_source.rs:33-50` | legacy managed config beats CLI flags | fd72e99384 2026-05-22 |
+| Cloud managed-config bundle · [[layered-settings]] | — | — | fetch 20 s timeout, 5 attempts, refresh 15 min, retry interval 5 s; cache TTL 1 h | `codex-rs/cloud-config/src/service.rs:37-46`; `codex-rs/cloud-config/src/cache.rs:29` | freshness vs startup latency | 20debf746b 2026-05-31 |
+| Analytics client timeouts · [[install-telemetry]] | — | — | 10 s send / 25 s flush; dedupe 4 096 keys | `codex-rs/analytics/src/client.rs:88-91`, `:154` | — | — |
+| Feedback log ring · [[install-telemetry]] | — | — | `DEFAULT_MAX_BYTES` = 4 MiB; rate limit 60 s; part upload 300 s; daemon logs ≤ 256 KiB | `codex-rs/feedback/src/lib.rs:53-60`; `codex-rs/feedback/src/upload.rs:25`; `codex-rs/feedback/src/daemon_logs.rs:12` | — | — |
+| Sensitive response log cap · [[install-telemetry]] | — | — | agent responses / guardian assessments 64 KiB | `codex-rs/otel/src/agent_response.rs:18`; `codex-rs/otel/src/guardian_assessment.rs:13` | — | — |
+| Command hook timeout · [[extension-event-hooks]] | — | — | 600 s default; SessionEnd 1 s (max 3 s); async hooks ≤ 8 concurrent | `codex-rs/hooks/src/engine/discovery.rs:764`; `codex-rs/hooks/src/events/session_end.rs:20-23`; `codex-rs/hooks/src/engine/command_runner.rs:54` | bounded hangs vs long hooks (pi: no timeout) | 885113aa1d 2026-09-09 |
+| Git-attribution policy fetch · [[extension-event-hooks]] | — | — | 5 s timeout, retry after 30 s | `codex-rs/ext/git-attribution/src/policy.rs:47-50` | — | — |
+| Managed worktree keep count · [[managed-worktrees]] | — | — | `DEFAULT_WORKTREE_KEEP_COUNT` = 15 | `codex-rs/worktree/src/settings.rs:16` | disk vs history | f832b2fe7b 2026-08-25 |
+| Exec-server timeouts · [[remote-execution-env]] | — | — | connect 10 s / initialize 10 s; requests sequential unless `--concurrent-requests` | `codex-rs/exec-server/src/client.rs:167-170`; `codex-rs/exec-server/README.md:175-176` | — | — |
+| Feature flag census · [[feature-flag-stages]] | — | — | 67 under development / 3 experimental / 52 stable / 4 deprecated / 41 removed | `codex-rs/features/src/lib.rs` (`FEATURES` at :982) | removed keys kept as no-ops | — |
 
-## Top 25
+## Top 25 · pi
 
 1. **No max-turn / step cap** ([[no-turn-cap]], [[turn-loop]]) — `packages/agent/src/*` has no numeric literals. The only bounds are context ([[auto-compaction]]), retries ([[auto-retry-backoff]]) and the user's Esc ([[abort-propagation]]). `packages/agent/README.md:146` warns that an unconditional `finishTurn` "continue" creates an endless loop.
 2. **bash has no default timeout** ([[no-bash-default-timeout]], [[shell-execution]]) — `packages/coding-agent/src/core/tools/bash.ts:42`. It was 30s until `29900ce64` (2025-11-12), which changed it to "commands run until completion unless specified". The model opts in with `timeout` (seconds), capped at int32 ms (`packages/coding-agent/src/core/tools/bash.ts:22`; validated `cbcf4e04c`, `85b7c2474`).
@@ -336,3 +482,27 @@ Scope: TUI, protocol, remote env, MCP transport, packaging.
 - **Values duplicated across packages** (truncation, compaction policy, `TOOL_RESULT_MAX_CHARS`, `ESTIMATED_IMAGE_CHARS`, `2^31−1` timeout) between `coding-agent` and `durable`. Drift is likely, and chars/token has already drifted (4 vs 3.5).
 - **Locks everywhere** (settings, auth, trust, MCP OAuth, server): almost all `10 × 20ms` sync, or about 30s stale. Several pi processes share `~/.pi`.
 - **Absent caps worth tracking across harnesses**: turn cap ([[no-turn-cap]]), bash default timeout ([[no-bash-default-timeout]]), session file size (none found, unverified), read size before decode ([[no-binary-detection-in-read]]).
+
+## Top 20 · codex
+
+1. **No turn/step cap either** ([[no-turn-cap]], [[turn-loop]]) — `codex-rs/core/src/session/turn.rs:424-837`; the only guard is compaction ("we shouldn't worry about being in an infinite loop", `:588`). Same stance as pi.
+2. **Two retry layers: stream 5 + HTTP 4, 200 ms base, ±10% jitter, no per-wait cap** ([[auto-retry-backoff]]) — `codex-rs/model-provider-info/src/lib.rs:67-68`, `codex-rs/async-utils/src/backoff.rs:7-17`. pi: 3 retries at 2 s base, 60 s cap. `retry_429: false` at HTTP level (`codex-rs/model-provider-info/src/lib.rs:454-460`).
+3. **Retry-After honored with no cap** ([[auto-retry-backoff]], [[server-retry-advice-ignored]]) — `codex-rs/protocol/src/error.rs:449-458`. pi fails fast above 60 s.
+4. **Stream idle timeout 300 s** ([[http-transport-hardening]]) — `codex-rs/model-provider-info/src/lib.rs:66`. Same number as pi's HTTP idle timeout.
+5. **Auto-compaction at min(catalog/config limit, 90% of window); effective window 95%** ([[auto-compaction]]) — `codex-rs/protocol/src/openai_models.rs:527-539`, `:391-393`. Percent-of-window vs pi's fixed 16384-token reserve.
+6. **Keep 20 000 tokens of recent user messages in local compaction** ([[auto-compaction]]) — `codex-rs/core/src/compact.rs:63`. pi borrowed this exact 20k from codex.
+7. **Remote compaction v2 keeps 64 000 tokens of retained messages** ([[compaction-cut-point]]) — `codex-rs/core/src/compact_remote_v2.rs:73-74`.
+8. **No `max_output_tokens` ever sent** ([[no-output-token-cap]], [[max-tokens-context-clamp]]) — `codex-rs/codex-api/src/common.rs:279-304`. Summaries are not budgeted either.
+9. **4 bytes/token estimate; encrypted reasoning estimated as `len*3/4 − 650`** ([[token-estimation]]) — `codex-rs/utils/string/src/truncate.rs:4`, `codex-rs/core/src/context_manager/history.rs:1053-1059`. No local tokenizer since `52d0ec4cd8` ([[no-local-tokenizer]]).
+10. **Tool output: 10 000 *tokens* per model via catalog `truncation_policy`, middle elision** ([[tool-output-truncation]]) — `codex-rs/models-manager/models.json:15-18`, `codex-rs/core/src/unified_exec/head_tail_buffer.rs:11-19`. Token-denominated and model-owned, vs pi's 2000 lines / 50 KB.
+11. **Unified exec yields after 10 s (clamp 250 ms–30 s); no kill timeout** ([[shell-execution]], [[no-kill-timeout-in-unified-exec]]) — `codex-rs/core/src/unified_exec/mod.rs:73-79`. Long commands become background sessions polled with `write_stdin`.
+12. **Unknown-model fallback window 272 000 tokens** ([[model-catalog]]) — `codex-rs/models-manager/src/model_info.rs:126-132`. pi falls back to 128 000.
+13. **100 ms graceful interrupt, then hard abort** ([[abort-propagation]]) — `codex-rs/core/src/tasks/mod.rs:71`.
+14. **MCP: 300 s per call, 30 s startup, 128-byte tool names with SHA-1 suffix** ([[mcp-integration]]) — `codex-rs/codex-mcp/src/rmcp_client.rs:106-107`, `codex-rs/codex-mcp/src/tools.rs:226-227`. pi: 60 s per call.
+15. **`tool_search` returns 8 tools by default** ([[deferred-tool-loading]]) — `codex-rs/tools/src/tool_discovery.rs:7`.
+16. **Sub-agents: 6 threads (V1) / 4 (V2); depth 1 in V1, none in V2; wait 30 s default (10 s–1 h)** ([[subagent-concurrency-limits]], [[subagent-result-mailbox]]) — `codex-rs/core/src/config/mod.rs:257-267`.
+17. **101 sub-agent nicknames** ([[agent-roles]]) — `codex-rs/core/assets/agent/agent_names.txt`.
+18. **User `!cmd` runs unsandboxed with a 1 h timeout** ([[user-shell-escape]]) — `codex-rs/core/src/tasks/user_shell.rs:47`.
+19. **Hook commands default 600 s timeout** ([[turn-lifecycle-hooks]]) — `codex-rs/hooks/src/engine/discovery.rs:764`.
+20. **Request soft cap 15 MiB; tool metadata shed first** ([[request-attribution-metadata]]) — `codex-rs/core/src/client_tool_metadata.rs:10`.
+

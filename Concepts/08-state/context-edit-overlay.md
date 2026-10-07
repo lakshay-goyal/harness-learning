@@ -19,6 +19,7 @@ Append-only log entries that hide (omit) or replace the model-visible content of
 - **Last-wins per target** (pi) vs stacked.
 - **Who writes**: harness recovery paths (retry, overflow) and plugins at turn boundaries (pi drafts at `turn_end`/`agent_before_settle`).
 - **Token accounting**: usage captured before an edit is untrusted → estimate (pi `estimateProjectedContextTokens`).
+- codex: absent as per-entry omit/replace. Nearest design: append-only `ThreadRolledBack{num_turns}` markers that drop the last N turns at replay (`8b7ec31ba7` 2026-01-06; replayed by `codex-rs/core/src/context_manager/history.rs:755-880`); API removed `3052bbcf8c` 2026-09-11 in favour of `thread/revert` writing a new rollout file ([[codex--session-fork|codex session-fork]]). Failed attempts are not hidden: completed items from a failed attempt stay in history (`codex-rs/core/src/session/turn.rs:3156-3165`).
 
 ## Implementations
 - [[pi--context-edit-overlay|pi]] — `ContextEditEntry {targetId, replacement:{content}|null}` (`466db0fec`); retry and overflow omit failed attempts; extensions append drafts; latest-per-target in `buildSessionProjection`.

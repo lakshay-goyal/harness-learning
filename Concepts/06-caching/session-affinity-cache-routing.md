@@ -2,8 +2,8 @@
 type: concept
 stage: caching
 tier: candidate
-aliases: [prompt_cache_key, x-session-affinity, x-session-id, session-id, x-affinity, x-opencode-session, pi.provider.sessionId, previous_response_id, websocket-cached]
-harnesses: [pi]
+aliases: [prompt_cache_key, x-session-affinity, x-session-id, session-id, x-affinity, x-opencode-session, pi.provider.sessionId, previous_response_id, websocket-cached, prompt_cache_key_override, x-codex-turn-state, responses_request_properties_match, get_incremental_items, prewarm_websocket]
+harnesses: [pi, codex]
 ---
 Send a stable per-conversation id as a cache key and/or affinity header so the provider routes consecutive requests to the replica holding the cached prefix; optionally reuse server-side conversation state to send only deltas.
 
@@ -19,9 +19,18 @@ Send a stable per-conversation id as a cache key and/or affinity header so the p
 - **Fresh id for side requests** (**pi**).
 - In-memory process id vs **persisted per-conversation id, fresh on fork** (**pi-durable** `pi.provider`).
 - Stateful continuation (send delta + `previous_response_id` over a pooled socket) with stateless fallback (**pi** Codex WS).
+- **Key granularity**
+  - Per conversation, fresh for forks and side requests. ✔ pi
+  - Per *session family*: the root, its subagents and ephemeral forks share the session id as key, and internal sessions use `"{source}:{parent_thread_id}"`. ✔ codex (`codex-rs/core/src/client.rs:581-603`)
+- **Header vs body key**
+  - The ChatGPT backend routes by the `session-id` header, which may differ from the body `prompt_cache_key` (non-root agents). ✔ codex
+- **Intra-turn sticky routing token** (`x-codex-turn-state`), echoed on retries, follow-ups and compaction within a turn, never across turns. ✔ codex
+- **Delta continuation validity**
+  - Exhaustive destructuring equality of all non-input fields, which fails closed on new fields, plus a strict prefix-extension check of input and previous output. ✔ codex (`codex-rs/core/src/client.rs:341-414`)
 
 ## Implementations
 - [[pi--session-affinity-cache-routing|pi]] — session file id → per-adapter key/headers; 64-char clamp; Codex WS delta continuation; durable persisted UUIDv7.
+- [[codex--session-affinity-cache-routing|codex]] — reference implementation of the protocol pi's Codex adapter mirrors. Session-id `prompt_cache_key` + `session-id` header, `x-codex-turn-state`, WebSocket `previous_response_id` deltas with exhaustive equality, `generate=false` prewarm, full-resend fallback.
 
 ## Failures
 - [[server-limited-identifier-rejected]]
@@ -30,6 +39,9 @@ Send a stable per-conversation id as a cache key and/or affinity header so the p
 - [[transport-fallback-after-partial-output]]
 - [[cache-affinity-lost-across-reopen]]
 - [[side-request-cache-pollution]]
+- [[cache-key-scoped-to-wrong-identity]]
+- [[incremental-request-diverges-from-history]]
+- [[server-side-state-missing-on-continuation]]
 
 ## Related
-[[cache-retention-control]] · [[http-transport-hardening]] · [[session-fork]] · [[durable-execution]] · [[virtual-model-router]]
+[[cache-retention-control]] · [[http-transport-hardening]] · [[session-fork]] · [[durable-execution]] · [[virtual-model-router]] · [[request-attribution-metadata]] · [[cache-warming]] · [[cache-strategy]]

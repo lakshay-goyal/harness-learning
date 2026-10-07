@@ -21,6 +21,7 @@ When output is truncated for the model, persist the complete raw output to a pri
 - Remote envs: spill on the remote host, path rides on timeout/abort errors too ✔ pi env daemon.
 - Lifecycle: never cleaned up (pi, unverified that no GC exists) vs session-scoped cleanup.
 - Spill failure: kill the command ("Failed to preserve complete shell output") ✔ pi durable NodeExecutionEnv.
+- codex: absent — truncated output is not written to a model-readable file; the full payload survives only in the rollout JSONL, which the model is not pointed at (`codex-rs/core/src/context_manager/history.rs:514-515`); token-budget sessions instead expose server-side history search tools ([[no-tool-output-spill-file]], [[model-requested-context-reset]]).
 
 ## Implementations
 - [[pi--tool-output-spill|pi]] — `packages/coding-agent/src/utils/output-files.ts` centralized private temp files; bash/powershell/codemode/MCP spill; `OutputAccumulator` flushes buffered chunks into the file on first truncation; durable/env spill thresholds = truncation limits.

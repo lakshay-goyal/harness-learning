@@ -2,8 +2,8 @@
 type: concept
 stage: messages
 tier: candidate
-aliases: ["No result provided", "skip errored/aborted", drop-failed-turns-on-replay, orphaned-tool-call-repair, deferred-system-message-placement, "Tool result unavailable: history ends before this call completed."]
-harnesses: [pi]
+aliases: ["No result provided", "skip errored/aborted", drop-failed-turns-on-replay, orphaned-tool-call-repair, deferred-system-message-placement, "Tool result unavailable: history ends before this call completed.", normalize_history, for_prompt, ensure_call_outputs_present, remove_orphan_outputs, error_or_panic]
+harnesses: [pi, codex]
 ---
 At the provider boundary, normalize replayed history so it satisfies API invariants:
 - Turns that failed or were aborted are excluded.
@@ -35,15 +35,26 @@ At the provider boundary, normalize replayed history so it satisfies API invaria
 - **Layering**
   - Each adapter repairs independently. This diverged in pi: 0f3a0f78b, where Codex dropped calls that the shared pass had given results.
   - One shared pass plus minimal adapter rules.
+- **Orphaned calls (codex)**
+  - Synthesize an `"aborted"` output immediately after the call, with a deterministic UUIDv5 id (cache-stable). Orphan outputs are removed. ✔ codex (`codex-rs/core/src/context_manager/normalize.rs:52-66`)
+- **Invariant violations**
+  - Panic in debug builds, log in release (`error_or_panic`). ✔ codex
+- **Aborted turns**
+  - Keep completed items and add a model-visible `<turn_aborted>` marker. ✔ codex
 
 ## Implementations
 - [[pi--transcript-replay-repair|pi]] — `transformMessages` pass 0 normalizes null content and non-vision images; pass 2 skips errored/aborted messages, synthesizes "No result provided" results and defers system messages. The durable variant synthesizes "Tool result unavailable…" and also excludes `deferred` messages.
+- [[codex--transcript-replay-repair|codex]] — `for_prompt` → `normalize_history` on a clone; synthesized "aborted" outputs; pair-aware deletion; modality stripping; `<turn_aborted>` marker.
 
 ## Failures
 - [[orphaned-tool-calls-and-results]]
 - [[failed-turns-replayed]]
 - [[aborted-reasoning-signature-invalid]]
 - [[missing-optional-fields-crash-replay]]
+- [[session-switch-leaves-dangling-tool-calls]]
+- [[interrupted-turn-invisible-to-model]]
+- [[image-content-poisoning]]
+- [[side-channel-message-splits-tool-pair]] (05-context) — Extension messages sent with triggerTurn: false while the agent was running landed between an assistant tool…
 
 ## Related
 [[cross-provider-handoff]] · [[tool-call-id-normalization]] · [[signed-reasoning-replay]] · [[partial-message-persistence]] · [[context-projection]] · [[context-edit-overlay]] · [[out-of-band-message-deferral]] · [[abort-propagation]] · [[truncated-tool-call-guard]]

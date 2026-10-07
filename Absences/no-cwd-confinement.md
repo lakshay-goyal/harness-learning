@@ -30,4 +30,6 @@ harnesses: [pi]
 - A model mistake or an injected instruction can touch any file the user can. Mitigation is entirely external.
 - Path-quirk tolerance (normalize instead of reject) is cheap UX precisely because there is no boundary to enforce.
 
-Related: [[path-normalization]] · [[tool-call-gate]] · [[tool-only-isolation]] · [[pluggable-tool-backends]] · [[no-sandbox]] · [[no-permission-prompts]] · [[Absences]]
+**codex** — *not absent*: OS-level sandbox with writable roots — Seatbelt on macOS, Landlock/seccomp → bundled bubblewrap on Linux (`26f355b67b` 2026-05-05), Windows restricted-token / MXC sandboxes (`codex-rs/linux-sandbox`, `codex-rs/windows-sandbox-rs`, `codex-rs/sandboxing`, `codex-rs/bwrap`, `codex-rs/mxc-sandbox`) → [[os-level-sandbox]]; protected metadata inside writable roots ([[protected-workspace-metadata]]); network egress via a policy proxy (`77222492f9` 2026-01-23) → [[egress-policy-proxy]]. Symlinked roots could escape policy → [[symlinked-roots-escape-sandbox-policy]].
+
+Related: [[path-normalization]] · [[tool-call-gate]] · [[tool-only-isolation]] · [[pluggable-tool-backends]] · [[no-sandbox]] · [[no-permission-prompts]] · [[Absences]] · [[os-level-sandbox]] · [[protected-workspace-metadata]] · [[egress-policy-proxy]] · [[isolation-strategy]]

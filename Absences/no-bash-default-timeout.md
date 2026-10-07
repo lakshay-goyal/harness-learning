@@ -1,6 +1,6 @@
 ---
 type: absence
-harnesses: [pi]
+harnesses: [pi, codex]
 ---
 # no-bash-default-timeout
 
@@ -39,4 +39,6 @@ harnesses: [pi]
 - Builds, test suites and installs finish without the model guessing a duration. The cost is that a hung command (server, watcher, prompt waiting on stdin, though stdin is ignored) blocks the turn until Esc. Unattended runs need an external watchdog.
 - Together with [[no-turn-cap]], pi has no wall-clock bound anywhere in the default path.
 
-Related: [[shell-execution]] · [[process-tree-kill]] · [[abort-propagation]] · [[no-background-bash]] · [[no-turn-cap]] · [[Constants]] · [[Absences]]
+**codex** — *partial; holds for model commands*. The one-shot exec path has `DEFAULT_EXEC_COMMAND_TIMEOUT_MS = 10_000` (`codex-rs/core/src/exec.rs:63`) and a post-exit pipe drain `IO_DRAIN_TIMEOUT_MS = 2_000` (`codex-rs/core/src/exec.rs:94`; grandchild-pipe hang fix `73ed30d7e5` 2025-11-12). But model commands now run through unified exec, which has **no wall-clock kill timeout**: a long command yields a session id and keeps running until the session ends (`codex-rs/core/src/session/handlers.rs:305-312`); a "no timeout mode" experiment was added and reverted the same day (`9719dc502c` / `928be5f515` 2026-02-19) → [[no-kill-timeout-in-unified-exec]]. Different reason from pi: the yield model returns control to the model instead of blocking, so a kill timeout is unnecessary for responsiveness. Elicitation time is excluded from unified-exec timeouts ([[elicitation-pause]]).
+
+Related: [[shell-execution]] · [[process-tree-kill]] · [[abort-propagation]] · [[no-background-bash]] · [[no-turn-cap]] · [[Constants]] · [[Absences]] · [[codex--shell-execution|codex]] · [[no-kill-timeout-in-unified-exec]]

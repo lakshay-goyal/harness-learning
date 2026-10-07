@@ -2,8 +2,8 @@
 type: concept
 stage: messages
 tier: candidate
-aliases: [system-prompt.ts, buildSystemPrompt, buildSystemPromptSections, "default system prompt"]
-harnesses: [pi]
+aliases: [system-prompt.ts, buildSystemPrompt, buildSystemPromptSections, "default system prompt", base_instructions/default.md, models-manager/prompt.md]
+harnesses: [pi, codex]
 ---
 Keep the harness-authored system prompt tiny; push behavior into tool contracts, on-demand docs, and environment rather than standing instructions.
 
@@ -15,13 +15,16 @@ Keep the harness-authored system prompt tiny; push behavior into tool contracts,
 
 ## Design space
 - **Tiny harness core + contributed sections** — preamble + 2 universal rules; tools, docs, context, skills contribute their own text. **pi chose** (`system-prompt.ts:128-193`).
-- Large monolithic prompt with workflows, examples, tone rules (typical of other harnesses; pi rejected).
+- Large monolithic prompt with workflows, examples, tone rules (typical of other harnesses; pi rejected) — ✔ codex (contrast): 20.9 KB / 275-line fallback with planning examples, preamble rules, final-answer formatting spec; 17–22 KB per catalog model.
+- Size by model fit: short prompt (~6.6–7.6 KB) for models trained on the harness, long for general models ✔ codex (`916fdc2a37`) → [[per-model-system-prompt]].
+- Keep the big prompt *static* and move volatile policy out into appended developer fragments (permissions, modes, time) ✔ codex (`87f7226cca` deleted ~35 lines of sandbox text from every static prompt) → [[message-role-layering]], [[world-state-diff-injection]].
 - Provider-specific prompt variants (pi tried a Codex bridge + static allowlisted instructions in Jan 2026, removed within 2 weeks → [[harness-identity]]).
 - Offload long reference to docs read on demand ([[self-documentation-pointer]]; codemode reference moved to `docs/codemode.md`, 5.3k → 3.3k tok request).
 - Volatile facts via env/tools instead of prompt text ([[env-vars-as-context]]).
 
 ## Implementations
 - [[pi--minimal-system-prompt|pi]] — ~680 tok default; preamble + `<tools>/<rules>/<docs>/<project_context>/<skills>/<cwd>` sections; full 45-step timeline + 19 removed rules.
+- [[codex--minimal-system-prompt|codex]] — the opposite: ~5k-token standing prompt per model; size kept in check by stripping disabled-tool sections, moving policy to dynamic fragments and deleting stale limits.
 
 ## Failures
 - [[model-echoes-work-via-shell]]
@@ -30,6 +33,9 @@ Keep the harness-authored system prompt tiny; push behavior into tool contracts,
 - [[partial-file-read-acted-on]]
 - [[prompt-names-unavailable-tools]]
 - [[volatile-system-prompt-prefix]]
+- [[anchor-based-prompt-injection-silently-fails]]
+- [[mode-state-confusion]]
+- [[prompt-states-stale-harness-limits]] (05-context)
 
 ## Related
-[[dynamic-tool-guidelines]] · [[transcript-carried-system-prompt]] · [[xml-prompt-boundaries]] · [[guideline-softening]] · [[tool-description-design]] · [[minimal-default-toolset]] · [[no-date-in-prompt]]
+[[dynamic-tool-guidelines]] · [[transcript-carried-system-prompt]] · [[xml-prompt-boundaries]] · [[guideline-softening]] · [[tool-description-design]] · [[minimal-default-toolset]] · [[no-date-in-prompt]] · [[per-model-system-prompt]] · [[prompt-ownership]]

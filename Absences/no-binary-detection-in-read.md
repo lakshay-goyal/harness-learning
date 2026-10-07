@@ -28,4 +28,6 @@ Weak absence: an observed gap, not a stated decision. Recorded as a finding.
 - Reading a large binary (sqlite db, tarball, model weights) loads it fully into memory. The model then gets up to 50KB of mojibake, which burns context and can confuse it. Open question: any OOM reports? Issues not searched.
 - MCP results by contrast save non-image binary embedded resources to temp files (`src/extensions/mcp/tools.ts:124-230`). The binary-awareness exists, just not in `read`.
 
-Related: [[file-read-tool]] · [[tool-output-truncation]] · [[image-normalization]] · [[tool-result-rewriting]] · [[Absences]]
+**codex** — *not applicable*: codex has no text read tool at all (only `view_image`, which rejects non-image data with "unable to process image: invalid or unsupported image data", `codex-rs/core/src/tools/handlers/view_image.rs:53-56`); the model reads files through the shell, so binary handling is whatever `cat`/`sed`/`rg` do plus output truncation → [[no-file-read-write-tools]].
+
+Related: [[file-read-tool]] · [[tool-output-truncation]] · [[image-normalization]] · [[tool-result-rewriting]] · [[Absences]] · [[no-file-read-write-tools]]

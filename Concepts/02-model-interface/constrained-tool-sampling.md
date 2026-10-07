@@ -2,8 +2,8 @@
 type: concept
 stage: tool-design
 tier: candidate
-aliases: [constrainedSampling, makeStrictJsonSchema, CODEMODE_SOURCE_GRAMMAR, strict-schema-fallback, strict-schema-transformation, grammar-tool-json-bridge, "strict: prefer", "strict: require", resolveJsonSchemaStrictSampling, VALIDATED]
-harnesses: [pi]
+aliases: [constrainedSampling, makeStrictJsonSchema, CODEMODE_SOURCE_GRAMMAR, strict-schema-fallback, strict-schema-transformation, grammar-tool-json-bridge, "strict: prefer", "strict: require", resolveJsonSchemaStrictSampling, VALIDATED, FreeformTool, "syntax: lark", output_schema_strict]
+harnesses: [pi, codex]
 ---
 Ask the provider to enforce tool-argument structure while decoding, through a strict JSON schema or a grammar. The schema is rewritten into each provider's supported subset, and the request degrades gracefully when the provider or the schema can't support it.
 
@@ -30,12 +30,19 @@ Ask the provider to enforce tool-argument structure while decoding, through a st
   - Otherwise fall back to a normal function tool.
 - **Mode coupling**
   - Gemini strict forces the `VALIDATED` calling mode, even over an explicit `auto`. This is a quirk.
+- **Grammar as primary format** (codex)
+  - The main editing tool (`apply_patch`) is a Lark-grammar freeform custom tool. The JSON/function variant was deleted (`e783341b70` 2026-05-08) after a brief Bedrock-only use (`0db6811b7c`). ✔ codex (`codex-rs/core/src/tools/handlers/apply_patch_spec.rs:5-27`)
+  - JSON `strict` exists on function tools but is secondary: extension tools set it, while MCP schemas are sanitized for `strict:false`. ✔ codex
 
 ## Implementations
 - [[pi--constrained-tool-sampling|pi]] — `packages/ai/src/api/constrained-sampling.ts`: `makeStrictJsonSchema`, `resolveJsonSchemaStrictSampling`, and the grammar bridge. Each adapter gates it with compat flags (Anthropic `supportsStrictTools` plus keyword veto, Completions/Responses `supportsStrictMode`, Gemini ≥3, Mistral always on).
+- [[codex--constrained-tool-sampling|codex]] — Lark freeform `apply_patch` and code-mode `exec`; staged rollout after grammar bugs; strict JSON for extension tools and `--output-schema`.
 
 ## Failures
 - [[strict-tool-schema-rejections]]
+- [[grammar-constrained-tool-instability]]
+- [[malformed-tool-json-crashes]]
+- [[endpoint-rejects-request-field]]
 
 ## Related
-[[streaming-json-repair]] · [[tool-argument-repair]] · [[code-mode]] · [[model-catalog]] · [[unified-provider-api]]
+[[streaming-json-repair]] · [[tool-argument-repair]] · [[code-mode]] · [[model-catalog]] · [[unified-provider-api]] · [[tool-wire-kinds]] · [[tool-schema-normalization]] · [[patch-envelope-edit]] · [[edit-format]]

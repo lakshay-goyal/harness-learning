@@ -2,8 +2,8 @@
 type: concept
 stage: tool-design
 tier: candidate
-aliases: [codemode, "tools.<name>()", QuickJS WASM, code-mode-tool-orchestration, wasm-sandbox-per-execution, "codemode.mode on/only"]
-harnesses: [pi]
+aliases: [codemode, "tools.<name>()", QuickJS WASM, code-mode-tool-orchestration, wasm-sandbox-per-execution, "codemode.mode on/only", codex-code-mode-host, CodeModeOnly, js_repl]
+harnesses: [pi, codex]
 ---
 The model writes a script that calls other tools as async functions inside a sandbox; only the script's output (not each intermediate result) enters the context.
 
@@ -22,14 +22,22 @@ The model writes a script that calls other tools as async functions inside a san
 - Script-visible values: structured output when declared, else text (pi) → [[structured-tool-output]].
 - Cross-call state: branch-scoped KV store persisted as session entries (pi) → [[branch-scoped-extension-state]].
 - Limits: memory cap, output cap (head/tail + spill), optional timeout, stall detection.
+- Sandbox: V8 isolate per cell in a **separate host process** (stdio/gRPC), failure → process replacement (✔ codex) vs in-process WASM (✔ pi).
+- Long-running scripts: yield + resumable `wait(cell_id)` (✔ codex, 10 s default yield) vs script timeout (✔ pi 300 s).
+- Input: freeform raw-JS tool with optional `// @exec: {json}` pragma line (✔ codex) vs JSON arg with grammar-constrained source (✔ pi).
+- Nested tool typing as TypeScript declarations rendered from input + output schemas under a byte budget (✔ codex).
+- Cells interrupted together with their turn (✔ codex `509565820f`).
+- Predecessor: persistent Node REPL tool (codex `js_repl` 2026-02 → removed 2026-04-24; races, hangs, U+2028 framing bugs).
 
 ## Implementations
 - [[pi--code-mode|pi]] — `codemode({code})` QuickJS-WASM per call, `tools.*`, `models.*`, `store/load`, discovery globals; 256MB heap, 10k-token output budget; off by default, auto with MCP codemode exposure.
+- [[codex--code-mode|codex]] — freeform `exec` (raw JS, V8 `=150.4.0` isolate per cell in `codex-code-mode-host`) + `wait`; `tools.*` with TS declarations, `store/load`, `notify`, `yield_control`; CodeMode / CodeModeOnly (off by default).
 
 ## Failures
 - [[codemode-sandbox-escape-to-host]]
 - [[tool-description-lies-about-async]]
 - [[mcp-tool-name-collision]]
+- (02) [[line-separator-breaks-jsonl-framing]]
 
 ## Related
-[[nested-tool-calls]] · [[deferred-tool-loading]] · [[mcp-integration]] · [[structured-tool-output]] · [[constrained-tool-sampling]] · [[branch-scoped-extension-state]] · [[parallel-tool-execution]] · [[tool-description-design]] · [[structured-classifier-api]]
+[[nested-tool-calls]] · [[deferred-tool-loading]] · [[mcp-integration]] · [[structured-tool-output]] · [[constrained-tool-sampling]] · [[branch-scoped-extension-state]] · [[parallel-tool-execution]] · [[tool-description-design]] · [[structured-classifier-api]] · [[tool-wire-kinds]] · [[tool-schema-normalization]]

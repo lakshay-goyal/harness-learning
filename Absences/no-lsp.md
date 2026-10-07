@@ -1,6 +1,6 @@
 ---
 type: absence
-harnesses: [pi]
+harnesses: [pi, codex]
 ---
 # no-lsp
 
@@ -24,5 +24,7 @@ harnesses: [pi]
 **Implication**
 - Feedback about correctness comes only from what the model chooses to run: bash, tests, builds. Edits can leave a broken build until the model or user checks.
 - Avoids per-language server lifecycle, indexing latency and process management. That fits [[no-background-bash]] (no long-lived helper processes).
+
+**codex** — *absent too*: no `lsp` / `language server` identifiers in any `codex-rs/**/*.rs` (`git grep -l -iE '\blsp\b|language.?server'` → no hits at `622e9e3696`). Diagnostics come from the model running compilers/tests through the shell.
 
 Related: [[minimal-default-toolset]] · [[tool-result-rewriting]] · [[plugin-tools]] · [[mcp-integration]] · [[no-codebase-index]] · [[Absences]]

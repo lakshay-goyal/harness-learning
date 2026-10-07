@@ -2,8 +2,8 @@
 type: concept
 stage: state
 tier: candidate
-aliases: [CURRENT_SESSION_VERSION, migrateV1ToV2, migrateV2ToV3, migrateToCurrentVersion, "migrate(value, fromVersion)", migration_failed, prepareArguments (legacy shapes)]
-harnesses: [pi]
+aliases: [CURRENT_SESSION_VERSION, migrateV1ToV2, migrateV2ToV3, migrateToCurrentVersion, "migrate(value, fromVersion)", migration_failed, prepareArguments (legacy shapes), rollout_migration, migrate-rollouts, thread_history_migrations, "Stage::Removed"]
+harnesses: [pi, codex]
 ---
 Versioned, on-load upgrade of the persisted session format (and of stored typed state) so old logs keep loading after format changes, plus shims for legacy shapes embedded in history (e.g. old tool-call argument schemas).
 
@@ -17,12 +17,17 @@ Versioned, on-load upgrade of the persisted session format (and of stored typed 
 - **Read-time compatibility shims** without rewriting (pi `prepareArguments` for legacy tool-call shapes; null-content normalization on load).
 - **Rewrite strategy**: in-place truncate+write (pi) vs temp+rename.
 - **Forward compat**: unknown future types dropped (pi-ai model catalog) vs rejected.
+- **Staged + verified + atomic publish with recovery journal** ✔ codex (legacy → paginated rollouts; `codex migrate-rollouts` + background run).
+- **Removed-but-parseable config keys** as no-ops (`Stage::Removed` features, legacy settings) ✔ codex; hard error with migration message for removed wire protocols ✔ codex.
+- **Index schema**: numbered SQL migrations + file-name version bump for breaking resets ✔ codex ([[sqlite-session-index]]).
 
 ## Implementations
 - [[pi--session-migration|pi]] — `CURRENT_SESSION_VERSION = 3`; v1→v2 linear ids + `firstKeptEntryIndex→Id`; v2→v3 `hookMessage→custom`; file rewritten; durable per-definition `migrate`.
+- [[codex--session-migration|codex]] — crash-safe staged migration of legacy rollouts into paginated history (`.pending` journal, verify, atomic publish), numbered SQLite migrations + versioned DB file names, many read-time shims and no-op legacy config keys.
 
 ## Failures
 - none recorded
+- [[torn-log-tail-fuses-next-entry]] (08-state) — After a crash mid-write left a session JSONL without a trailing newline, the next appended entry was…
 
 ## Related
-[[session-tree]] · [[tool-argument-repair]] · [[durable-execution]] · [[branch-scoped-extension-state]]
+[[session-tree]] · [[tool-argument-repair]] · [[durable-execution]] · [[branch-scoped-extension-state]] · [[feature-flag-stages]] · [[session-log-shape]]

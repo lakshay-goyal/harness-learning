@@ -32,4 +32,6 @@ harnesses: [pi]
 - The prompt-only "read-only" rules were deleted. A mode must be enforced by the toolset or a gate, not by prose → [[minimal-default-toolset]], [[dynamic-tool-guidelines]].
 - Plans live in files (PLAN.md), which survive compaction and session switches. See [[no-todo-tool]].
 
-Related: [[tool-call-gate]] · [[extension-event-hooks]] · [[minimal-default-toolset]] · [[replaceable-builtin-extension]] · [[no-subagents-core]] · [[no-permission-prompts]] · [[Absences]]
+**codex** — *not absent*: Plan collaboration mode (`d544adf71a` 2026-01-19 onward) swapping a developer instruction block and enabling `request_user_input` (`codex-rs/collaboration-mode-templates/templates/plan.md`) → [[plan-mode]], [[structured-user-question-tool]]; TUI `/plan`; `update_plan` checklist tool since `8828f6f082` 2025-07-29 → [[plan-checklist-tool]]. Other collaboration styles (Pair Programming / Execute / Custom) were removed (`31415ebfcf` 2026-01-19; `d509df676b` 2026-02-03) → [[no-collaboration-styles]].
+
+Related: [[tool-call-gate]] · [[extension-event-hooks]] · [[minimal-default-toolset]] · [[replaceable-builtin-extension]] · [[no-subagents-core]] · [[no-permission-prompts]] · [[Absences]] · [[plan-mode]] · [[plan-checklist-tool]] · [[structured-user-question-tool]] · [[no-collaboration-styles]]

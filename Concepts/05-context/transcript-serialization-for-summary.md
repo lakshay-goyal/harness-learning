@@ -20,6 +20,7 @@ For summarization the conversation is flattened into tagged plain text inside on
 - Images: dropped (text only) ✔ pi.
 - Custom roles converted first (shell runs, summaries → user text) ✔ pi via [[message-conversion-layer]].
 - Tool choice: forbid tools via `toolChoice:"none"` (pi tried, broke providers) vs send no tools + reject tool calls ✔ pi.
+- codex: absent — local compaction uses the *chat-turns* option: the prompt is appended as a synthetic user message to the full live history (tool outputs already truncated by the history policy) with the session's base instructions (`codex-rs/core/src/compact.rs:113-130`, `:269-300`); remote compaction sends history + a `CompactionTrigger` item and no prompt (`codex-rs/core/src/compact_remote_v2_attempt.rs:84-103`). Overflow of that request is handled by dropping the oldest item, not by capping serialized results (`codex-rs/core/src/compact.rs:330-346`).
 
 ## Implementations
 - [[pi--transcript-serialization-for-summary|pi]] — `serializeConversation` (`[User]` / `[Assistant thinking]` / `[Assistant]` / `[Assistant tool calls]` / `[Tool result]` ≤2000 chars), `SUMMARIZATION_SYSTEM_PROMPT`, no tools; identical copy in durable.
@@ -29,6 +30,7 @@ For summarization the conversation is flattened into tagged plain text inside on
 - [[summarization-request-overflows]]
 - [[summarizer-emits-tool-calls]]
 - [[domain-biased-summarizer-prompt]]
+- [[summarizer-refusal]] (05-context) — Claude Fable 5.1 refused to produce split-turn (turn-prefix) compaction summaries, so compaction of long…
 
 ## Related
-[[structured-compaction-summary]] · [[summary-validation]] · [[auto-compaction]] · [[branch-summary]] · [[split-turn-summary]] · [[message-conversion-layer]] · [[tool-output-truncation]]
+[[structured-compaction-summary]] · [[summary-validation]] · [[auto-compaction]] · [[branch-summary]] · [[split-turn-summary]] · [[message-conversion-layer]] · [[tool-output-truncation]] · [[compaction-locus]]

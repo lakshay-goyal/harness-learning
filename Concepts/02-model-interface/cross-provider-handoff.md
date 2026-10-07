@@ -2,8 +2,8 @@
 type: concept
 stage: messages
 tier: candidate
-aliases: [transformMessages, transform-messages.ts, isSameModel, cross-provider-transcript-handoff, foreign-reasoning-as-plain-text, unsigned-tool-call-handoff, non-vision-image-placeholder, synthetic-bridge-message, text-phase-signature, typed-item-id-prefix, requested-vs-response-model-identity, empty-content-placeholders, responseModel, TextSignatureV1]
-harnesses: [pi]
+aliases: [transformMessages, transform-messages.ts, isSameModel, cross-provider-transcript-handoff, foreign-reasoning-as-plain-text, unsigned-tool-call-handoff, non-vision-image-placeholder, synthetic-bridge-message, text-phase-signature, typed-item-id-prefix, requested-vs-response-model-identity, empty-content-placeholders, responseModel, TextSignatureV1, model_switch, maybe_run_previous_model_inline_compact]
+harnesses: [pi, codex]
 ---
 At request time, rewrite stored conversation history so a different provider, API or model will accept it in the middle of a session. Foreign reasoning is demoted, foreign opaque tokens are dropped, ids are reshaped, unsupported media gets placeholders, and role-order rules are satisfied. Raw history stays untouched.
 
@@ -41,9 +41,14 @@ At request time, rewrite stored conversation history so a different provider, AP
   - Synthetic bridge messages, e.g. an assistant "I have processed the tool results." turn, or a follow-up user message carrying tool-result images.
 - **Message phase and id metadata**
   - Versioned text signature `{v, id, phase}`, kept same-model only.
+- **Within one vendor family** (codex)
+  - Project history onto the *receiving model's capabilities* per request: modalities → text placeholder; image `detail: original` → `high`; Lite strips detail. ✔ codex
+  - Summarize with the model that wrote the history when the compaction-compatibility hash changes or the window shrinks, falling back to the current model if the old one is rejected. ✔ codex
+  - Persist the originating truncation budget on each tool output, so replay under a new model is deterministic. ✔ codex (`aa88a0333c`)
 
 ## Implementations
 - [[pi--cross-provider-handoff|pi]] — `transformMessages` (packages/ai/src/api/transform-messages.ts) with an adapter-supplied id normalizer and id map. It demotes reasoning to plain text, strips signatures, adds image placeholders, and runs per-adapter replay rules.
+- [[codex--cross-provider-handoff|codex]] — no vendor-format crossing. Per-model capability projection (modalities, image detail), a `<model_switch>` notice, previous-model compaction with fallback; third-party providers lose only `encrypted_function_args`.
 
 ## Failures
 - [[thinking-tag-mimicry]]
@@ -56,6 +61,9 @@ At request time, rewrite stored conversation history so a different provider, AP
 - [[placeholder-text-misleads-model]]
 - [[assistant-content-shape-misread]]
 - [[tool-result-image-routing]]
+- [[model-switch-replays-unsupported-content]]
+- [[compaction-pinned-to-unavailable-model]]
+- [[truncation-budget-drift-on-replay]]
 
 ## Related
-[[signed-reasoning-replay]] · [[tool-call-id-normalization]] · [[transcript-replay-repair]] · [[unified-provider-api]] · [[image-normalization]] · [[message-conversion-layer]] · [[model-resolution]] · [[virtual-model-router]]
+[[signed-reasoning-replay]] · [[tool-call-id-normalization]] · [[transcript-replay-repair]] · [[unified-provider-api]] · [[image-normalization]] · [[message-conversion-layer]] · [[model-resolution]] · [[virtual-model-router]] · [[provider-breadth]]

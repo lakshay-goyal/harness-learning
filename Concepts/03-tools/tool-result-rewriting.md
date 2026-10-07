@@ -2,8 +2,8 @@
 type: concept
 stage: tools
 tier: candidate
-aliases: [tool_result event, afterToolCall, afterTool, tool-result patch chain]
-harnesses: [pi]
+aliases: [tool_result event, afterToolCall, afterTool, tool-result patch chain, PostToolUseFeedbackOutput, post_tool_use_payload]
+harnesses: [pi, codex]
 ---
 Post-execution hooks that patch a tool's result (content, details, structured content, error flag, usage, terminate) before it is appended — for redaction, augmentation, normalization — composed as a chain.
 
@@ -19,13 +19,17 @@ Post-execution hooks that patch a tool's result (content, details, structured co
 - Hook errors → error result (pi) vs propagate.
 - Hooks see errors too (pi) vs success only.
 - Harness-owned normalizations live in the same hook (pi: tool-result image normalization) → [[image-normalization]].
+- **External-process hooks** (Claude-Code-compatible JSON protocol) with outcomes block / replace model-visible text / add context; success-only (✔ codex PostToolUse) vs in-process field-level patch chain incl. errors (✔ pi).
+- Keep the original output for logs/telemetry while the model sees the replacement (✔ codex `PostToolUseFeedbackOutput`).
 
 ## Implementations
 - [[pi--tool-result-rewriting|pi]] — agent-core `afterToolCall` field-level merge; coding-agent maps it to chained extension `tool_result` handlers + image normalization.
+- [[codex--tool-result-rewriting|codex]] — PostToolUse hooks after successful calls: `should_block` → error result, `feedback_message` → replaces model text, `additional_contexts` → recorded context.
 
 ## Failures
 - [[tool-result-hook-patches-lost]]
 - [[hook-throw-aborts-parallel-batch]]
+- [[side-door-input-bypasses-hooks]] (07-safety) — Inputs and tool executions reached the agent through paths that skipped the extension hooks used as the…
 
 ## Related
-[[tool-call-gate]] · [[extension-event-hooks]] · [[tool-error-as-result]] · [[structured-tool-output]] · [[image-normalization]] · [[context-transform-hook]]
+[[tool-call-gate]] · [[extension-event-hooks]] · [[tool-error-as-result]] · [[structured-tool-output]] · [[image-normalization]] · [[context-transform-hook]] · [[turn-lifecycle-hooks]]

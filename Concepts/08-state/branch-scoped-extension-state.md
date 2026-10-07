@@ -17,6 +17,7 @@ Plugin/tool state is persisted *inside the session log* (tool-result `details` o
 - **Transactional writes**: only persist if the script succeeds (codemode `store`).
 - **Typed documents with history/fork policy** (pi-durable `defineDoc({scope, history: latest|rewindable, fork: initial|current|asOf})`).
 - **Size limits** for stored values (codemode 256Ki chars/value, 1Mi total).
+- codex: not applicable as such (no in-file branching). Closest: harness state persisted in the log as world-state merge-patch snapshots (`WorldStateItem`, `codex-rs/protocol/src/protocol.rs:3330-3347`) so resume/fork keep diffing; goal state lives outside the log in `goals_1.sqlite` (`codex-rs/state/src/sqlite.rs:34-39`) — whether goals follow forks is unverified.
 
 ## Implementations
 - [[pi--branch-scoped-extension-state|pi]] — `todo.ts` stores state in tool `details`, rebuilds from `getBranch()`; codemode `codemode-store` custom entries; `pi.appendEntry`; durable `defineDoc` scopes/fork policies.

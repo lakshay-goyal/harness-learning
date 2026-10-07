@@ -19,6 +19,7 @@ Harness keeps its own richer message union (shell runs, plugin notes, summaries,
 - Where custom roles land: pi maps all custom roles to `user` messages (shell output, plugin text, summaries); alternative = system messages or tool results.
 - Filtering vs placeholder: drop unconvertible messages (pi default converter keeps only system/user/assistant/toolResult) vs replace with text.
 - Wrapping converter for policy (pi `blockImages`, checked per request so mid-session toggles apply).
+- codex: absent — history *is* the wire type (Responses `ResponseItem` in a harness-metadata envelope, `codex-rs/history/src/lib.rs:210-226`); harness content is pre-rendered at record time into user/developer fragments tagged with `ContentItemKind` so it can still be recognized (`codex-rs/context-fragments/src/fragment.rs:30-64`); only a request-time normalization pass runs on a clone (`codex-rs/core/src/context_manager/history.rs:600-615`) → [[transcript-replay-repair]], [[message-role-layering]].
 
 ## Implementations
 - [[pi--message-conversion-layer|pi]] — `AgentMessage` union + `convertToLlm` per request; 4 coding-agent custom roles all become user text; sdk wraps it with an image-blocking filter.

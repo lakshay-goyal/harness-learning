@@ -2,8 +2,8 @@
 type: concept
 stage: architecture
 tier: candidate
-aliases: ["pi server", "pi client", "coordinator", "session-worker", "SessionWorkerManager", "Radius relay", "RadiusRelayHost", "pi-protocol", "pi-server", "pi-client", "Chord services", "CBOR framing", "PI_EXPERIMENTAL", "session-worker-isolation", "stable-coordinator-endpoint", "remote-presentation-split", "session-relay-gateway", "length-prefixed-cbor-framing", "attachment-fenced-routing", "strict-json-boundary", "control-before-bulk-scheduling", "lazy-reconnecting-connection"]
-harnesses: [pi]
+aliases: ["pi server", "pi client", "coordinator", "session-worker", "SessionWorkerManager", "Radius relay", "RadiusRelayHost", "pi-protocol", "pi-server", "pi-client", "Chord services", "CBOR framing", "PI_EXPERIMENTAL", "session-worker-isolation", "stable-coordinator-endpoint", "remote-presentation-split", "session-relay-gateway", "length-prefixed-cbor-framing", "attachment-fenced-routing", "strict-json-boundary", "control-before-bulk-scheduling", "lazy-reconnecting-connection", codex app-server, app-server-protocol, app-server-daemon, codex-app-server-client, in-process app server, ThreadManager, "--listen stdio://", serverRequest/resolved, cli-subcommand-surface]
+harnesses: [pi, codex]
 ---
 Split the agent from its UIs: each session runs in a durable worker process that owns storage and the agent loop; presentations (TUI, remote, web) attach through a routed protocol via a stable endpoint, optionally through a hosted relay for remote access.
 
@@ -23,9 +23,15 @@ Split the agent from its UIs: each session runs in a durable worker process that
 - **Remote access**: inbound port vs outbound dial to a hosted relay that multiplexes clients (pi Radius).
 - **Reconnect**: transparent replay vs never replay; app re-attaches (pi client).
 - **Scheduling**: FIFO vs control-before-bulk priority queues (pi-env daemon) — see [[remote-execution-env]].
+- **Process model (codex)**: one server process hosting all threads (`ThreadManager`), usable in-process via a facade, as a stdio child, or as a long-lived daemon serialized across CLI invocations and the updater ✔ codex.
+- **Wire (codex)**: JSON request/notification/response/error without the `jsonrpc` field (inherited from MCP) over stdio / unix / ws / relay ✔ codex.
+- **Approvals as server→client requests** resolved by whichever client answers (`serverRequest/resolved`) ✔ codex.
+- **Versioning (codex)**: v1/v2 split + `experimentalApi` capability opt-in + notification opt-out at `initialize` + generated TS/JSON schemas.
+- **Backpressure (codex)**: bounded commands, unbounded caller-facing event queue so responses never wait on unread events.
 
 ## Implementations
 - [[pi--client-server-session-split|pi]] — experimental (`PI_EXPERIMENTAL=1`) coordinator/server/session-worker over Unix sockets + CBOR pi-protocol carrying Chord service calls; Radius WebSocket relay for remote clients; workers built on pi-durable.
+- [[codex--client-server-session-split|codex]] — production "app-server": JSON-RPC-ish (no `jsonrpc` field) over stdio/unix/ws/remote-control, 173 client→server methods + 85 notifications, 9 server→client approval requests, capability negotiation; hosted in-process (TUI, exec), as stdio child (IDE, Python SDK) or as a managed daemon; one multi-call `codex` binary.
 
 ## Failures
 - [[strict-json-undefined-breaks-replication]]
@@ -39,6 +45,7 @@ Split the agent from its UIs: each session runs in a durable worker process that
 - [[internal-errors-leak-over-wire]]
 - [[update-before-snapshot-on-subscribe]]
 - [[unbounded-subscriber-buffering]]
+- [[interrupt-rpc-hangs-on-finished-turn]]
 
 ## Related
-[[durable-execution]] · [[replicated-state]] · [[runtime-plugin-loading]] · [[headless-rpc-mode]] · [[remote-execution-env]] · [[remote-host-trust]] · [[abort-propagation]] · [[task-owned-subagent]] · [[spec-driven-agentic-development]]
+[[durable-execution]] · [[replicated-state]] · [[runtime-plugin-loading]] · [[headless-rpc-mode]] · [[remote-execution-env]] · [[remote-host-trust]] · [[abort-propagation]] · [[task-owned-subagent]] · [[spec-driven-agentic-development]] · [[no-strict-jsonrpc]] · [[client-supplied-dynamic-tools]] · [[feature-flag-stages]]

@@ -2,8 +2,8 @@
 type: concept
 stage: messages
 tier: candidate
-aliases: ["<cwd>", "<skills>", sections]
-harnesses: [pi]
+aliases: ["<cwd>", "<skills>", sections, ContextualUserFragment::type_markers, matches_marked_text, ContentItemKind, "<environment_context>", "<permissions instructions>", "<user_shell_command>", "<turn_aborted>", "<model_switch>"]
+harnesses: [pi, codex]
 ---
 Fence each prompt section and each injected document with XML tags (optionally with attributes like `path`) instead of markdown headings, so harness structure can't collide with content structure.
 
@@ -17,12 +17,18 @@ Fence each prompt section and each injected document with XML tags (optionally w
 - **XML tags per section + per-file tags with path attribute** (**pi chose**).
 - Escaping injected content (pi escapes skill metadata only; context file content unescaped).
 - Out-of-band channel for harness remarks (durable `<harness>` → [[harness-diagnostics-channel]]).
+- **Two layers: Markdown headings for the (static) base prompt, XML fences for every harness-injected fragment** ✔ codex; XML few-shot tags in instructions replaced by Markdown lists (`968c029471`).
+- **Markers as the harness's own classifier**: case-insensitive start+end marker match to recognize injected user-role messages vs real user input (rollback, compaction keep-set, UI) + a machine `ContentItemKind` tag carried as metadata ✔ codex.
+- Real XML with escaping and attributes for structured state (`<environment_context>` with `&amp;`… escaping, `<permission_profile type="…">`, `<network enabled="true">`) ✔ codex.
+- Hybrid: Markdown H1 title + XML body (`# AGENTS.md instructions for <dir>` + `<INSTRUCTIONS>`) ✔ codex.
 
 ## Implementations
 - [[pi--xml-prompt-boundaries|pi]] — every non-preamble section `<name>…</name>`; `<project_instructions path>`; `<available_skills>`; `<summary>`.
+- [[codex--xml-prompt-boundaries|codex]] — ~60 fragment types with `type_markers()` + `ContentItemKind`; Markdown base prompt; XML-escaped `<environment_context>`.
 
 ## Failures
 - [[markdown-boundaries-ingested-inconsistently]]
+- [[injected-summary-indistinguishable]] (05-context)
 
 ## Related
-[[context-file-hierarchy]] · [[transcript-carried-system-prompt]] · [[harness-diagnostics-channel]] · [[split-turn-summary]] · [[transcript-serialization-for-summary]]
+[[context-file-hierarchy]] · [[transcript-carried-system-prompt]] · [[harness-diagnostics-channel]] · [[split-turn-summary]] · [[transcript-serialization-for-summary]] · [[message-role-layering]]

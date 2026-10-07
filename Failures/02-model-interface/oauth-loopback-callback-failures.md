@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [subscription-oauth-auth]
-harnesses: [pi]
+harnesses: [pi, codex]
 ---
 **Symptom** — Browser and loopback OAuth logins failed in several ways:
 - The manual-paste exchange for Anthropic failed, and refresh sent `scope`.
@@ -26,6 +26,16 @@ harnesses: [pi]
 - `8d8ae2fc2` 2026-10-07 — free-port fallback `startCallbackServer(0)`, then paste-only (#10571) (`packages/ai/src/auth/oauth/anthropic.ts:142-157`).
 - HEAD `waitForCallbackOrManualInput` races the callback against a pasted code (`packages/ai/src/auth/oauth/callback-server.ts:155-183`).
 
-**Lesson** — Loopback OAuth needs an exact `redirect_uri` match, a preferred port with fallback, explicit port-conflict errors, connection cleanup, and a concurrent paste or device-code path.
+**Fix · [[codex]]**
+- Symptom: login callback port 1455 was busy, because Cursor and Codex Desktop share it. This is the same port pi's ChatGPT login collides with.
+- `8d5da3ffe5` 2026-04-29: fall back to a second *registered* redirect port, 1457 (`codex-rs/login/src/server.rs:78-80,194`).
+- Headless: the device-code flow `/deviceauth/usercode` then polls `/deviceauth/token` at the server interval, for at most 15 min (`codex-rs/login/src/device_code_auth.rs:68,107-108`).
 
-Related: [[subscription-oauth-auth]] · [[pi--subscription-oauth-auth|pi]] · [[device-code-polling-hang]]
+**Lesson** — Loopback OAuth needs:
+- an exact `redirect_uri` match;
+- a preferred port with a fallback, either a second port pre-registered with the provider or a free port where the provider allows it;
+- explicit port-conflict errors;
+- connection cleanup;
+- a concurrent paste or device-code path.
+
+Related: [[subscription-oauth-auth]] · [[pi--subscription-oauth-auth|pi]] · [[device-code-polling-hang]] · [[codex--subscription-oauth-auth|codex]]

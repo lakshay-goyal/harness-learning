@@ -18,6 +18,7 @@ Per-request hook that rewrites the message list sent to the model (prune, inject
 - Chain composition: pi chains several harness-internal projections onto the same hook (extension `context` → hidden-declaration projection → forced-system-prompt projection).
 - Failure semantics: handler throw → report and continue with previous messages (pi) vs abort request.
 - Persistence: request-only (pi) vs recorded (pi's forced system prompt deliberately *not* recorded, `16292398a`).
+- codex: no plugin-level per-request transform found (unverified); built-in non-mutating `for_prompt` normalization on a clone of history (`codex-rs/core/src/context_manager/history.rs:600-615`, `:959-979`); plugins carry no code (`codex-rs/plugin/src/manifest.rs:8-58`).
 
 ## Implementations
 - [[pi--context-transform-hook|pi]] — `transformContext` in the agent loop; coding-agent chains extension `context`/`context_with_system` handlers + two internal projections; plus `prepareRequest` swapping in the canonical session projection.

@@ -2,8 +2,8 @@
 type: concept
 stage: architecture
 tier: candidate
-aliases: ["pi install", "pi packages", "\"pi\" manifest key", "pi-package keyword", "pi list/remove/update/config"]
-harnesses: [pi]
+aliases: ["pi install", "pi packages", "\"pi\" manifest key", "pi-package keyword", "pi list/remove/update/config", "@openai/codex", codex-cli/bin/codex.js, .codex-plugin/plugin.json, .claude-plugin/plugin.json, marketplace.json, codex plugin, Agent Plugins 1.0]
+harnesses: [pi, codex]
 ---
 Bundling plugins, skills, prompt templates and themes as versioned npm/git/local packages with a manifest, install scopes, filters and pinning.
 
@@ -22,12 +22,18 @@ Bundling plugins, skills, prompt templates and themes as versioned npm/git/local
 - **Discovery**: registry keyword → gallery (pi `pi-package` → pi.dev/packages).
 - **Install scripts**: run lifecycle scripts (pi for third-party, unverified intent) vs `--ignore-scripts` (pi for own installs).
 - **Try-before-install**: one-run load (`pi -e npm:…`).
+- **Declarative bundles, no code** ✔ codex (skills + MCP servers + app connectors + hooks + `interface` metadata).
+- **Cross-harness manifest compatibility** ✔ codex (`.claude-plugin/plugin.json`, Agent Plugins 1.0 root `plugin.json` with vendor extension).
+- **Marketplace layer**: repo-local `.agents/plugins/marketplace.json`, remote catalog, sharing, managed policy, reserved-name protection ✔ codex.
+- **Harness binary distribution**: npm wrapper + per-platform optional packages execing a native binary ✔ codex.
 
 ## Implementations
 - [[pi--harness-package-distribution|pi]] — `pi install npm:|git:|https:|./path`, manifest + filters + pinning, peer-dep enforcement, gallery keyword.
+- [[codex--harness-package-distribution|codex]] — npm launcher shipping per-platform native binaries; declarative plugin bundles (skills, MCP, apps, hooks, UI metadata — no code) from repo/git/npm/remote marketplaces, accepting Codex, Claude Code and Agent Plugins 1.0 manifests.
 
 ## Failures
 - [[duplicate-host-module-instances]]
+- [[untrusted-repo-loads-executable-config]]
 
 ## Related
-[[runtime-plugin-loading]] · [[replaceable-builtin-extension]] · [[layered-settings]] · [[skill-progressive-disclosure]] · [[prompt-template-expansion]] · [[project-trust-gate]] · [[supply-chain-pinning]]
+[[runtime-plugin-loading]] · [[replaceable-builtin-extension]] · [[layered-settings]] · [[skill-progressive-disclosure]] · [[prompt-template-expansion]] · [[project-trust-gate]] · [[supply-chain-pinning]] · [[no-executable-plugins]] · [[external-agent-import]] · [[extensibility-model]]

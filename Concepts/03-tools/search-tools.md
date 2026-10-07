@@ -22,6 +22,7 @@ Dedicated content/file/directory search tools built on fast external binaries (r
 - Result caps (matches/results/entries) + byte cap + per-line cap with actionable "use limit=N" notice (pi).
 - `--` end-of-options before untrusted positionals (pi).
 - Hierarchical gitignore incl. nested repos (pi delegates to fd/rg, `--no-require-git` only outside repos).
+- codex: absent — no grep/find/ls tools; the model runs `rg` / `rg --files` through `exec_command` (prompt `codex-rs/core/gpt_5_2_prompt.md:250`) and [[shell-command-intent-parsing]] recovers Search/ListFiles intents. Experimental `grep_files` (`f52320be86` 2025-10-08) and `list_dir` (`226215f36d` 2025-10-07) were removed `178c3b15b4` 2026-03-25 / `70807730f5` 2026-05-05 ("nothing in the current model catalog advertises it via `experimental_supported_tools`"). Axis: [[dedicated-vs-shell-tools]]. `codex-rs/file-search` (nucleo fuzzy filename finder, default limit 20, `codex-rs/file-search/src/lib.rs:130`) serves only the user's @-mention picker, not the model.
 
 ## Implementations
 - [[pi--search-tools|pi]] — `grep` (rg --json, 100 matches, 500-char lines), `find` (fd --glob, 1000 results, full-path for `/` patterns), `ls` (readdir, 500 entries, not gitignore-aware); rg/fd auto-downloaded into pi bin dir.
@@ -34,4 +35,4 @@ Dedicated content/file/directory search tools built on fast external binaries (r
 - [[search-binary-bootstrap-failures]]
 
 ## Related
-[[minimal-default-toolset]] · [[shell-execution]] · [[tool-output-truncation]] · [[path-normalization]] · [[supply-chain-pinning]]
+[[minimal-default-toolset]] · [[shell-execution]] · [[tool-output-truncation]] · [[path-normalization]] · [[supply-chain-pinning]] · [[shell-command-intent-parsing]] · [[dedicated-vs-shell-tools]] · [[no-file-read-write-tools]]
