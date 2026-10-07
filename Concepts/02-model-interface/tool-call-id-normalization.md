@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: messages
-tier: candidate
+tier: must-have
 aliases: [normalizeToolCallId, toolCallIdMap, toolCallCounter, tool-call-id-synthesis, requiresToolCallId, MISTRAL_TOOL_CALL_ID_LENGTH, "call_id|item_id", "fc_<hash>", shortHash]
 harnesses: [pi, opencode]
 ---

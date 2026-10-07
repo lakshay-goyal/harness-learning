@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: state
-tier: candidate
-aliases: [pi-durable, Pico5, Harness, tasks, pi.generation, pi.tool, pi.compaction, SQLite storage, JSONL storage, Durable Object storage, checkpointed-compaction-task, storage-atomic-commit-invariant, global-id-namespace]
-harnesses: [pi]
+tier: must-have
+aliases: [pi-durable, Pico5, Harness, tasks, pi.generation, pi.tool, pi.compaction, SQLite storage, JSONL storage, Durable Object storage, checkpointed-compaction-task, storage-atomic-commit-invariant, global-id-namespace, "Op::SuspendTurnAndShutdown", "Op::RecoverTurn", recover_turn_if_idle, "TurnStartKind::Recovery", RecordedTurnInput, daemon_recovery]
+harnesses: [pi, codex]
 ---
 Every agent-loop step (model request, tool call, compaction) is a persisted task state machine whose phase is committed to storage before its effects are shown; a crashed or restarted process reopens storage and resumes the interrupted work.
 
@@ -21,10 +21,12 @@ Every agent-loop step (model request, tool call, compaction) is a persisted task
 - **Missing code on reopen**: task stays pending `blocked` (missing_task / task_too_old / migration_failed), never terminalized.
 - **Ownership**: structured concurrency tree, abort flows down ([[task-owned-subagent]]).
 - **Writers**: single process owns storage (no cross-process locking; external `proper-lockfile`).
+- **Turn-granular suspend/recover** ✔ codex: flush → cancel without terminal event → another worker recovers same turn id; requires input-persisted marker; re-samples instead of replaying tools.
 - **Deliberately no execution identity**: durable events + projections only; crash recovery reasons from prompts, projected history, provider attempts and tool state, a `running` tool is never replayed, and post-crash continuation is deferred — "Do not introduce an enclosing durable execution identity solely to group these facts" (opencode v2, `specs/v2/todo.md:73-74`; not an implementation of this concept) → [[event-sourced-session-store]].
 
 ## Implementations
 - [[pi--durable-execution|pi]] — `@earendil-works/pi-durable` (experimental, v1.0.4): tasks `pi.generation`/`pi.tool`/`pi.compaction`, Memory/SQLite/JSONL/DO storage, poisoning, blocked tasks; consumed only by experimental TUI/session workers.
+- [[codex--durable-execution|codex]] — turn-granular: suspend an unfinished root turn (flush first, no terminal event), recover it under the same turn id after a managed daemon restart by re-sampling from persisted history; no per-tool replay policy.
 
 ## Failures
 - [[unbounded-subscriber-buffering]]
@@ -32,9 +34,11 @@ Every agent-loop step (model request, tool call, compaction) is a persisted task
 - [[per-request-projection-rescans-log]]
 - [[output-window-depends-on-commit-cadence]]
 - [[settled-tool-vanishes-before-placement]]
+- [[cache-affinity-lost-across-reopen]] (06-caching) — In pi-durable, provider cache/session affinity was lost whenever a conversation was reopened, reset or…
+- [[unbounded-subscriber-buffering]] (08-state) — Chord provider subscriptions invoked listeners inline while publishing (reentrant publication could reorder…
+
+## Related
+[[crash-safe-tool-replay]] · [[replicated-state]] · [[context-projection]] · [[partial-message-persistence]] · [[session-tree]] · [[task-owned-subagent]] · [[steering-queue]] · [[background-compaction]] · [[deferred-responses]] · [[client-server-session-split]] · [[remote-execution-env]] · [[spec-driven-agentic-development]] · [[sqlite-session-index]] · [[session-store-format]]
 
 ## Tradeoffs
 - [[session-store-format]]
-
-## Related
-[[crash-safe-tool-replay]] · [[replicated-state]] · [[context-projection]] · [[partial-message-persistence]] · [[session-tree]] · [[task-owned-subagent]] · [[steering-queue]] · [[background-compaction]] · [[deferred-responses]] · [[client-server-session-split]] · [[remote-execution-env]] · [[spec-driven-agentic-development]]

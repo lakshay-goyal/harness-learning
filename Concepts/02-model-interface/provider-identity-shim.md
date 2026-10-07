@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: model-interface
-tier: candidate
+tier: must-have
 aliases: [Claude Code stealth mode, toClaudeCodeName, fromClaudeCodeName, Codex instructions, provider-identity-shim, harness-impersonation, subscription-client-impersonation, invertible-tool-name-mapping, client-impersonation-headers, sk-ant-oat, "x-app: cli", originator, anthropic_spoof.txt, claude-code-20250219, SystemPrompt.header]
 harnesses: [pi, opencode]
 ---
@@ -34,6 +34,7 @@ Tool names are mapped back on the way in.
   - Codex `originator` / `chatgpt-account-id`.
 - **Policy risk**
   - Removing the feature: f5e6bcac1 removed it and 19b566334 restored it the same day; the reason is unverified.
+- codex: n/a. Codex is the vendor's own first-party client. Its `originator: codex_cli_rs` header (`DEFAULT_ORIGINATOR`, `codex-rs/login/src/auth/default_client.rs:42`) is what pi's Codex path imitates. See [[request-attribution-metadata]].
 - **Removal under legal pressure**: identity line, copied vendor prompt, beta header and bundled auth plugin deleted (opencode `1ac1a0287c` 2026-03-19).
 
 ## Implementations
@@ -43,6 +44,7 @@ Tool names are mapped back on the way in.
 ## Failures
 - [[foreign-harness-tool-hallucination]]
 - [[tool-name-mapping-not-invertible]]
+- [[foreign-harness-tool-hallucination]] (03-tools) — Codex-trained models running inside pi called tools from their native harness that pi does not have:…
 - [[vendor-prompt-copy-legal-exposure]]
 
 ## Related

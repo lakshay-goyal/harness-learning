@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: failure-handling
-tier: candidate
+tier: variant
 aliases: [refusal stop reason, fallbacks, allowedFallbackModels, server-side-fallback-2026-07-01, server-side-refusal-fallback, stop_details]
 harnesses: [pi]
 ---
@@ -32,6 +32,8 @@ When the provider refuses a request, it retries the request server-side on a fal
 - **Refusal mapping**
   - `stop`.
   - `error` with `stop_details.explanation`. *pi chose this:* eb1f87fa9.
+- codex: absent. There is no fallback list in `ResponsesApiRequest` (`codex-rs/codex-api/src/common.rs:279-304`). Policy refusals (`cyber_policy`, `bio_policy`, `misalignment_policy_violation`) map to distinct terminal errors with fallback text (`codex-rs/codex-api/src/sse/responses_error.rs:47-99`). A content-filter stop is retried after injecting model-owned guidance ([[content-filter-retry-without-guidance]]).
+  - Server-side *reroute* is observed, not requested: the `openai-model` response header becomes `ResponseEvent::ServerModel` (`codex-rs/codex-api/src/sse/responses.rs:33`; `codex-rs/codex-api/src/common.rs:89-91`); a case-insensitive mismatch with the requested slug emits `EventMsg::ModelReroute{from_model, to_model, reason: HighRiskCyberActivity}` + a warning ("…this request was routed to gpt-5.2 as a fallback…"), once per turn (`codex-rs/core/src/session/turn.rs:2892-2904`; `codex-rs/core/src/session/mod.rs:3946-3984`; `02e9006547` 2026-02-16). Sibling safety signals surface as events only: `ModelVerification` (once per turn), `TurnModerationMetadata`, `SafetyBuffering{use_cases, reasons, show_buffering_ui, faster_model}` while output awaits safety review (`codex-rs/core/src/session/turn.rs:2905-2930`; `566f7bf631` 2026-06-21). The requested model stays the recorded model; no pricing/attribution change.
 
 ## Implementations
 - [[pi--server-side-refusal-fallback|pi]] — Anthropic `compat.allowedFallbackModels`, the `server-side-fallback-2026-07-01` beta and `fallbacks` param; `message_start` model mismatch sets `responseModel` and fallback cost; refusal maps to an error.

@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: architecture
-tier: candidate
-aliases: ["AgentEvent", "AgentSessionEvent", "--mode json", "json-event-stream", "session.subscribe", "message_update", "/event SSE", "/global/event", server.heartbeat, sessions.events]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: ["AgentEvent", "AgentSessionEvent", "--mode json", "json-event-stream", "session.subscribe", "message_update", "/event SSE", "/global/event", server.heartbeat, sessions.events, Submission, EventMsg, submission_loop, CodexThread, SQ/EQ, ThreadEvent, "item/*/delta"]
+harnesses: [pi, opencode, codex]
 ---
 Typed lifecycle event protocol (run/turn/message/tool/queue/compaction/retry events) that every presentation — TUI, SDK subscriber, JSON stream, RPC client, plugins — consumes as the single source of UI truth.
 
@@ -20,17 +20,23 @@ Typed lifecycle event protocol (run/turn/message/tool/queue/compaction/retry eve
 - **Order across consumers**: plugins first, then public listeners (pi).
 - **Wire framing**: JSONL header + events (pi `--mode json`) vs typed RPC events.
 - **Durable alternative**: events derived from committed storage (`watchEvents()` in pi-durable) so remote UIs never see un-persisted state.
+- **Input/output queue split** ✔ codex: typed Ops on a bounded submission queue (some with oneshot routing replies) vs events on an unbounded queue.
+- **Multiple wire encodings of one stream** ✔ codex: app-server `thread/turn/item` notifications with per-item deltas; exec `thread.started … item.completed` JSONL.
+- **Terminal event as barrier** (flush rollout + await abort contributors first) ✔ codex.
 - **Remote transport**: SSE per project instance plus a global SSE across instances, 10 s heartbeat (opencode); permission/question prompts travel as events.
 - **Two-stream contract**: durable per-session replay stream with sequence cursor vs live instance stream without replay; neither auto-reconnects (opencode v2).
 - **Payload safety**: clone payloads at publish (opencode `structuredClone`, [[event-payload-aliases-mutable-state]]).
 
 ## Implementations
 - [[pi--agent-event-stream|pi]] — `AgentEvent` (11 types) → `AgentSessionEvent` (+ settle/retry/compaction/queue/entry events); JSON mode strips cumulative snapshots.
+- [[codex--agent-event-stream|codex]] — per-thread SQ/EQ (bounded 512 submissions with routing replies, unbounded events) re-encoded as app-server slash-named item notifications and exec dot-named JSONL; terminal events emitted only after flush + abort callbacks.
 - [[opencode--agent-event-stream|opencode]] — bus events over `/event` and `/global/event` SSE drive TUI, web, `run`, ACP, share sync and workspace replication; v2 adds durable `sessions.events({after})`.
 
 ## Failures
 - [[quadratic-event-stream-output]]
 - [[headless-protocol-stream-corruption]]
+- [[listeners-see-stale-agent-state]]
+- [[late-tool-progress-after-settlement]] (01-loop) — Tools emitting progress callbacks after they resolved produced stale tool_execution_update events after…
 - [[event-payload-aliases-mutable-state]]
 - [[update-before-snapshot-on-subscribe]]
 

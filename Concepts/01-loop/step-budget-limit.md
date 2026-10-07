@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: loop
-tier: candidate
+tier: variant
 aliases: [turn-cap, step-limit-wrapup, max steps, maxSteps, MAX_STEPS_PROMPT, isLastStep, "CRITICAL - MAXIMUM STEPS REACHED", "agent.steps", StepLimitExceededError]
 harnesses: [opencode]
 ---

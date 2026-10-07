@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: architecture
-tier: candidate
-aliases: [pi.registerProvider, ProviderConfigInput, provider-extension-registration, extension-provider-registration, unregisterProvider, refreshModels, native Provider, BUNDLED_PROVIDERS, Npm.add, api.npm, Catalog.transform]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: [pi.registerProvider, ProviderConfigInput, provider-extension-registration, extension-provider-registration, unregisterProvider, refreshModels, native Provider, BUNDLED_PROVIDERS, Npm.add, api.npm, Catalog.transform, model_providers, ModelProviderInfo, built_in_model_providers, --oss, CODEX_OSS_BASE_URL]
+harnesses: [pi, opencode, codex]
 ---
 A plugin API that adds or overrides a model provider at runtime. A registration can supply:
 - endpoint and headers,
@@ -32,14 +32,21 @@ A plugin API that adds or overrides a model provider at runtime. A registration 
 - **Overrides**
   - `modelOverrides` and per-model `baseUrl` apply to plugin providers too.
   - Stored credentials satisfy custom providers.
+- **Declarative only** (codex)
+  - `config.toml [model_providers.<id>]`; no plugin API and no custom stream; the endpoint must speak Responses. ✔ codex
+  - Built-in policy: bundle only openai, Bedrock, Ollama and LM Studio. "We do not want to be in the business of adjucating which third-party providers are bundled" (`codex-rs/model-provider-info/src/lib.rs:667-670`). ✔ codex
+  - Conflicting credential sources (e.g. `aws` + `env_key`) are a config error. ✔ codex
+  - Local-server bootstrap (`--oss`): probe, auto-pull the model, check a minimum server version. ✔ codex
 - **Declarative npm provider**: config names an npm SDK package, installed at runtime and called via its first `create*` export (opencode).
 
 ## Implementations
 - [[pi--custom-provider-registration|pi]] — `pi.registerProvider` (legacy `ProviderConfigInput` or native `Provider`) and `unregisterProvider`. Provider-composer layering, an OAuth callback adaptor, and lower-level provider hooks (`before_provider_request/headers`, `after_provider_response`, `provider_stream_event`).
+- [[codex--custom-provider-registration|codex]] — TOML `model_providers` (base_url, env_key, command auth, gateway OAuth, AWS SigV4, headers, retry and timeout knobs, capabilities); built-ins openai, amazon-bedrock, ollama, lmstudio.
 - [[opencode--custom-provider-registration|opencode]] — config + `api.npm` (bundled or runtime-installed), plugin auth loaders; v2 replayable `Catalog.transform()`.
 
 ## Failures
 - [[provider-reregistration-replaces-config]]
+- [[endpoint-rejects-request-field]]
 
 ## Related
-[[unified-provider-api]] · [[model-catalog]] · [[subscription-oauth-auth]] · [[credential-resolution]] · [[extension-event-hooks]] · [[runtime-plugin-loading]] · [[virtual-model-router]]
+[[unified-provider-api]] · [[model-catalog]] · [[subscription-oauth-auth]] · [[credential-resolution]] · [[extension-event-hooks]] · [[runtime-plugin-loading]] · [[virtual-model-router]] · [[provider-breadth]]

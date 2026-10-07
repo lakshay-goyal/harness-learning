@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: model-interface
-tier: candidate
+tier: variant
 aliases: [ProviderTransform.temperature, ProviderTransform.topP, ProviderTransform.topK, GEMINI_MODELS_WITH_SAMPLING_DEFAULTS, per-model sampling defaults, vendor-recommended sampling]
 harnesses: [opencode]
 ---

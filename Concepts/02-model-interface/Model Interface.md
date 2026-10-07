@@ -48,6 +48,8 @@ Scope: the boundary between the agent and model providers:
   - body compression,
   - header rules.
 - [[server-side-refusal-fallback]] — The provider retries refused requests on a fallback model approved in advance.
+- [[subscription-usage-limits]] — Track provider-reported plan and usage windows and credits (headers or stream events). Limit reached or quota exhausted becomes a terminal error that explains the reset time, never a retry.
+- [[request-attribution-metadata]] — Attach installation, session, thread, turn, window, lineage and request kind to every request (body metadata plus headers) for vendor routing, billing and debugging, outside the model-visible prompt.
 - [[auxiliary-model-calls]] — Secondary requests to a cheaper model beside the main loop, with their own prompt and options (session title, per-message summary).
 - [[sampling-parameter-defaults]] — A harness-owned table of temperature, topP and topK per model family, sent only when they differ from the provider default.
 - [[tool-schema-lowering]] — Rewrite each tool's JSON Schema into the subset a given provider accepts before sending tool definitions.

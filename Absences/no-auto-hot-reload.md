@@ -35,9 +35,11 @@ harnesses: [pi, opencode]
 - Deterministic: a half-saved extension file never loads mid-turn. The cost is a manual step in the extension dev loop.
 - Because reload is a full session_shutdown → session_start cycle, plugins must be written to survive it. Stale-context invalidation exists for exactly that reason.
 
+**codex** — *partly present* (not an absence). The app-server watches skills roots and the filesystem (`codex-rs/app-server/src/skills_watcher.rs`, `codex-rs/app-server/src/fs_watch.rs`; crate `codex-rs/file-watcher` born `c579da41b1` 2026-05-08), hot-reloads user config on batch writes (`a684a36091` 2026-03-08), and refreshes AGENTS.md (test suite `codex-rs/core/tests/suite/agents_md_refresh.rs`); explicit ops `Op::RefreshMcpServers` / `Op::ReloadUserConfig` (`codex-rs/core/src/session/handlers.rs:492-720`). What is reloaded is data (skills, config, instructions), never code — codex has no runtime code plugins ([[no-executable-plugins]]).
 **opencode** ([[opencode]], `ecc4916b5a`): also absent in legacy (completeness unverified).
 - No file watcher on config. Reload goes through `Config.invalidate` when config is updated via the API (`packages/opencode/src/config/config.ts:652-678`) or through `/instance/dispose` (`packages/opencode/src/server/routes/instance/httpapi/groups/instance.ts:44`).
 - v2 states the opposite as a goal: "Services are hot-reloadable by design: updates are granular, observable, and do not require tearing down the whole process" (`specs/v2/instructions.md:13`). Not observed as implemented for config files.
 - Instruction files (AGENTS.md) are re-read from disk every step in legacy, so they *are* effectively live (`packages/opencode/src/session/system.ts:69-105`), at the cost of prefix stability → [[prompt-cache-strategy]].
 
+Related: [[runtime-plugin-loading]] · [[extension-event-hooks]] · [[replaceable-builtin-extension]] · [[harness-package-distribution]] · [[durable-execution]] · [[Absences]] · [[cross-session-prompt-history]] · [[codex--layered-settings|codex settings]]
 Related: [[runtime-plugin-loading]] · [[extension-event-hooks]] · [[replaceable-builtin-extension]] · [[harness-package-distribution]] · [[durable-execution]] · [[opencode]] · [[Absences]]

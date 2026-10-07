@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: caching
-tier: candidate
-aliases: [prompt_cache_key, x-session-affinity, x-session-id, session-id, x-affinity, x-opencode-session, pi.provider.sessionId, previous_response_id, websocket-cached, promptCacheKey, setCacheKey, x-opencode-session-id, x-parent-session-id]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: [prompt_cache_key, x-session-affinity, x-session-id, session-id, x-affinity, x-opencode-session, pi.provider.sessionId, previous_response_id, websocket-cached, promptCacheKey, setCacheKey, x-opencode-session-id, x-parent-session-id, prompt_cache_key_override, x-codex-turn-state, responses_request_properties_match, get_incremental_items, prewarm_websocket]
+harnesses: [pi, opencode, codex]
 ---
 Send a stable per-conversation id as a cache key and/or affinity header so the provider routes consecutive requests to the replica holding the cached prefix; optionally reuse server-side conversation state to send only deltas.
 
@@ -19,6 +19,14 @@ Send a stable per-conversation id as a cache key and/or affinity header so the p
 - **Fresh id for side requests** (**pi**).
 - In-memory process id vs **persisted per-conversation id, fresh on fork** (**pi-durable** `pi.provider`).
 - Stateful continuation (send delta + `previous_response_id` over a pooled socket) with stateless fallback (**pi** Codex WS).
+- **Key granularity**
+  - Per conversation, fresh for forks and side requests. ✔ pi
+  - Per *session family*: the root, its subagents and ephemeral forks share the session id as key, and internal sessions use `"{source}:{parent_thread_id}"`. ✔ codex (`codex-rs/core/src/client.rs:581-603`)
+- **Header vs body key**
+  - The ChatGPT backend routes by the `session-id` header, which may differ from the body `prompt_cache_key` (non-root agents). ✔ codex
+- **Intra-turn sticky routing token** (`x-codex-turn-state`), echoed on retries, follow-ups and compaction within a turn, never across turns. ✔ codex
+- **Delta continuation validity**
+  - Exhaustive destructuring equality of all non-input fields, which fails closed on new fields, plus a strict prefix-extension check of input and previous output. ✔ codex (`codex-rs/core/src/client.rs:341-414`)
 - **Key field chosen per SDK package** (`promptCacheKey` vs `prompt_cache_key`) with a per-provider opt-in/opt-out `setCacheKey` (**opencode legacy**).
 - **Header set split by provider ownership**: harness-hosted providers get session/request/project/client headers, third-party ones get `x-session-affinity` + `X-Session-Id`; subagents add parent-session headers (**opencode**).
 - **Strip a known id prefix** to fit the 64-char key limit instead of clamping (**opencode v2**, `ses_` + 64 hex).
@@ -26,6 +34,7 @@ Send a stable per-conversation id as a cache key and/or affinity header so the p
 
 ## Implementations
 - [[pi--session-affinity-cache-routing|pi]] — session file id → per-adapter key/headers; 64-char clamp; Codex WS delta continuation; durable persisted UUIDv7.
+- [[codex--session-affinity-cache-routing|codex]] — reference implementation of the protocol pi's Codex adapter mirrors. Session-id `prompt_cache_key` + `session-id` header, `x-codex-turn-state`, WebSocket `previous_response_id` deltas with exhaustive equality, `generate=false` prewarm, full-resend fallback.
 - [[opencode--session-affinity-cache-routing|opencode]] — session id as `promptCacheKey`/`prompt_cache_key` per SDK (`setCacheKey` override), affinity + parent-session headers; v2 strips `ses_` from 68-char external ids.
 
 ## Failures
@@ -35,9 +44,12 @@ Send a stable per-conversation id as a cache key and/or affinity header so the p
 - [[transport-fallback-after-partial-output]]
 - [[cache-affinity-lost-across-reopen]]
 - [[side-request-cache-pollution]]
+- [[cache-key-scoped-to-wrong-identity]]
+- [[incremental-request-diverges-from-history]]
+- [[server-side-state-missing-on-continuation]]
+
+## Related
+[[cache-retention-control]] · [[http-transport-hardening]] · [[session-fork]] · [[durable-execution]] · [[virtual-model-router]] · [[request-attribution-metadata]] · [[cache-warming]] · [[prompt-cache-strategy]]
 
 ## Tradeoffs
 - [[prompt-cache-strategy]]
-
-## Related
-[[cache-retention-control]] · [[http-transport-hardening]] · [[session-fork]] · [[durable-execution]] · [[virtual-model-router]]

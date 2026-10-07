@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: loop
-tier: candidate
+tier: variant
 aliases: [repeated-tool-call-guard, repeated-call-detection, repetition-loop-detection, doom loop, doom_loop, DOOM_LOOP_THRESHOLD, "Possible doom loop"]
 harnesses: [opencode]
 ---

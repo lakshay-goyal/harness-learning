@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: permissions
-tier: candidate
+tier: variant
 aliases: [external_directory, assertExternalDirectory, assertExternalDirectoryEffect, containsPath, LocationMutation, "external-directory authorization"]
 harnesses: [opencode]
 ---

@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: cost
-tier: candidate
-aliases: [calculateCost, Usage.cost, cacheWrite1h, applyServiceTierPricing, usage-normalization, request-cost-accounting, service-tier-pricing, parseChunkUsage, early-usage-capture, bill-before-parse, Session.getUsage, experimentalOver200K, total_nano_aiu]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: [calculateCost, Usage.cost, cacheWrite1h, applyServiceTierPricing, usage-normalization, request-cost-accounting, service-tier-pricing, parseChunkUsage, early-usage-capture, bill-before-parse, Session.getUsage, experimentalOver200K, total_nano_aiu, TokenUsage, cached_input_tokens, blended_total, codex.turn_cost, BASELINE_TOKENS, estimated_usage_usd_micros]
+harnesses: [pi, opencode, codex]
 ---
 Normalize every provider's usage report into one disjoint partition (input, output, cacheRead, cacheWrite with a TTL split, reasoning as a subset of output). Then price each message with the per-model rates:
 - request-wide context tiers,
@@ -49,11 +49,16 @@ Normalize every provider's usage report into one disjoint partition (input, outp
   - Price as the server-reported fallback model, from configured fallback costs. *pi chose this.*
 - **Cost data source**
   - Generated catalog rates in $/M tokens, with hand-curated authoritative prices for some vendors.
+- **Overlapping partition** (codex)
+  - Input *includes* cached; `non_cached_input` is derived; display shows `blended_total = non_cached + output`. ✔ codex (`codex-rs/protocol/src/protocol.rs:2488-2495`)
+- **Server-priced cost**
+  - No client price table. The app-server polls a turn-cost endpoint after the turn settles (every 150 s) and emits estimated USD. ✔ codex
 - **Provider-billed cost**: prefer the provider's streamed billed amount (Copilot nano-AIU) over computed cost (opencode).
 - **Unpriced steps**: record tokens with `cost: 0` (opencode v2, contradicting its own design doc).
 
 ## Implementations
 - [[pi--usage-cost-accounting|pi]] — `Usage`, plus `calculateCost` in `packages/ai/src/models.ts:1200-1220`. Per-adapter usage parsers, service-tier multipliers and fallback pricing; the coding-agent aggregates by `responseModel`.
+- [[codex--usage-cost-accounting|codex]] — `TokenUsage` (input incl. cached, cache_write, reasoning ⊂ output); 12k baseline for context-left; USD from a server turn-cost endpoint.
 - [[opencode--usage-cost-accounting|opencode]] — `Session.getUsage` normalizes cache/reasoning, >200 k tier from models.dev; v2 writes `cost: 0`.
 
 ## Failures
@@ -65,4 +70,4 @@ Normalize every provider's usage report into one disjoint partition (input, outp
 - [[model-relabel-breaks-same-model-check]]
 
 ## Related
-[[cache-miss-accounting]] · [[cache-warming]] · [[cache-retention-control]] · [[model-catalog]] · [[server-side-refusal-fallback]] · [[errors-as-stream-events]] · [[token-estimation]]
+[[cache-miss-accounting]] · [[cache-warming]] · [[cache-retention-control]] · [[model-catalog]] · [[server-side-refusal-fallback]] · [[errors-as-stream-events]] · [[token-estimation]] · [[session-token-budget]] · [[provider-breadth]]

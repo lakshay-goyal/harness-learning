@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: context
-tier: candidate
+tier: must-have
 aliases: [transformContext, "context event", context_with_system, emitContext, "context filter", "experimental.chat.messages.transform", "experimental.chat.system.transform"]
 harnesses: [pi, opencode]
 ---
@@ -18,6 +18,7 @@ Per-request hook that rewrites the message list sent to the model (prune, inject
 - Chain composition: pi chains several harness-internal projections onto the same hook (extension `context` → hidden-declaration projection → forced-system-prompt projection).
 - Failure semantics: handler throw → report and continue with previous messages (pi) vs abort request.
 - Persistence: request-only (pi) vs recorded (pi's forced system prompt deliberately *not* recorded, `16292398a`).
+- codex: no plugin-level per-request transform found (unverified); built-in non-mutating `for_prompt` normalization on a clone of history (`codex-rs/core/src/context_manager/history.rs:600-615`, `:959-979`); plugins carry no code (`codex-rs/plugin/src/manifest.rs:8-58`).
 - Message shape seen by the plugin: storage-level messages with parts, before provider conversion (opencode legacy `experimental.chat.messages.transform`) — call/result adjacency preserved by construction.
 - Separate system-array hook with a cache guard: harness re-joins plugin-added system entries to keep ≤ 2 cached blocks (opencode legacy `experimental.chat.system.transform`).
 - Same hook applied to the summarizer input so compaction sees what the model sees (opencode `4cb29967f6`).

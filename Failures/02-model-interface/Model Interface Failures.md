@@ -24,6 +24,7 @@ Failures whose first concept is in [[Model Interface]].
 - [[tool-call-id-collision]] — Truncated or missing ids collide, giving "duplicate tool_call_id".
 - [[placeholder-text-misleads-model]] — Placeholder text for empty tool results ("see attached image") makes the model hallucinate images. Images dropped silently for non-vision models leave the model unaware they existed.
 - [[assistant-content-shape-misread]] — Assistant content sent as an array: Copilot Claude re-answers the history, and DeepSeek mirrors the nesting.
+- [[model-switch-replays-unsupported-content]] — codex: a mid-session model switch replayed `detail: original` images, stale `<model_switch>` instructions, or a different multi-agent backend to a model that could not accept them.
 
 ## Streaming, payload, stop reasons
 - [[streamed-tool-call-fragmentation]] — One tool call is split into several, or calls are merged, or calls that were never finalized are executed.
@@ -34,6 +35,8 @@ Failures whose first concept is in [[Model Interface]].
 - [[stop-reason-mapping-gaps]] — Unknown, refusal, safety or `end` stop reasons crash, look like normal stops, or a truncation is masked as toolUse.
 - [[empty-payload-rejections]] — Empty tools arrays, text parts, content, beta headers or instructions get 400s.
 - [[endpoint-rejects-request-field]] — Temperature, betas, display, too-small max_output_tokens or cache params are rejected by specific models or endpoints.
+- [[grammar-constrained-tool-instability]] — codex: the Lark-grammar freeform `apply_patch` had to be disabled two days after launch, and grammar bugs block every edit.
+- [[line-separator-breaks-jsonl-framing]] — codex: U+2028/U+2029 in tool output split JSONL frames and hung the `js_repl` kernel.
 - [[placeholder-tool-gets-called]] — A no-op compatibility tool added for Copilot/LiteLLM got called by the model.
 
 ## Usage and cost
@@ -55,6 +58,7 @@ Failures whose first concept is in [[Model Interface]].
 - [[error-text-breaks-retry-classification]] — Transient 5xx/429 errors are not auto-retried because the error text lacks the keyword the classifier looks for.
 - [[foreign-sdk-error-shape-skips-retry]] — The Google SDK's ApiError shape bypasses the shared retry, so pre-token 429/5xx are terminal.
 - [[unpaired-surrogate-breaks-json]] — A lone UTF-16 surrogate in tool output breaks request serialization.
+- [[error-diagnostics-echo-payload]] — codex: catalog decode and connection errors echoed response bodies and URLs (the inverse of provider-error-body-hidden).
 
 ## Stream runtime and packaging
 - [[quadratic-event-queue-drain]] — Draining a large event queue takes quadratic CPU.
@@ -72,6 +76,7 @@ Failures whose first concept is in [[Model Interface]].
 - [[provider-reregistration-replaces-config]] — Re-registering a provider with only overrides loses its models; overrides or baseUrl are ignored for plugin providers.
 - [[model-reference-ambiguity]] — `--model` picks an unauthenticated provider, a slashed gateway id, or mis-splits a colon id.
 - [[unusable-default-model-selected]] — The saved default model has no credentials and blocks a usable local model.
+- [[compaction-pinned-to-unavailable-model]] — codex: previous-model compaction on a resumed thread hit a retired model slug and blocked the next turn.
 - [[sdk-enum-lags-provider-options]] — Typed SDK enums/allow-lists rejected or stripped effort and service-tier values the provider accepted.
 
 ## Auth and credentials
@@ -92,11 +97,6 @@ Failures whose first concept is in [[Model Interface]].
 - [[bedrock-credential-and-endpoint-precedence]] — Profile ignored, inference profiles broken, or duplicate Authorization header on Bedrock.
 - [[vendor-prompt-copy-legal-exposure]] — Impersonating the vendor's client (identity line, copied prompt, beta header) to ride a subscription drew legal requests.
 
-## Auxiliary model calls
-- [[title-from-tool-narration]] — Titles described tool narration or were missing for shell/@file/subtask-first sessions.
-- [[small-model-format-noncompliance]] — Small title models emitted multi-line, quoted, `<think>` or monotonous output.
-- [[summary-drops-pending-user-request]] — A turn summary hid the agent's final question or instruction to the user.
-
 ## Transport
 - [[proxied-request-hang-after-upgrade]] — After a dependency upgrade, proxied HTTP requests hang or responses fail to decode.
 - [[transport-defaults-kill-connections]] — Connects fail on high-latency links; an unhandled socket error crashes the process.
@@ -105,6 +105,7 @@ Failures whose first concept is in [[Model Interface]].
 - [[transport-fallback-after-partial-output]] — A WebSocket failure after partial output, or repeated failures, has no safe fallback.
 - [[stream-stall-without-header-timeout]] — An SSE request shows "Working…" forever with zero events.
 - [[server-limited-identifier-rejected]] — Session ids or cache keys over 64 characters, or UUIDv4 request ids, are rejected.
+- [[server-side-state-missing-on-continuation]] — codex: `previous_response_not_found` failed the turn instead of resending the full request.
 
 ## Elsewhere (other groups, related)
 - [[truncated-stream-accepted-as-success]] (01-loop) — Streams with no terminal event are treated as successful partial answers.
@@ -113,5 +114,11 @@ Failures whose first concept is in [[Model Interface]].
 - [[tool-arg-coercion-breaks-unions]] (03-tools) — Lenient argument coercion corrupts nullable unions or fails under CSP.
 - 01-loop retry failures: [[retry-classifier-regex-sprawl]] · [[retry-backoff-hygiene]] · [[hidden-sdk-retries-double-retry]] · [[length-stop-recovery]] · [[length-truncated-tool-calls-executed]]
 - [[api-key-overrides-subscription-auth]] — Config API key silently overrides stored subscription OAuth, so users get billed pay-as-you-go.
+- codex, other groups: [[server-retry-advice-ignored]] · [[content-filter-retry-without-guidance]] · [[prewarm-blocks-turn-start]] (01-loop) · [[truncation-budget-drift-on-replay]] · [[compaction-request-shape-mismatch]] · [[auto-compact-threshold-exceeds-window]] (05-context) · [[harness-credential-leaks-to-tools]] · [[numeric-risk-score-miscalibrated]] (07-safety)
 
 Back: [[Model Interface]]
+
+## Auxiliary model calls
+- [[title-from-tool-narration]] — Titles described tool narration or were missing for shell/@file/subtask-first sessions.
+- [[small-model-format-noncompliance]] — Small title models emitted multi-line, quoted, `<think>` or monotonous output.
+- [[summary-drops-pending-user-request]] — A turn summary hid the agent's final question or instruction to the user.

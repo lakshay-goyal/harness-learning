@@ -1,7 +1,7 @@
 ---
 type: failure
-concepts: [model-catalog, unified-provider-api]
-harnesses: [pi, opencode]
+concepts: [model-catalog, unified-provider-api, constrained-tool-sampling, custom-provider-registration]
+harnesses: [pi, opencode, codex]
 ---
 **Symptom** 400s on otherwise valid requests:
 - Anthropic: `temperature` sent alongside extended thinking. Opus 4.7+ rejects any non-default temperature. The deprecated `interleaved-thinking` beta was sent to adaptive models.
@@ -21,8 +21,14 @@ harnesses: [pi, opencode]
 - `a37306d43` 2026-10-05: the Azure Foundry catalog omits prompt-cache params.
 - The ChatGPT-token path detects provider `openai` with a non-`sk-` key and strips those fields (`openai-responses.ts:40-47,328-346`).
 
+**Fix · [[codex]]** — A custom tool type was unsupported by the serving provider.
+- Symptom: Bedrock-served `openai.gpt-5.4-cmb` reused the bundled `gpt-5.4` metadata (`apply_patch_tool_type = freeform`), so Codex sent a Responses `custom` tool, which Bedrock's validator rejects: "even heavily disabled sessions can fail before the model runs" (`0db6811b7c` body).
+- `0db6811b7c` 2026-04-24 (#19416): use the function `apply_patch` tool for Bedrock models. Superseded by `e783341b70` 2026-05-08, which deleted function-style `apply_patch` and kept freeform "including Bedrock catalog metadata".
+- Related: `d19de6d150` 2026-04-24 Bedrock reasoning levels; `966932124c` 2026-05-30 Bedrock GPT models limited to the default service tier. Today the request filters `service_tier` to tiers Bedrock advertises (`codex-rs/core/src/client.rs:979-988`).
+- The pi-style field rejections cannot occur for `max_output_tokens`/`temperature`, because Codex never sends those fields (`codex-rs/codex-api/src/common.rs:279-304`).
 **Fix · [[opencode]]** `20088a87b0` 2026-01-13 / `5e650fd9e2` 2026-04-16 Cloudflare AI Gateway rejects `max_tokens` for OpenAI reasoning models; `4a56491e42` 2026-01-30 / `3a4c253969` 2026-08-21 `textVerbosity` and `c2403d0f15` 2026-04-13 `reasoningSummary` guarded for `@ai-sdk/openai-compatible`; `0c32afbc35` 2026-01-30 snake_case `thinking.budget_tokens` for OpenAI-compatible; `81b7b58a5e` 2026-04-17 Copilot Haiku rejected `eager_input_streaming`, then `025a6392ce` / `c361c2953f` tool streaming off for Vertex-Anthropic and non-Claude models (`packages/opencode/src/provider/transform.ts:1227-1232`).
 
-**Lesson** Treat request fields as per-model capabilities declared in catalog metadata. Respect provider minimums when clamping.
-
+**Lesson** — Treat request fields, including tool wire types and service tiers, as capabilities of a given model on a given serving provider, declared in catalog metadata. Metadata reused across providers must be re-validated per provider. Respect provider minimums when clamping.
 Related: [[model-catalog]] · [[unified-provider-api]] · [[thinking-level-abstraction]] · [[thinking-config-per-model-drift]] · [[output-token-cap-misbudgeted]] · [[pi--model-catalog|pi]] · [[opencode--thinking-level-abstraction|opencode]]
+
+Related: [[model-catalog]] · [[unified-provider-api]] · [[thinking-level-abstraction]] · [[thinking-config-per-model-drift]] · [[output-token-cap-misbudgeted]] · [[pi--model-catalog|pi]] · [[codex--model-catalog|codex]] · [[constrained-tool-sampling]]

@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: tools
-tier: candidate
+tier: variant
 aliases: [Format.Service, format.file, formatter config, "formatter: false"]
 harnesses: [opencode]
 ---

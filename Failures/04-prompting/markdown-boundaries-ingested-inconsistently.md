@@ -1,7 +1,7 @@
 ---
 type: failure
-concepts: [xml-prompt-boundaries, context-file-hierarchy, system-prompt-override]
-harnesses: [pi]
+concepts: [xml-prompt-boundaries, context-file-hierarchy, system-prompt-override, message-role-layering]
+harnesses: [pi, codex]
 ---
 **Symptom** — Models inconsistently understood where injected AGENTS.md/CLAUDE.md content and system prompt sections began and ended; separately, custom system prompts glued the cwd line onto later appended content.
 
@@ -14,6 +14,11 @@ harnesses: [pi]
 - `9e05370b2` 2026-09-16: every section XML-tagged (`system-prompt.ts:188-191`); HEAD render `system-prompt.ts:79-86`.
 - `88619669e` 2026-05-06 (#4234): HTML export strips skill wrapper XML (UI side).
 
-**Lesson** — Delimit injected documents with unambiguous tags (with a `path` attribute), never with headings that collide with the documents' own structure.
+**Fix · [[codex]]**
+- Symptom variant: after AGENTS.md started being injected as a user message (PR #1737), "the model confus[ed] AGENTS.md context as part of the message" (`063083af15` body).
+- `063083af15` 2025-08-04 "[prompts] Better user_instructions handling (#1836)": wrapped in `<user_instructions>\n\n…\n\n</user_instructions>` (USER_INSTRUCTIONS_START/END in `codex-rs/core/src/client_common.rs`) + prompt lines "`user_instructions` are not part of the user's request, but guidance for how to complete the task." / "Do not cite `user_instructions` back to the user unless a specific piece is relevant." (removed again in `81b148bda2`).
+- `2371d771cc` 2025-10-30: format `# AGENTS.md instructions for <dir>` + `<INSTRUCTIONS>` (now `codex-rs/core/src/context/user_instructions.rs`); every injected fragment gets open/close markers (`codex-rs/context-fragments/src/fragment.rs`).
 
-Related: [[xml-prompt-boundaries]] · [[context-file-hierarchy]] · [[system-prompt-override]] · [[pi--xml-prompt-boundaries|pi]]
+**Lesson** — Delimit injected documents with unambiguous tags (with a `path` or directory label), never with headings that collide with the documents' own structure; when they ride in a user-role message, also say they are guidance, not the request.
+
+Related: [[xml-prompt-boundaries]] · [[context-file-hierarchy]] · [[system-prompt-override]] · [[pi--xml-prompt-boundaries|pi]] · [[message-role-layering]] · [[codex--xml-prompt-boundaries|codex]]

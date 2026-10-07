@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: architecture
-tier: candidate
-aliases: ["enableInstallTelemetry", "PI_TELEMETRY", "report-install", "pi-telemetry", "TelemetryContext", "provider attribution headers", "enableAnalytics", "opt-out-install-telemetry", "vendor-neutral-telemetry-contract", "typed-telemetry-schema", OTEL_EXPORTER_OTLP_ENDPOINT, experimental.openTelemetry]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: ["enableInstallTelemetry", "PI_TELEMETRY", "report-install", "pi-telemetry", "TelemetryContext", "provider attribution headers", "enableAnalytics", "opt-out-install-telemetry", "vendor-neutral-telemetry-contract", "typed-telemetry-schema", OTEL_EXPORTER_OTLP_ENDPOINT, experimental.openTelemetry, codex-otel, codex-analytics, codex-feedback, otel-trace-websocket, Statsig, "[otel]", install-context]
+harnesses: [pi, opencode, codex]
 ---
 What a harness sends home or exposes for observability: anonymous install/update pings and app-identifying headers (with kill switches), plus an in-process tracing contract the embedding app can adapt to its own backend.
 
@@ -21,10 +21,14 @@ What a harness sends home or exposes for observability: anonymous install/update
 - **Coupled outbound identity**: attribution headers under the same switch (pi) vs separate.
 - **Tracing**: OTel dependency vs vendor-neutral callback-scoped span contract with no exporter, no global current span, typed schemas, conformance suite (pi `pi-telemetry`).
 - **Schema enforcement**: runtime validation vs compile-time types only (pi).
+- **Metrics on by default to vendor endpoint** (Statsig OTLP) with opt-in sensitive content logs ✔ codex.
+- **User-initiated diagnostics upload** (log ring + rollout + doctor report via Sentry) ✔ codex.
+- **Install-method detection** for update prompts (npm/bun/brew/standalone) ✔ codex.
 - **None + opt-in tracing**: no analytics client or install ping found; OTLP export only when the endpoint env var is set; AI SDK spans behind a config flag (opencode).
 
 ## Implementations
 - [[pi--install-telemetry|pi]] — opt-out version ping to pi.dev after updates, `PI_TELEMETRY`/`PI_OFFLINE`, attribution headers gated by same flag; `@earendil-works/pi-telemetry` contract wired only as an unused `telemetryContext` option.
+- [[codex--install-telemetry|codex]] — OTEL with metrics exporter Statsig by default, opt-in prompt/response logging, separate product-analytics client (`analytics = false`), Sentry feedback upload with log ring + rollout attachments, install-method detection.
 - [[opencode--install-telemetry|opencode]] — no product analytics found in `packages/opencode`/`packages/core`; opt-in OTLP and AI SDK spans tagged `session.id`.
 
 ## Failures

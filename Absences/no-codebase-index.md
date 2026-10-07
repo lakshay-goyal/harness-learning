@@ -1,6 +1,6 @@
 ---
 type: absence
-harnesses: [pi, opencode]
+harnesses: [pi, opencode, codex]
 ---
 # no-codebase-index
 
@@ -32,9 +32,11 @@ No embeddings, RAG, vector store, repo map or tree-sitter symbol index.
 - Every session starts cold. Discovery cost is paid in tool calls and tokens each time, which is offset by prefix caching and compaction.
 - No index means no staleness, no background indexing process, and no extra security surface (an index can leak files to an embedding API).
 
+**codex** — *absent too*. No embeddings, vector store or repo map. `tree-sitter`, `tree-sitter-bash`, `tree-sitter-powershell` are workspace deps (`codex-rs/Cargo.toml:534-536`) used only by `codex-rs/apply-patch` and `codex-rs/shell-command` (command parsing/safety), not indexing. BM25 exists only for *tool* search (`codex-rs/core/src/tools/handlers/tool_search.rs:14-16`) and a shadow-metrics lexical *skill* selector (`c100109280` 2026-07-13). `codex-rs/file-search` (born `296996d74e` 2025-06-25) is fuzzy filename search for the UI @-mention picker. The model explores with `rg` / `rg --files` (prompt guidance, e.g. `codex-rs/core/gpt_5_2_prompt.md:250`).
 **opencode** ([[opencode]], `ecc4916b5a`): also absent.
 - No embeddings or vector index in `packages/opencode/src` or `packages/core/src` (grep `embedding|vector`; the only "file search" is Copilot's hosted Responses tool, `packages/core/src/github-copilot/responses/tool/file-search.ts`).
 - Substitutes: ripgrep-backed `glob`/`grep` ([[search-tools]]), the `explore` subagent (read-only, own prompt; `packages/opencode/src/agent/agent.ts:196-218`), experimental LSP `workspaceSymbol` ([[lsp-diagnostics-feedback]]), and config `references` to external repos ([[project-references]]).
 - The repo-research `scout` agent with `repo_clone`/`repo_overview` lived 2026-05-09 → 2026-06-02 (`40d5ea1cf1` → `a639fe7a08`) → [[removed-builtin-tools]].
 
+Related: [[search-tools]] · [[minimal-default-toolset]] · [[context-file-hierarchy]] · [[skill-progressive-disclosure]] · [[deferred-tool-loading]] · [[no-lsp]] · [[Absences]] · [[shell-command-intent-parsing]] · [[minimal-vs-rich-toolset]]
 Related: [[search-tools]] · [[minimal-default-toolset]] · [[context-file-hierarchy]] · [[skill-progressive-disclosure]] · [[deferred-tool-loading]] · [[no-lsp]] · [[opencode]] · [[Absences]]

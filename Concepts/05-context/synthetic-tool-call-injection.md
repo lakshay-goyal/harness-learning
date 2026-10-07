@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: context
-tier: candidate
+tier: variant
 aliases: [SubtaskPart, handleSubtask, shellImpl, "The following tool was executed by the user", "Summarize the task tool output above and continue with your task."]
 harnesses: [opencode]
 ---

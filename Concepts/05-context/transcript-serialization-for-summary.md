@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: compaction
-tier: candidate
+tier: must-have
 aliases: [serializeConversation, "<conversation>", "[User]:", "[Tool result]:", SUMMARIZATION_SYSTEM_PROMPT, TOOL_RESULT_MAX_CHARS, anti-continuation-instruction]
 harnesses: [pi, opencode]
 ---
@@ -20,6 +20,7 @@ For summarization the conversation is flattened into tagged plain text inside on
 - Images: dropped (text only) ✔ pi.
 - Custom roles converted first (shell runs, summaries → user text) ✔ pi via [[message-conversion-layer]].
 - Tool choice: forbid tools via `toolChoice:"none"` (pi tried, broke providers) vs send no tools + reject tool calls ✔ pi.
+- codex: absent — local compaction uses the *chat-turns* option: the prompt is appended as a synthetic user message to the full live history (tool outputs already truncated by the history policy) with the session's base instructions (`codex-rs/core/src/compact.rs:113-130`, `:269-300`); remote compaction sends history + a `CompactionTrigger` item and no prompt (`codex-rs/core/src/compact_remote_v2_attempt.rs:84-103`). Overflow of that request is handled by dropping the oldest item, not by capping serialized results (`codex-rs/core/src/compact.rs:330-346`).
 - **Serialize the kept tail too**: the recent window re-enters context as serialized text inside a `<conversation-checkpoint>` user message, so no provider-native message (signatures, encrypted reasoning) crosses the boundary (opencode v2).
 - Extra tags for harness message kinds: `[System update]:`, `[Synthetic context]:`, `[Shell]:` (opencode v2).
 - Head replayed as real model messages with `stripMedia` (opencode before `b7f9363393`, broke on orphaned history) → flat text.
@@ -34,10 +35,11 @@ For summarization the conversation is flattened into tagged plain text inside on
 - [[summarization-request-overflows]]
 - [[summarizer-emits-tool-calls]]
 - [[domain-biased-summarizer-prompt]]
+- [[summarizer-refusal]] (05-context) — Claude Fable 5.1 refused to produce split-turn (turn-prefix) compaction summaries, so compaction of long…
 - [[compaction-request-shape-mismatch]] (opencode: replaying the head as provider messages produced invalid shapes)
+
+## Related
+[[structured-compaction-summary]] · [[summary-validation]] · [[auto-compaction]] · [[branch-summary]] · [[split-turn-summary]] · [[message-conversion-layer]] · [[tool-output-truncation]] · [[compaction-design]]
 
 ## Tradeoffs
 - [[compaction-design]]
-
-## Related
-[[structured-compaction-summary]] · [[summary-validation]] · [[auto-compaction]] · [[branch-summary]] · [[split-turn-summary]] · [[message-conversion-layer]] · [[tool-output-truncation]]

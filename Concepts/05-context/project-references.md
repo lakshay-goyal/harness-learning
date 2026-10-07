@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: context
-tier: candidate
+tier: variant
 aliases: ["<available_references>", Reference.Service, ReferenceGuidance, "core/reference-guidance", "references config", project reference]
 harnesses: [opencode]
 ---

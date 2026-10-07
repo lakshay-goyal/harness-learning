@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: architecture
-tier: candidate
+tier: variant
 aliases: ["opencode github install", "opencode github run", "/oc", "/opencode mention", "anomalyco/opencode/github", exchange_github_app_token, use_github_token, opencode-agent GitHub App]
 harnesses: [opencode]
 ---

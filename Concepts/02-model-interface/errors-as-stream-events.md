@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: failure-handling
-tier: candidate
-aliases: ["stopReason error/aborted", errorMessage, errors-as-stream-terminal-events, provider-error-normalization, stable-error-categories, provider-failure-diagnostics, scratch-field-stripping, normalizeProviderError, formatProviderError, lazyStream, MessageV2.fromError, parseStreamError, ResponseStreamError, ContentFilterError]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: ["stopReason error/aborted", errorMessage, errors-as-stream-terminal-events, provider-error-normalization, stable-error-categories, provider-failure-diagnostics, scratch-field-stripping, normalizeProviderError, formatProviderError, lazyStream, MessageV2.fromError, parseStreamError, ResponseStreamError, ContentFilterError, ApiError, map_api_error, CodexErrorDetails, parse_failed_response, CLOUDFLARE_BLOCKED_MESSAGE]
+harnesses: [pi, opencode, codex]
 ---
 Once a model stream has been handed back, failures never throw. The stream ends with a terminal error event whose message keeps the partial content, partial usage, a stable error text and structured diagnostics, and contains no streaming scratch state.
 
@@ -38,11 +38,15 @@ Once a model stream has been handed back, failures never throw. The stream ends 
 - **Diagnostics channel**
   - Rely only on `errorMessage` text.
   - Attach a redacted structured `diagnostics[]` array: status, code, request id, transport phase, input transformations.
+- **Classification by structured code** (codex)
+  - Provider `response.failed` codes and HTTP status map into a typed `CodexErr`. The retry decision lives on the error type: `retry_delay(retry_count)` returns terminal, advice-only or backoff. Only the rate-limit delay keeps a message-regex fallback. ✔ codex (`codex-rs/codex-api/src/sse/responses_error.rs:47-142`; `codex-rs/protocol/src/error.rs:397-445`)
+  - Diagnostics are structural (error category, line, column, byte count) rather than payload echoes; connection errors redact URLs. ✔ codex
 - **Error storage**: typed error object stored on the assistant message (`AbortedError`, `APIError`, `ContextOverflowError`, `ContentFilterError`…) (opencode legacy) · typed `reason` classes decided at the HTTP boundary (opencode v2).
 - **Content-filter finish**: surfaced as a visible error rather than a silent empty stop (opencode `e2527db3c7`).
 
 ## Implementations
 - [[pi--errors-as-stream-events|pi]] — the StreamFunction contract plus `lazyStream`. Adapter catch blocks strip scratch fields and set aborted/error with the partial message. Errors go through `normalizeProviderError`/`formatProviderError` (4000-char body cap) and diagnostics records.
+- [[codex--errors-as-stream-events|codex]] — the stream's last item is `Err(ApiError)`, mapped to typed `CodexErr` with code and HTTP tables; quota, policy and invalid-prompt errors are terminal; debug context is captured from response headers.
 - [[opencode--errors-as-stream-events|opencode]] — `MessageV2.fromError` maps SDK/fetch errors to typed session errors; `parseStreamError` reads mid-stream codes; v2 typed reasons.
 
 ## Failures
@@ -53,6 +57,8 @@ Once a model stream has been handed back, failures never throw. The stream ends 
 - [[streamed-usage-misread]]
 - [[truncated-stream-accepted-as-success]]
 - [[retry-classifier-regex-sprawl]]
+- [[error-diagnostics-echo-payload]]
+- [[stop-reason-mapping-gaps]] (02-model-interface) — Google responses with a tool call but a MAX_TOKENS or error stop were treated as normal tool use, hiding…
 
 ## Related
-[[unified-provider-api]] · [[auto-retry-backoff]] · [[terminal-event-required]] · [[context-overflow-detection]] · [[usage-cost-accounting]] · [[partial-message-persistence]] · [[abort-propagation]] · [[transcript-replay-repair]]
+[[unified-provider-api]] · [[auto-retry-backoff]] · [[terminal-event-required]] · [[context-overflow-detection]] · [[usage-cost-accounting]] · [[partial-message-persistence]] · [[abort-propagation]] · [[transcript-replay-repair]] · [[subscription-usage-limits]]

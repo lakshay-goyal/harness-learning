@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: architecture
-tier: candidate
+tier: must-have
 aliases: ["pico-v5-handoff", "Pico5 spec", "Package N", "docs(durable): specify …", CONTEXT.md glossary, "specs/v2", schema-changelog.md, "_Avoid_:"]
 harnesses: [pi, opencode]
 ---

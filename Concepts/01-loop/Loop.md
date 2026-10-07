@@ -2,7 +2,7 @@
 type: group
 group: 01-loop
 ---
-Scope: the agent's control loop — turns, run settlement, mid-run input queues, loop hooks, cancellation, retry, and stream/stop-reason integrity guards that decide whether a response may drive the next step.
+Scope: the agent's control loop — turns, run settlement, mid-run input queues, loop hooks, cancellation, retry, stream/stop-reason integrity guards that decide whether a response may drive the next step, and autonomous-continuation / budget drivers.
 
 ## Concepts
 - [[turn-loop]] — Inner loop: request → stream assistant → run tool calls → append results → repeat while tool calls or injected messages exist.
@@ -14,6 +14,12 @@ Scope: the agent's control loop — turns, run settlement, mid-run input queues,
 - [[auto-retry-backoff]] — Harness-level retry of transient provider errors with capped exponential backoff; retryable decided by classifier.
 - [[terminal-event-required]] — Streams that end without an explicit terminal event / stop reason are treated as (retryable) errors.
 - [[truncated-tool-call-guard]] — Never execute tool calls from a length-truncated or unfinalized assistant message.
+- [[single-active-task-slot]] — At most one task (turn, compaction, review, user shell) per session; starting one aborts the current, all share one lifecycle.
+- [[mid-turn-settings-switch]] — Model/effort/permission changes during a turn captured as an immutable per-step snapshot for the next sampling request.
+- [[elicitation-pause]] — Ref-counted "user is deciding" flag that pauses time-based tool limits and result delivery.
+- [[session-token-budget]] — Weighted token ledger shared by a root agent tree; threshold reminders, budget-exceeded error on exhaustion.
+- [[persistent-goal-continuation]] — Persisted objective + token budget; harness starts continuation turns on idle until complete/blocked/budget/breaker.
+- [[persistent-agent-mode]] — Always-on mode where the model is re-sampled without new input and must pick bounded, authorized follow-ups.
 - [[step-budget-limit]] — A per-agent cap on model steps per run; the last step asks for a final answer and forbids tools by prompt or `toolChoice:none`.
 - [[repeated-tool-call-detection]] — Detect the same tool call with identical input N times in a row and interrupt by asking the user or stopping.
 

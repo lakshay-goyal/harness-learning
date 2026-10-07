@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: state
-tier: candidate
+tier: variant
 aliases: [EventV2, "session.next.*", event_sequence, DurableDefinitions, SessionProjector, "events.project", aggregate seq, commit hook, opencode.db]
 harnesses: [opencode]
 ---

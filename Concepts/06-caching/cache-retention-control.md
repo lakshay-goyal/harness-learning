@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: caching
-tier: candidate
+tier: must-have
 aliases: [cacheRetention, PI_CACHE_RETENTION, "cacheRetention: none", prompt_cache_retention, prompt_cache_options, "ttl: 1h", promptCache, ttlSeconds, ttlBucket, "cache: none"]
 harnesses: [pi, opencode]
 ---
@@ -19,6 +19,7 @@ A provider-neutral cache retention knob (none / short / long) mapped onto each p
 - Explicit-mode opt-out of implicit writes where the provider supports it (**pi** OpenAI GPT-5.6+ `{mode:"explicit"}`).
 - Declared cache lifetimes per model/tier as catalog metadata (feeds [[cache-warming]]), only where expiry behavior is verified (**pi**: direct Anthropic only).
 - Cache-friendly side requests that *reuse* the cached prefix (pi tried "cache-friendly compaction primitives", reverted next day).
+- codex: absent. `ResponsesApiRequest` has no retention or TTL field (`codex-rs/codex-api/src/common.rs:279-304`; `git grep prompt_cache_retention` at `622e9e3696` → no hits). Side requests (compaction, subagents, ephemeral forks) deliberately *share* the session cache key instead of opting out ([[codex--session-affinity-cache-routing|codex]]).
 - **Retention as part of the cache policy object**: `ttlSeconds` bucketed to 5m / 1h (≥ 3600 s), `"none"` disables auto placement but keeps manual hints (opencode v2 `packages/llm`); the session never sets it, so everything is 5m and side requests are not isolated (opencode).
 
 ## Implementations
@@ -30,4 +31,4 @@ A provider-neutral cache retention knob (none / short / long) mapped onto each p
 - [[server-limited-identifier-rejected]]
 
 ## Related
-[[session-affinity-cache-routing]] · [[cache-warming]] · [[cache-breakpoint-placement]] · [[usage-cost-accounting]] · [[auto-compaction]] · [[branch-summary]]
+[[session-affinity-cache-routing]] · [[cache-warming]] · [[cache-breakpoint-placement]] · [[usage-cost-accounting]] · [[auto-compaction]] · [[branch-summary]] · [[prompt-cache-strategy]]

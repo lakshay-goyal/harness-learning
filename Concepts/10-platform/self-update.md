@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: architecture
-tier: candidate
+tier: must-have
 aliases: [autoupdate, OPENCODE_DISABLE_AUTOUPDATE, "Installation.method", UpdateAvailable, "opencode upgrade", "pi update", PI_MANAGED_INSTALL_ROOT]
 harnesses: [opencode, pi]
 ---

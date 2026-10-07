@@ -1,7 +1,7 @@
 ---
 type: failure
 concepts: [shell-execution, tool-output-truncation, tool-output-spill]
-harnesses: [pi]
+harnesses: [pi, codex]
 ---
 **Symptom**
 - Binary output (e.g. `curl` of a video) crashed the TUI.
@@ -20,6 +20,13 @@ harnesses: [pi]
 - `f95306781` 2026-05-21 (#4818) — ignore trailing newline as extra line (`truncate.ts:47-56`).
 - `a19c09d9b` 2026-10-04 — durable `StreamDecoder` strips U+FEFF only at stream start (`packages/durable/src/env/decode.ts:1-29`); `cd60a5b99` 2026-10-05 output BOM; durable 1.0.3 deterministic tail window (`packages/durable/CHANGELOG.md:74-75`).
 
-**Lesson** — Decode streams with a stateful decoder, count incrementally over the whole stream, and always keep a full-output escape hatch whenever you truncate for the model.
+**Fix · [[codex]]**
+- Symptom in codex: huge command output in monorepos made sessions sluggish then crash ("Commonality: working in monorepo and large projects … Potential high usage of context", issues #8197, #8358, #7585).
+- `fb24c47bea` 2025-12-23 "limit output size for exec command in unified exec".
+- `6138909d6e` 2026-07-10 "Keep unified exec output collection bounded" — repeated drains had accumulated into an uncapped buffer → `HeadTailBuffer` 1 MiB, half head / half tail, middle reported `... N bytes omitted ...` (`codex-rs/core/src/unified_exec/head_tail_buffer.rs:11-19`; `codex-rs/core/src/unified_exec/mod.rs:80,231-233`); model budget separate (10k tokens, [[tool-output-truncation]]).
+- `748d8ac834` 2026-08-21 UI output delta frames bounded to 8192 bytes (`async_watcher.rs:42`); `4891c4e35f` 2026-09-24 output buffers updated atomically so cancellation cannot split a chunk.
+- No spill file: truncated middle bytes are not recoverable (contrast pi).
 
-Related: [[shell-execution]] · [[tool-output-truncation]] · [[tool-output-spill]] · [[pi--shell-execution|pi]]
+**Lesson** — Decode streams with a stateful decoder, bound collection memory separately from the model budget (keep head and tail), count incrementally over the whole stream, and offer a full-output escape hatch when you truncate.
+
+Related: [[shell-execution]] · [[tool-output-truncation]] · [[tool-output-spill]] · [[pi--shell-execution|pi]] · [[codex--shell-execution|codex]]

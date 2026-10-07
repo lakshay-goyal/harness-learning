@@ -1,7 +1,7 @@
 ---
 type: failure
-concepts: [tool-description-design, provider-identity-shim]
-harnesses: [pi, opencode]
+concepts: [tool-description-design, provider-identity-shim, per-model-system-prompt]
+harnesses: [pi, opencode, codex]
 ---
 **Symptom** — Codex-trained models running inside pi called tools from their native harness that pi does not have: `apply_patch`/`applyPatch` for file edits, `update_plan`/`read_plan`/`todowrite`/`todoread` for planning.
 
@@ -12,10 +12,15 @@ harnesses: [pi, opencode]
 - `bb50738f7` 2026-01-05 — pi system prompt appended after the bridge in one message.
 - `6484ae279` 2026-01-16 (#737) — bridge + upstream prompts deleted, replaced by allowlisted static instructions; `4068bc556` 2026-01-17 — Codex uses pi's normal system prompt as `instructions` (no bridge since).
 
-**Lesson** — Models bring their training harness's tool names; either alias those tools to yours or state explicitly that they don't exist — and prefer the former over shouting rules. (unverified whether symptom recurred after the bridge was dropped.)
+**Fix · [[codex]]** (the owning harness's side)
+- Symptom: codex's own models invoked misspelled tool names (`applypatch`, `apply-patch`) and emitted Codex-web / ChatGPT citation syntax ("【F:README.md†L5-L14】") the CLI cannot render; the very first Rust prompt was the Codex-web container prompt ("internet access is disabled in the container", "You do not need to `git commit` your changes; this will be done automatically for you.", `31d0d7a305:codex-rs/core/prompt.md`).
+- `d31e149cb1` 2025-08-05 / `81b148bda2` 2025-08-07 — container text removed; "Use the `apply_patch` tool to edit files (NEVER try `applypatch` or `apply-patch`, only `apply_patch`)" and "NEVER output inline citations like "【F:README.md†L5-L14】" … The CLI is not able to render these" (`codex-rs/protocol/src/prompts/base_instructions/default.md:132,147`).
+- `5f8984aa7d` 2025-08-11 — harness also **aliases** `applypatch` instead of only forbidding it ([[tool-name-training-artifact]]).
+- `update_plan` made opt-in `a9519cbcdd` 2026-08-31: codex's own trained tool now also "doesn't exist" by default ([[task-list-tool]]).
 
-Related: [[tool-description-design]] · [[provider-identity-shim]] · [[search-replace-edit]] · [[no-todo-tool]] · [[harness-identity]]
+**Lesson** — Models bring the tool names and output conventions of every product they were trained for: alias the tools you can (prefer this over shouting rules), and on each surface explicitly forbid the other surfaces' conventions.
+
+Related: [[tool-description-design]] · [[provider-identity-shim]] · [[search-replace-edit]] · [[no-todo-tool]] · [[harness-identity]] · [[per-model-system-prompt]] · [[patch-envelope-edit]] · [[task-list-tool]] · [[codex--tool-description-design|codex]]
 
 **Fix · [[pi]]** (prompting angle, appended by 04-prompting writer) — `6dcb64565` 2026-01-10 "Prepare for alternative Codex harness certification" sits between bridge and allowlisted-instructions phases; the durable outcome is [[harness-identity]]: preamble "operating inside pi, a coding agent harness" (`4068bc556`, HEAD `packages/coding-agent/src/core/system-prompt.ts:155-156`) instead of tool-by-tool `critical_rule` denials. Full Codex prompt detour timeline in [[pi--harness-identity]].
-
 **Fix · [[opencode]]** — opposite strategy: give the model its native tools. `b7ad6bd839` 2026-01-17 `apply_patch` for `gpt-*` ids instead of edit/write (`packages/opencode/src/tool/registry.ts:297-300`) → [[model-specific-toolset]], [[patch-envelope-edit]]. Case-mismatched names (`Read`) auto-repaired by lowercasing in `experimental_repairToolCall`; anything else becomes the hidden `invalid` tool's error result (`packages/opencode/src/session/llm.ts:296-317`, `0a42068fbb` 2025-08-04). See [[opencode--tool-argument-repair]].

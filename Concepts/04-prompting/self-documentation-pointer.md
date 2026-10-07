@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: messages
-tier: candidate
-aliases: ["<docs>", "Pi documentation", getDocsPath, getReadmePath, customize-opencode]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: ["<docs>", "Pi documentation", getDocsPath, getReadmePath, customize-opencode, system skills, ".system skills dir", openai-docs skill, codex-self-knowledge.md]
+harnesses: [pi, opencode, codex]
 ---
 The prompt carries absolute paths to the harness's own docs/examples plus a topic→file map, read on demand only when the user asks about the harness itself.
 
@@ -19,16 +19,20 @@ The prompt carries absolute paths to the harness's own docs/examples plus a topi
 - Pseudo-URLs (`pi-internal://README.md`) for provider-allowlisted static prompts (pi, 1 day in Jan 2026).
 - Offload tool reference into a doc (codemode → `docs/codemode.md`).
 - Measure the lift with paired with/without-docs evals (pi `packages/evals`).
+- **Self-docs as bundled system skills** compiled into the binary and materialized on disk, discovered through the normal skills catalog; routing by the skill *description* ("Use for Codex models/pricing… and self-knowledge—including 'you,' 'your,' 'this app,'…") ✔ codex.
+- Docs vehicle doubles as post-training-cutoff knowledge ("what is the newest model") updated per release ✔ codex (openai-docs skill bumps per model launch).
 - Ship harness docs as a built-in skill scoped to config edits (opencode).
 - Docs URL fetched at runtime via the web tool (opencode legacy).
 
 ## Implementations
 - [[pi--self-documentation-pointer|pi]] — `<docs>` section, 13-topic map, ~45% of default prompt.
+- [[codex--self-documentation-pointer|codex]] — five bundled system skills (openai-docs with `codex-self-knowledge.md`, skill-creator, skill-installer, imagegen, review-agent) in a `.system` skills dir; no docs section in the prompt.
 - [[opencode--self-documentation-pointer|opencode]] — docs URL + WebFetch instruction in anthropic.txt and meta.txt; built-in `customize-opencode` skill with real config schemas (origin/v2 drops the URL line).
 
 ## Failures
 - [[instruction-relative-paths-resolved-from-cwd]]
 - [[partial-file-read-acted-on]]
+- [[self-reference-not-routed-to-docs]]
 
 ## Related
 [[minimal-system-prompt]] · [[tool-description-design]] · [[harness-evals]] · [[skill-progressive-disclosure]] · [[file-read-tool]]

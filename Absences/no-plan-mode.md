@@ -32,6 +32,7 @@ harnesses: [pi]
 - The prompt-only "read-only" rules were deleted. A mode must be enforced by the toolset or a gate, not by prose → [[minimal-default-toolset]], [[dynamic-tool-guidelines]].
 - Plans live in files (PLAN.md), which survive compaction and session switches. See [[no-todo-tool]].
 
+**codex** — *not absent*: Plan collaboration mode (`d544adf71a` 2026-01-19 onward) swapping a developer instruction block and enabling `request_user_input` (`codex-rs/collaboration-mode-templates/templates/plan.md`) → [[plan-mode]], [[ask-user-tool]]; TUI `/plan`; `update_plan` checklist tool since `8828f6f082` 2025-07-29 → [[task-list-tool]]. Other collaboration styles (Pair Programming / Execute / Custom) were removed (`31415ebfcf` 2026-01-19; `d509df676b` 2026-02-03) → [[no-collaboration-styles]].
 **opencode contrast**: implements it: `plan` agent (edits denied except `.opencode/plans/*.md`) + `plan_exit` tool; the model-driven `plan_enter` was disabled (`packages/opencode/src/agent/agent.ts:156-180`; `fa559b0385`) — see [[plan-mode]] / [[plan-mode-vs-none]] / [[no-model-initiated-plan-entry]].
 
-Related: [[tool-call-gate]] · [[extension-event-hooks]] · [[minimal-default-toolset]] · [[replaceable-builtin-extension]] · [[no-subagents-core]] · [[no-permission-prompts]] · [[Absences]]
+Related: [[tool-call-gate]] · [[extension-event-hooks]] · [[minimal-default-toolset]] · [[replaceable-builtin-extension]] · [[no-subagents-core]] · [[no-permission-prompts]] · [[Absences]] · [[plan-mode]] · [[task-list-tool]] · [[ask-user-tool]] · [[no-collaboration-styles]]

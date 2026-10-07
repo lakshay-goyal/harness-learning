@@ -1,7 +1,7 @@
 ---
 type: failure
-concepts: [http-transport-hardening]
-harnesses: [pi]
+concepts: [http-transport-hardening, session-affinity-cache-routing]
+harnesses: [pi, codex]
 ---
 **Symptom** — Long Codex sessions failed on the cached WebSocket:
 - connection-limit failures (#6268);
@@ -16,6 +16,11 @@ harnesses: [pi]
 - `c5dcb2600` 2026-07-22 — `previous_response_not_found` → retry once with the continuation already cleared, so full context is sent (`:344-348`).
 - Open: does this retry `continue` even after events were emitted? (`:344-348`, unverified)
 
-**Lesson** — Pool reuse needs a max age below the server's hard limit. Stateful-continuation transports need a one-shot stateless retry.
+**Fix · [[codex]]** — reactive, with no proactive rotation.
+- The server closes Responses WebSockets after 60 min with `websocket_connection_limit_reached`, and connection-scoped continuation state can vanish (`previous_response_not_found`).
+- Both are mapped to retryable errors: the next attempt reopens the socket, or resends the full request without `previous_response_id` (`codex-rs/codex-api/src/endpoint/responses_websocket.rs:164-168,632-647`).
+- `64dc1c7a01` 2026-07-22 (#34763): retry when the previous response is missing ([[server-side-state-missing-on-continuation]]).
 
-Related: [[http-transport-hardening]] · [[pi--http-transport-hardening|pi]] · [[connection-cache-shared-across-accounts]] · [[transport-fallback-after-partial-output]]
+**Lesson** — Pool reuse needs a max age below the server's hard limit, or a retryable mapping of the server's limit signal. Every stateful-continuation transport needs a stateless full-resend fallback.
+
+Related: [[http-transport-hardening]] · [[pi--http-transport-hardening|pi]] · [[connection-cache-shared-across-accounts]] · [[transport-fallback-after-partial-output]] · [[codex--http-transport-hardening|codex]] · [[session-affinity-cache-routing]] · [[server-side-state-missing-on-continuation]]

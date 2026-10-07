@@ -34,6 +34,7 @@ harnesses: [pi, opencode]
 - Long-running servers, watchers and dev servers must live outside the agent (tmux) or block the turn. Cleanup and observability stay simple: anything pi spawns dies with pi.
 - Pairs with no default timeout. A blocking `npm run dev` hangs the turn until the user presses Esc ([[abort-propagation]]).
 
+**codex** — *present; the opposite design*. Unified exec makes long-lived PTY processes first-class: `exec_command` yields a session id after a yield window and the model continues with `write_stdin` (`c09ed74a16` 2025-09-10 "Unified execution"; 262 commits mention unified exec since). Background terminals survive interrupt (`ba463a9dc7` 2026-03-15; the `<turn_aborted>` marker tells the model "Any running unified exec processes may still be running in the background", `codex-rs/core/src/context/turn_aborted.rs:10-38`). Legacy one-shot `shell_command` removed `8a40095ea3` 2026-08-20 "Standardize shell execution on unified exec" → [[removed-legacy-shell-tools]]. Constants: `MIN_YIELD_TIME_MS = 250`, `MIN_EMPTY_YIELD_TIME_MS = 5_000`, `MAX_YIELD_TIME_MS = 30_000`, `DEFAULT_MAX_BACKGROUND_TERMINAL_TIMEOUT_MS = 300_000` (`codex-rs/core/src/unified_exec/mod.rs:73-78`); 64-process store (M3 findings). TUI `/ps`, `/stop`; `Op::CleanBackgroundTerminals`.
 **opencode** ([[opencode]], `ecc4916b5a`): also absent for the model, and removed on purpose in v2.
 - Legacy shell schema is `command`, `timeout`, `workdir` (+ description); no background/detach flag (`packages/opencode/src/tool/shell/prompt.ts:15-20`). Every call blocks under the 2-min default timeout (`packages/opencode/src/tool/shell.ts:347`).
 - v2 removed background bash: "The model has no registered observation or cancellation tool for background bash jobs, and process-local status is not a sufficient remote contract" (`specs/v2/schema-changelog.md:697`; `d29f5eba92` 2026-06-22).
@@ -41,4 +42,5 @@ harnesses: [pi, opencode]
 - A PTY service exists for user terminals in the app (`packages/core/src/pty.ts`), not as a model tool.
 - Same lesson from both sides: pi says use tmux; opencode says no async capability without its observe/cancel pair.
 
+Related: [[shell-execution]] · [[process-tree-kill]] · [[abort-propagation]] · [[no-bash-default-timeout]] · [[no-turn-cap]] · [[Absences]] · [[codex--shell-execution|codex]] · [[no-kill-timeout-in-unified-exec]] · [[removed-legacy-shell-tools]]
 Related: [[shell-execution]] · [[process-tree-kill]] · [[abort-propagation]] · [[no-bash-default-timeout]] · [[no-turn-cap]] · [[opencode]] · [[Absences]]

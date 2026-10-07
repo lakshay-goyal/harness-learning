@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: architecture
-tier: candidate
-aliases: ["pi.on", "41 extension events", "hooks (pre-2026)", "ExtensionAPI", "ExtensionEvent", "provider-payload-hook", "compaction-extension-hook", "before_provider_request", "session_before_compact", "@opencode-ai/plugin", Plugin.trigger]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: ["pi.on", "41 extension events", "hooks (pre-2026)", "ExtensionAPI", "ExtensionEvent", "provider-payload-hook", "compaction-extension-hook", "before_provider_request", "session_before_compact", "@opencode-ai/plugin", Plugin.trigger, ExtensionRegistry, ThreadLifecycleContributor, TurnLifecycleContributor, ToolLifecycleContributor, ApprovalReviewContributor]
+harnesses: [pi, opencode, codex]
 ---
 Typed lifecycle event bus where plugins observe, transform or veto harness behavior at fixed points (input, prompt build, per-request context, provider request/stream, tool call/result, session transitions, settle boundary).
 
@@ -23,12 +23,17 @@ Typed lifecycle event bus where plugins observe, transform or veto harness behav
 - **Granularity of raw access**: only semantic events vs also provider-payload/header/raw-stream taps below the model abstraction (pi exposes both).
 - **Ordering vs other subscribers**: plugins before public SDK listeners (pi) vs same bus.
 - **Process model**: in-process with full permissions (pi; no sandbox) vs out-of-process hooks (shell-command hooks, RPC).
+- **Two-tier** ✔ codex: in-process compiled contributors for first-party features; out-of-process command/MCP-tool hooks (JSON stdin/stdout + exit codes) for users/plugins/admins.
+- **Timeouts (codex)**: 600 s default per command hook, SessionEnd 1 s (max 3 s); stdin written concurrently with output draining.
+- **Policy (codex)**: project hooks gated by trust; admins can force managed-hooks-only.
+- **LLM-evaluated hooks** (prompt/agent handlers): declared in schema but rejected at load ✔ codex ([[no-prompt-and-agent-hooks]]).
 - **Uniform `(input, output)` mutate-in-place hooks** with no return values (opencode, every hook); sequential in load order.
 - **Dead hooks**: a declared hook whose call site was removed fails silently ([[dead-hook-in-public-api]], opencode `permission.ask`).
 - **Core-as-plugins**: built-in agents/commands/skills/providers booted as internal plugins (opencode v2) — see [[replaceable-builtin-extension]].
 
 ## Implementations
 - [[pi--extension-event-hooks|pi]] — 41 typed `pi.on` events, chained transforms, fail-closed `tool_call`/`user_bash`, in-process, no timeouts.
+- [[codex--extension-event-hooks|codex]] — first-party compiled contributor API (`codex-rs/ext/extension-api`: thread/turn/tool/approval/world-state contributors) + third-party external-process hooks (Claude-Code-compatible command/MCP-tool handlers, 600 s default timeout).
 - [[opencode--extension-event-hooks|opencode]] — `@opencode-ai/plugin` `Hooks`: `event`, `config`, `tool`, `auth`, `provider`, `chat.*`, `tool.execute.before/after`, `tool.definition`, `shell.env`, `experimental.*` transforms; no timeouts, no catch.
 
 ## Failures
@@ -40,7 +45,9 @@ Typed lifecycle event bus where plugins observe, transform or veto harness behav
 - [[context-handler-drops-system-state]]
 - [[side-door-input-bypasses-hooks]]
 - [[hook-throw-aborts-parallel-batch]]
+- [[prompt-hook-chain-sees-stale-prompt]] (04-prompting) — With several extensions on before_agent_start, ctx.getSystemPrompt() inside a later handler returned the base…
+- [[compaction-failure-crashes-session]] (05-context) — When auto-compaction failed (e.g. quota exceeded on the summary call) the error was thrown and crashed the…
 - [[dead-hook-in-public-api]]
 
 ## Related
-[[plugin-tools]] · [[runtime-plugin-loading]] · [[extension-ui-primitives]] · [[replaceable-builtin-extension]] · [[tool-call-gate]] · [[tool-result-rewriting]] · [[context-transform-hook]] · [[system-prompt-override]] · [[run-settlement]] · [[turn-lifecycle-hooks]] · [[agent-event-stream]] · [[project-trust-gate]] · [[custom-provider-registration]] · [[permission-ruleset]]
+[[plugin-tools]] · [[runtime-plugin-loading]] · [[extension-ui-primitives]] · [[replaceable-builtin-extension]] · [[tool-call-gate]] · [[tool-result-rewriting]] · [[context-transform-hook]] · [[system-prompt-override]] · [[run-settlement]] · [[turn-lifecycle-hooks]] · [[agent-event-stream]] · [[project-trust-gate]] · [[custom-provider-registration]] · [[extensibility-model]] · [[permission-ruleset]]

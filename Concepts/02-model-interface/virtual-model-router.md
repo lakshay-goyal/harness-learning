@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: model-interface
-tier: candidate
+tier: variant
 aliases: [registerVirtualModel, jev-router, pi-virtual, ModelRouteReason, pi.virtual-model-state]
 harnesses: [pi]
 ---

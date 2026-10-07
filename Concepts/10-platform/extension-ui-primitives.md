@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: architecture
-tier: candidate
+tier: variant
 aliases: ["ctx.ui", "ctx.hasUI", "ctx.mode", "ExtensionUIContext", "registerMessageRenderer", "registerEntryRenderer", "registerToolRenderer", "custom-message-renderers", "registerShortcut"]
 harnesses: [pi]
 ---
@@ -20,6 +20,7 @@ Mode-portable UI API for plugins — dialogs, notifications, status/widgets, ove
 - **Renderer resolution**: by registered tool only vs resolver chain that can render not-yet-registered tools (pi `registerToolRenderer`).
 - **Shortcut conflicts**: last wins vs reserved core list + diagnostics (pi).
 - **Blocking dialog visibility**: emit `ui_prompt_start/end` so other plugins can react (pi).
+- codex: absent as a plugin UI API — plugins contribute only declarative `interface` metadata (display_name, descriptions, category, brand_color, icons, screenshots, default_prompt; `codex-rs/plugin/src/manifest.rs:8-58`); first-party extensions get typed display items (`codex-rs/ext/items/src/lib.rs:1-4`); user interaction is server→client requests (approval, `requestUserInput`, MCP elicitation) rendered by each client ([[codex--client-server-session-split|codex client-server-session-split]]).
 
 ## Implementations
 - [[pi--extension-ui-primitives|pi]] — `ExtensionUIContext` (dialogs, notify, status, widgets, header/footer, overlays, editor swap, autocomplete, themes), renderer registries, RPC extension-UI forwarding.
@@ -28,4 +29,4 @@ Mode-portable UI API for plugins — dialogs, notifications, status/widgets, ove
 - [[plugin-shortcut-shadows-core-keys]]
 
 ## Related
-[[extension-event-hooks]] · [[plugin-tools]] · [[differential-tui-rendering]] · [[headless-rpc-mode]] · [[branch-scoped-extension-state]] · [[session-export-share]]
+[[extension-event-hooks]] · [[plugin-tools]] · [[differential-tui-rendering]] · [[headless-rpc-mode]] · [[branch-scoped-extension-state]] · [[session-export-share]] · [[extensibility-model]]

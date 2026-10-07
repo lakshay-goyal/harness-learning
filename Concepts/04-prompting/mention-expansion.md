@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: messages
-tier: candidate
+tier: variant
 aliases: ["@file", "@agent", createUserMessage, resolvePart, "Called the Read tool with the following input", MAX_MCP_RESOURCE_BLOB_BYTES]
 harnesses: [opencode]
 ---

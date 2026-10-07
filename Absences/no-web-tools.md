@@ -26,6 +26,7 @@ harnesses: [pi]
 - The web is the largest prompt-injection surface. pi neither adds it by default nor defends it once it is added ([[no-prompt-injection-defense]]).
 - Models trained with built-in web tools may try to call them. pi relies on the declared toolset to steer them.
 
+**codex** — *partly present*. Search: hosted Responses `web_search` since `363636f5eb` 2025-08-23, now also a standalone extension `web.run` (`codex-rs/ext/web-search`, `a22706dfae` 2026-05-26; `codex-rs/core/src/tools/hosted_spec.rs:14`, `codex-rs/ext/web-search/src/tool.rs:41-43`), modes Cached/Indexed/Live/Disabled, admin allow-list `allowed_web_search_modes` → [[web-tools]]. Fetch: `open_page` exists only as a web-search *action* (`codex-rs/protocol/src/models.rs:1966`); there is **no general URL fetch tool** (no `web_fetch`/`fetch_url` handler — unverified beyond grep). The model can still `curl` through the shell when the network sandbox allows it ([[egress-policy-proxy]]).
 **opencode contrast**: implements it: `webfetch` always; `websearch` via hosted Exa/Parallel MCP for opencode providers or flags (`packages/opencode/src/tool/registry.ts:58-65`; `packages/opencode/src/tool/webfetch.ts:9-11`) — see [[web-tools]] / [[web-tools-vs-none]].
 
-Related: [[minimal-default-toolset]] · [[mcp-integration]] · [[skill-progressive-disclosure]] · [[provider-identity-shim]] · [[no-builtin-mcp-reversed]] · [[no-prompt-injection-defense]] · [[Absences]]
+Related: [[minimal-default-toolset]] · [[mcp-integration]] · [[skill-progressive-disclosure]] · [[provider-identity-shim]] · [[no-builtin-mcp-reversed]] · [[no-prompt-injection-defense]] · [[Absences]] · [[web-tools]]

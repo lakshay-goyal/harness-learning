@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: tool-design
-tier: candidate
+tier: variant
 aliases: [usePatch, OpenAIToolsPlugin, AnthropicToolsPlugin, "optimize.*.tools"]
 harnesses: [opencode]
 ---

@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: eval
-tier: candidate
+tier: variant
 aliases: ["packages/evals", "pi-evals", "docs lift eval", "*.docs.eval.ts", "without_docs/with_docs", "documentation-audit eval", "createStorageConformance", "createEnvConformance", "createTelemetryAdapterConformance", "eval-harness-adapter", "documentation-lift-eval", "paired-arm-fail-closed-report", "counterbalanced-run-order", "eval-sandbox-privilege-drop", "state-oracle-grading", "doc-implementation-audit", "treatment-integrity-check", "scripted-faux-provider", "adapter-conformance-suite", "semantic-parity-differential-testing", "differential-reference-test", "validated-benchmark-workload"]
 harnesses: [pi]
 ---
@@ -23,6 +23,7 @@ How a harness measures itself: an adapter wrapping the real agent for an eval fr
 - **Isolation**: temp dirs vs Docker per arm, read-only rootfs, privilege drop with read-probe of judges (pi).
 - **CI**: model evals in CI vs only runner unit tests (pi).
 - **Backend contracts**: exported runner-independent conformance suites (storage, env, telemetry) + random-sequence differential tests vs reference implementation + validated benchmark workloads (pi).
+- codex: absent in repo — `git ls-files` at `622e9e3696` has no eval suite (only e2e benchmarks `bazel/rules/e2e_benchmark.bzl`, `codex-rs/cli/e2e_benches/codex_help.rs`, `codex-rs/utils/image/benches/prompt_images.rs`); commit bodies cite internal evals (e.g. `32b1795ff4` "After evals, 0 impact on performance"), and prompt iteration on plan mode was eval-driven (unverified beyond commit subjects). Shadow-metric rollout pattern: lexical skill selector shipped as metrics only (`c100109280` 2026-07-13).
 
 ## Implementations
 - [[pi--harness-evals|pi]] — `packages/evals` (vitest-evals) with Docker-isolated documentation-lift evals and host evals; deterministic judges; fail-closed paired report; pi-durable/pi-env/pi-telemetry conformance + differential suites.

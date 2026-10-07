@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: model-interface
-tier: candidate
+tier: variant
 aliases: [System One, Decisions, llama-cpp-classify, "classify()", ClassifierModel, typesafe-system-one, openai-decisions, logprob-label-classification, prompt-repetition-for-classification, noul]
 harnesses: [pi]
 ---
@@ -29,6 +29,7 @@ A typed classification operation, separate from chat. The caller passes a state 
 - **Retry**
   - Run inside the shared abortable retry, with a fresh timeout per attempt.
   - Opt out per status, e.g. a 504 behind an edge time limit.
+- codex: no `classify()` operation. LLM judgments run as ordinary sampling with categorical outputs: the reviewer uses an enum `risk_level`, and the async classifier takes a single `high`/`low` first token parsed straight from the stream (`a9e7920da1` 2026-08-24). See [[llm-approval-reviewer]].
 
 ## Implementations
 - [[pi--structured-classifier-api|pi]] — pi-ai `Models.classify` with the `typesafe-system-one`, `cloudflare-workers-ai-system-one`, `openai-decisions` and `llama-cpp-classify` APIs, and the `ClassifierModel` type.
@@ -36,6 +37,7 @@ A typed classification operation, separate from chat. The caller passes a state 
 ## Failures
 - [[billed-call-lost-on-parse-error]]
 - [[deterministic-5xx-retried]]
+- [[numeric-risk-score-miscalibrated]]
 
 ## Related
 [[virtual-model-router]] · [[usage-cost-accounting]] · [[auto-retry-backoff]] · [[harness-evals]] · [[model-catalog]]

@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: state
-tier: candidate
+tier: variant
 aliases: [Chord ReplicatedState, MutableReplicatedState, replicatedState(), ReplicatedStateSource, json-delta-ops, "change(ctx, draft)", watch, viewState, copy-on-write-draft-transaction, committed-view-replication, snapshot-then-buffered-updates, overflow-collapses-to-snapshot]
 harnesses: [pi]
 ---
@@ -20,6 +20,7 @@ Agent/UI state published by a single authoritative writer as sequence-numbered r
 - **Back-pressure**: frame-count cap 100 → collapse to `reset` snapshot (provider) / keep newest (public listeners) vs byte limits vs disconnect.
 - **Gap handling**: clear + error (pi, no auto-resubscribe) vs resync.
 - **Visibility**: only committed state replicated ("No visible-undurable path") in pi-durable.
+- codex: absent — clients reduce an event stream (app-server `thread/started → turn/started → item/started → item/*/delta → item/completed → turn/completed`, `codex-rs/app-server-protocol/src/protocol/common.rs:1935-2030`) and re-read via `thread/read`/`thread/turns/list`; no snapshot+delta replicated state. Backpressure choice is the opposite: unbounded caller-facing event queue so responses are never blocked ([[codex--client-server-session-split|codex client-server-session-split]], [[unbounded-subscriber-buffering]]).
 
 ## Implementations
 - [[pi--replicated-state|pi]] — `@earendil-works/chord` replicated state + delta engine; pi-durable `viewState()/watch()` as committed source; server buffers updates until snapshot response; 100-update overflow → reset.

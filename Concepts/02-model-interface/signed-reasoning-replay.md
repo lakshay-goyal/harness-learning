@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: messages
-tier: candidate
-aliases: [thinkingSignature, redacted thinking, redacted_thinking, encrypted_content, "store:false", thoughtSignature, textSignature, reasoning_details, block_binding, "prefix_mismatch_behavior: drop_block", providerThinkingLevel, stale-reasoning-drop, signed-empty-block-preservation, stateless-store-false-replay, per-turn-effort-markers, allowEmptySignature, ANTHROPIC_BLOCK_BINDING, INCLUDE_ENCRYPTED_REASONING, interleaved.field, hasSignedReasoning]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: [thinkingSignature, redacted thinking, redacted_thinking, encrypted_content, "store:false", thoughtSignature, textSignature, reasoning_details, block_binding, "prefix_mismatch_behavior: drop_block", providerThinkingLevel, stale-reasoning-drop, signed-empty-block-preservation, stateless-store-false-replay, per-turn-effort-markers, allowEmptySignature, ANTHROPIC_BLOCK_BINDING, INCLUDE_ENCRYPTED_REASONING, interleaved.field, hasSignedReasoning, reasoning.encrypted_content, encrypted_function_args]
+harnesses: [pi, opencode, codex]
 ---
 Send provider-signed or encrypted reasoning back verbatim to the model that produced it. For any other model, drop it or convert it. Handle three edge cases: blocks that are signed but empty, signatures that have gone stale because the prompt changed, and per-turn effort settings that are bound to the signature.
 
@@ -41,6 +41,8 @@ Send provider-signed or encrypted reasoning back verbatim to the model that prod
   - Replay `signature:""` behind a per-model compat flag.
 - **Distinguishing reasoning from carriers of reasoning state**
   - Gemini signatures can appear on any part. Only `thought: true` marks reasoning.
+- **Single vendor family** (codex)
+  - Always request `reasoning.encrypted_content` and replay it verbatim with `store:false`; never send server reasoning item ids. There is no scope check, because every provider is Responses-shaped. Non-OpenAI providers only lose `encrypted_function_args`. ✔ codex (`codex-rs/core/src/client.rs:942-961`)
 - **Where ids are stripped**: in the message transform before serialization and request signing (opencode `a86ecf3bba`); a fetch-hook body rewrite broke signed Bedrock requests.
 - **Required empty field**: some APIs need a reasoning field on every assistant message, even empty (DeepSeek V4, opencode `86715fecc4`).
 
@@ -52,6 +54,7 @@ Send provider-signed or encrypted reasoning back verbatim to the model that prod
   - Completions: `reasoning_details` and `reasoning_content`.
   - Gemini: `thoughtSignature` on any part.
   - Mistral: native thinking chunks.
+- [[codex--signed-reasoning-replay|codex]] — `include: [reasoning.encrypted_content]` on every request since 2025-09; reasoning item ids are not sent; WebSocket continuation keeps `store:false`.
 - [[opencode--signed-reasoning-replay|opencode]] — `store:false` + encrypted reasoning with item ids stripped, Anthropic `drop_block` binding via SDK patch, DeepSeek/interleaved reasoning padding; re-implemented in `packages/llm`.
 
 ## Failures
@@ -65,6 +68,7 @@ Send provider-signed or encrypted reasoning back verbatim to the model that prod
 - [[stale-thinking-signature-after-prefix-change]]
 - [[opaque-reasoning-payload-lost]]
 - [[reasoning-not-replayed-degrades-tool-args]]
+- [[provider-side-history-retention]] (07-safety) — OpenAI Responses (and later Azure OpenAI Responses) requests were sent without store:false, so every…
 
 ## Related
-[[cross-provider-handoff]] · [[thinking-level-abstraction]] · [[transcript-replay-repair]] · [[transcript-carried-system-prompt]] · [[cache-stable-prompt-prefix]] · [[unified-provider-api]]
+[[cross-provider-handoff]] · [[thinking-level-abstraction]] · [[transcript-replay-repair]] · [[transcript-carried-system-prompt]] · [[cache-stable-prompt-prefix]] · [[unified-provider-api]] · [[provider-breadth]]

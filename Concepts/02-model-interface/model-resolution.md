@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: model-interface
-tier: candidate
-aliases: [resolveCliModel, findInitialModel, enabledModels, Ctrl+P, parseModelPattern, restoreModelFromSession, defaultModelPerProvider, model-reference-resolution, initial-model-selection-cascade, model-cycling-scope, "--models", ":thinking suffix", SessionRunnerModel.resolve]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: [resolveCliModel, findInitialModel, enabledModels, Ctrl+P, parseModelPattern, restoreModelFromSession, defaultModelPerProvider, model-reference-resolution, initial-model-selection-cascade, model-cycling-scope, "--models", ":thinking suffix", SessionRunnerModel.resolve, get_default_model, default_model_from_available]
+harnesses: [pi, opencode, codex]
 ---
 Turn a user string into one concrete model and thinking level. The string can be `provider/id`, a bare id, a fuzzy match, a glob, or any of these with a `:level` suffix. Resolution must:
 - break ambiguity in favor of a model the user can actually call (authenticated), or fail loudly;
@@ -43,16 +43,22 @@ Turn a user string into one concrete model and thinking level. The string can be
 - **Scope**
   - All models.
   - Globs over `provider/id` restricted to authenticated models, cycled with a hotkey; the choice is session-scoped unless the user persists it.
+- **Exact slugs only** (codex)
+  - No fuzzy, glob or `:level` syntax. The default is the catalog preset marked `is_default`, chosen by the vendor. An unknown slug is accepted with fallback metadata. ✔ codex (`codex-rs/models-manager/src/manager.rs:768-851`)
+- **History model unavailable**
+  - Retry compaction with the currently selected model when the previous model is rejected. ✔ codex (`codex-rs/core/src/compact_model_fallback.rs`)
 - **Per-message model**: every user message carries its model (`input.model ?? agent.model ?? session model`) (opencode).
 - **Small-model cascade** for side calls: `small_model` → plugin hook → family priority (opencode, see [[auxiliary-model-calls]]).
 
 ## Implementations
 - [[pi--model-resolution|pi]] — `packages/coding-agent/src/core/model-resolver.ts`: `resolveCliModel`, `parseModelPattern`, `findInitialModel`, `restoreModelFromSession`, the scoped-models globs, and Ctrl+P cycling in agent-session.
+- [[codex--model-resolution|codex]] — `get_default_model`: requested slug if available, else catalog `is_default`, else first; previous-model compaction falls back to the current model.
 - [[opencode--model-resolution|opencode]] — `provider/model` per message, fuzzy suggestions on miss, default-model priority list; v2 never silently falls back.
 
 ## Failures
 - [[model-reference-ambiguity]]
 - [[unusable-default-model-selected]]
+- [[compaction-pinned-to-unavailable-model]]
 
 ## Related
 [[model-catalog]] · [[thinking-level-abstraction]] · [[virtual-model-router]] · [[credential-resolution]] · [[layered-settings]]

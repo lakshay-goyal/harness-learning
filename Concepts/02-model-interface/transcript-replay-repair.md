@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: messages
-tier: candidate
-aliases: ["No result provided", "skip errored/aborted", drop-failed-turns-on-replay, orphaned-tool-call-repair, deferred-system-message-placement, "Tool result unavailable: history ends before this call completed.", failInterruptedTools, unsupportedParts, _noop]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: ["No result provided", "skip errored/aborted", drop-failed-turns-on-replay, orphaned-tool-call-repair, deferred-system-message-placement, "Tool result unavailable: history ends before this call completed.", failInterruptedTools, unsupportedParts, _noop, normalize_history, for_prompt, ensure_call_outputs_present, remove_orphan_outputs, error_or_panic]
+harnesses: [pi, opencode, codex]
 ---
 At the provider boundary, normalize replayed history so it satisfies API invariants:
 - Turns that failed or were aborted are excluded.
@@ -35,6 +35,12 @@ At the provider boundary, normalize replayed history so it satisfies API invaria
 - **Layering**
   - Each adapter repairs independently. This diverged in pi: 0f3a0f78b, where Codex dropped calls that the shared pass had given results.
   - One shared pass plus minimal adapter rules.
+- **Orphaned calls (codex)**
+  - Synthesize an `"aborted"` output immediately after the call, with a deterministic UUIDv5 id (cache-stable). Orphan outputs are removed. ✔ codex (`codex-rs/core/src/context_manager/normalize.rs:52-66`)
+- **Invariant violations**
+  - Panic in debug builds, log in release (`error_or_panic`). ✔ codex
+- **Aborted turns**
+  - Keep completed items and add a model-visible `<turn_aborted>` marker. ✔ codex
 - **Orphaned tool calls (durable)**: fail every `pending|running` call before the next drain, never replay it (opencode v2) · synthesize an error at replay (opencode legacy).
 - **Interrupted partial output**: replay as a successful result (opencode legacy, shell).
 - **History requires a tools field**: inject a no-op placeholder tool when history has tool calls but no tools are enabled (opencode, Copilot/LiteLLM).
@@ -42,15 +48,19 @@ At the provider boundary, normalize replayed history so it satisfies API invaria
 
 ## Implementations
 - [[pi--transcript-replay-repair|pi]] — `transformMessages` pass 0 normalizes null content and non-vision images; pass 2 skips errored/aborted messages, synthesizes "No result provided" results and defers system messages. The durable variant synthesizes "Tool result unavailable…" and also excludes `deferred` messages.
+- [[codex--transcript-replay-repair|codex]] — `for_prompt` → `normalize_history` on a clone; synthesized "aborted" outputs; pair-aware deletion; modality stripping; `<turn_aborted>` marker.
 - [[opencode--transcript-replay-repair|opencode]] — `toModelMessages` skips errored turns and closes dangling calls; `ProviderTransform.message` filters empty blocks per SDK; v2 fails interrupted tools durably.
 
 ## Failures
 - [[side-channel-message-splits-tool-pair]]
-- [[session-switch-leaves-dangling-tool-calls]]
 - [[orphaned-tool-calls-and-results]]
 - [[failed-turns-replayed]]
 - [[aborted-reasoning-signature-invalid]]
 - [[missing-optional-fields-crash-replay]]
+- [[session-switch-leaves-dangling-tool-calls]]
+- [[interrupted-turn-invisible-to-model]]
+- [[image-content-poisoning]]
+- [[side-channel-message-splits-tool-pair]] (05-context) — Extension messages sent with triggerTurn: false while the agent was running landed between an assistant tool…
 - [[placeholder-tool-gets-called]]
 - [[empty-payload-rejections]]
 - [[signed-empty-reasoning-dropped]]

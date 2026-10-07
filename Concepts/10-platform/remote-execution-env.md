@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: architecture
-tier: candidate
-aliases: ["pi-env", "RemoteExecutionEnv", "Connection", "RemoteWatcher", "connectSsh", "sshConnection", "pi-env serve", "remote-execution-daemon", "file-watch-coverage-contract", "FileSystem.watch", "NodeFileWatcher", control-plane workspace, WorkspaceAdapter, sessionWarp, experimental_workspace.register]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: ["pi-env", "RemoteExecutionEnv", "Connection", "RemoteWatcher", "connectSsh", "sshConnection", "pi-env serve", "remote-execution-daemon", "file-watch-coverage-contract", "FileSystem.watch", "NodeFileWatcher", control-plane workspace, WorkspaceAdapter, sessionWarp, experimental_workspace.register, codex exec-server, codex-exec-server, ExecServerClient, TurnEnvironment, environment_id, ExecutorFileSystem]
+harnesses: [pi, opencode, codex]
 ---
 Run the agent's tools on another machine: a small native daemon deployed over SSH performs filesystem, exec and watch operations for a local agent over a framed stdio protocol, while the agent, its storage and credentials stay local.
 
@@ -23,12 +23,16 @@ Run the agent's tools on another machine: a small native daemon deployed over SS
 - **Host trust**: user known_hosts vs app-owned pinned known_hosts with explicit fingerprint acceptance ([[remote-host-trust]]).
 - **Sandboxing**: none (pi-env: full SSH-user rights) vs path allowlist/jail.
 - **Watching**: client-side polling over the link (pi-env initial, replaced) vs native watcher next to the files with coverage contract (pi-env now).
+- **Remote mechanism (codex)**: persistent JSON-RPC exec/fs server over websocket, reached directly or via environment registry + Noise relay rendezvous; forward mode passes payloads unchanged, no replay ✔ codex.
+- **Multi-environment turns**: tools take `environment_id`; patches carry `*** Environment ID:` ✔ codex.
+- **Lifecycle**: websocket close kills that client's processes; sequential requests unless `--concurrent-requests` ✔ codex.
 - **Whole remote harness**: remote target is a full opencode server; requests HTTP-proxied, events replicated back via SSE + history backfill (opencode workspaces).
 - **Adapter extension point**: plugins provision targets; only a worktree adapter ships (opencode).
 - **Session move between targets**: claim event ownership + copy the VCS diff (opencode `sessionWarp`).
 
 ## Implementations
 - [[pi--remote-execution-env|pi]] — `@earendil-works/pi-env`: Rust daemon (16-thread pool, control/bulk queues, windowed exec, native watch) + TS `RemoteExecutionEnv` implementing pi-durable's `ExecutionEnv`; hardened SSH bootstrap. No consumer in the monorepo at HEAD.
+- [[codex--remote-execution-env|codex]] — `codex exec-server`: JSON-RPC process + filesystem server over websocket (direct, registry + Noise relay, or forwarder); tools run against a `TurnEnvironment` with `environment_id` in multi-environment turns.
 - [[opencode--remote-execution-env|opencode]] — experimental control-plane workspaces: local (worktree) or remote (`{url, headers}`) targets, HTTP proxy + event replay, credentials forwarded to adapters.
 
 ## Failures
@@ -40,6 +44,7 @@ Run the agent's tools on another machine: a small native daemon deployed over SS
 - [[remote-errno-parity-drift]]
 - [[file-watch-platform-gaps]]
 - [[remote-binary-trusted-by-version-name]]
+- [[conformance-suite-platform-timing]] (10-platform) — Shared env conformance cases timed out under the runner's default timeout (watch cases wait for polling…
 - [[credentials-forwarded-to-execution-target]]
 
 ## Related

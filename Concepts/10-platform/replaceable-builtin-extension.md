@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: architecture
-tier: candidate
-aliases: ["builtin:<name>", "-builtin:<name>", "replaceable: true", "minimal-core-extension-first", "pi's core is minimal", "built-in extensions", internalPlugins, PluginInternal]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: ["builtin:<name>", "-builtin:<name>", "replaceable: true", "minimal-core-extension-first", "pi's core is minimal", "built-in extensions", internalPlugins, PluginInternal, codex-rs/ext, extension-api]
+harnesses: [pi, opencode, codex]
 ---
 Minimal-core rule: the core only gains general mechanisms; in-box features (MCP, code mode, tool search, local-model provider) are implemented on the public plugin API, load by default, and can be disabled or displaced by name.
 
@@ -19,19 +19,21 @@ Minimal-core rule: the core only gains general mechanisms; in-box features (MCP,
 - **Conflict policy** with same-named third-party registration: error (pi default between ordinary plugins) vs replaceable built-in silently drops out with a warning (pi).
 - **Embedding**: built-ins auto-loaded in SDK too vs only in CLI (pi: SDK must add them manually).
 - **Escape hatch for absent features**: README pointers + example plugins (pi: sub-agents, plan mode, permission gate, todo, sandbox examples).
+- **Feature as compiled-in extension crate on an internal API** ✔ codex (not runtime-loaded, not replaceable by name; disable via feature flag / managed pin).
 - **Built-in plugins with one global switch** (opencode legacy: 12 provider-auth plugins, `OPENCODE_DISABLE_DEFAULT_PLUGINS`).
 - **Core-as-plugins**: agents, commands, skills, providers, variants booted as ordered internal plugins (opencode v2).
 
 ## Implementations
 - [[pi--replaceable-builtin-extension|pi]] — `builtInExtensions` list (`llama.cpp`, `codemode`, `tool-search`, `mcp`), resolved as `builtin:<name>` resources; replaceable ones omitted when another extension registers the same tool/command/flag.
+- [[codex--replaceable-builtin-extension|codex]] — partial: features (goal, skills, memories, guardian, web search, image gen, mcp, agent, queue, history-notes, message board, git attribution, connectors) moved from core into compiled `codex-rs/ext/*` crates on a typed internal API; toggled by feature flags, not replaceable by third parties.
 - [[opencode--replaceable-builtin-extension|opencode]] — legacy provider-auth built-ins on the public plugin API; v2 `PluginInternal` boots core features as plugins.
 
 ## Failures
 - (none mined specific to the mechanism)
 
+## Related
+[[extension-event-hooks]] · [[plugin-tools]] · [[runtime-plugin-loading]] · [[harness-package-distribution]] · [[mcp-integration]] · [[code-mode]] · [[deferred-tool-loading]] · [[minimal-default-toolset]] · [[no-subagents-core]] · [[no-plan-mode]] · [[no-permission-prompts]] · [[no-todo-tool]] · [[no-builtin-mcp-reversed]] · [[feature-flag-stages]] · [[extensibility-model]] · [[agent-profiles]]
+
 ## Tradeoffs
 - [[mcp-builtin-vs-extension]]
 - [[minimal-vs-rich-toolset]]
-
-## Related
-[[extension-event-hooks]] · [[plugin-tools]] · [[runtime-plugin-loading]] · [[harness-package-distribution]] · [[mcp-integration]] · [[code-mode]] · [[deferred-tool-loading]] · [[minimal-default-toolset]] · [[no-subagents-core]] · [[no-plan-mode]] · [[no-permission-prompts]] · [[no-todo-tool]] · [[no-builtin-mcp-reversed]] · [[agent-profiles]]

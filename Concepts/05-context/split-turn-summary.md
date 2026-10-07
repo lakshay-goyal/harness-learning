@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: compaction
-tier: candidate
+tier: variant
 aliases: [isSplitTurn, turnPrefixMessages, TURN_PREFIX_SUMMARIZATION_PROMPT, "Turn Context (split turn)", split-turn-compaction]
 harnesses: [pi]
 ---
@@ -20,6 +20,7 @@ When a single user turn (request + long tool loop) is larger than the keep budge
 - **Merge format**: concatenate `history --- **Turn Context (split turn):** prefix` ✔ pi vs one combined call (pi v1 `5a9d844f9` "Merge turn prefix summary into main summary", later split again).
 - **Call scheduling**: parallel (`Promise.all`) → **sequential** ✔ pi (`f58c11562`).
 - **Framing**: XML `<conversation>` + prefix/suffix jargon (refused) → `# Conversation` / `# Instructions` headings + "Do not infer or recreate later messages" ✔ pi (`d192bd6dc`).
+- codex: absent — no cut inside a turn: local compaction drops *all* assistant/tool items and keeps only user messages (20k tokens) + one summary, so a mid-turn "roll over" summarizes the in-progress turn wholesale (`codex-rs/core/src/session/turn.rs:607-608`, `codex-rs/core/src/compact.rs:686-764`).
 
 ## Implementations
 - [[pi--split-turn-summary|pi]] — cut-point marks `isSplitTurn`; history summary and turn-prefix summary generated sequentially, merged with a `---` separator; prefix prompt rewritten 2026-09-22 after Fable refusals.

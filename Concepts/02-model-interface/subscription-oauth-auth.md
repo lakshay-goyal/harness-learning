@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: model-interface
-tier: candidate
-aliases: [/login, OAuthAuth, lazyOAuth, refreshStoredOAuthCredential, isSubscription, subscription-oauth-login, loopback-oauth-with-paste-fallback, device-code-oauth, locked-oauth-refresh, non-cancellable-token-rotation, minted-short-lived-api-key, workload-identity-federation, credential-file-locking, OAUTH_POLLING_SAFETY_MARGIN_MS, CodexAuthPlugin, opencode-anthropic-auth]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: [/login, OAuthAuth, lazyOAuth, refreshStoredOAuthCredential, isSubscription, subscription-oauth-login, loopback-oauth-with-paste-fallback, device-code-oauth, locked-oauth-refresh, non-cancellable-token-rotation, minted-short-lived-api-key, workload-identity-federation, credential-file-locking, OAUTH_POLLING_SAFETY_MARGIN_MS, CodexAuthPlugin, opencode-anthropic-auth, codex login, AuthManager, CodexAuth, UnauthorizedRecovery, cli_auth_credentials_store, Sign in with ChatGPT]
+harnesses: [pi, opencode, codex]
 ---
 Log in with a consumer subscription or an org identity and use the resulting token as the model API credential. Login uses a PKCE loopback callback with a paste fallback, or a device code. Refresh is proactive, locked across processes, and double-checked. Rotated refresh tokens are always persisted.
 
@@ -46,10 +46,19 @@ Log in with a consumer subscription or an org identity and use the resulting tok
 - **Identity**
   - Plain OAuth.
   - Impersonate the vendor's first-party client (see [[provider-identity-shim]]).
+- **First-party variant** (codex)
+  - Loopback on fixed port 1455 with a *second registered* port, 1457. ✔ codex
+  - Device code with a 15 min cap. ✔ codex
+  - Proactive refresh 5 min before JWT `exp` (8 days when no `exp`), plus a reactive 401 state machine: reload `auth.json` (account-id guarded) → refresh → give up. ✔ codex
+  - Concurrency: reload from shared storage before refreshing, with no file lock in the findings. ✔ codex
+  - Permanent refresh failures (`refresh_token_reused`, `invalid_grant`) are cached with specific relogin messages. ✔ codex
+  - Storage: file (0600), OS keyring, auto or ephemeral host-supplied tokens. ✔ codex
+  - Identity is first-party, so no shim is needed ([[provider-identity-shim]]). ✔ codex
 - **Vendor scope**: ChatGPT, Copilot, GitLab, xAI only; Claude subscription removed after a legal request (opencode 1.3.0, `1ac1a0287c`).
 
 ## Implementations
 - [[pi--subscription-oauth-auth|pi]] — pi-ai `OAuthAuth` and `lazyOAuth`, with flows for Anthropic, Codex, ChatGPT, Copilot, OpenRouter, xAI, Kimi, Meta and Radius. `resolve.ts` does the locked refresh. Coding-agent `AuthStorage` is `auth.json` with proper-lockfile.
+- [[codex--subscription-oauth-auth|codex]] — `codex login` PKCE (1455→1457) or device code; `AuthManager` proactive and 401 recovery; keyring/file/ephemeral storage; agent, workload and gateway identities.
 - [[opencode--subscription-oauth-auth|opencode]] — built-in Codex (port 1455), Copilot, GitLab, xAI device code; no Claude Pro/Max since 2026-03.
 
 ## Failures
@@ -61,6 +70,8 @@ Log in with a consumer subscription or an org identity and use the resulting tok
 - [[device-code-polling-hang]]
 - [[login-side-effects-rate-limited]]
 - [[credential-refresh-on-availability-path]]
+- [[api-key-overrides-subscription-auth]] (02-model-interface) — Users logged in with a subscription (OAuth) were billed pay-as-you-go because an API key in settings.json…
+- [[oauth-issuer-mixup-accepted]] (07-safety) — pi's MCP OAuth client exchanged an authorization code from a response naming a different issuer than the…
 
 ## Related
-[[credential-resolution]] · [[provider-identity-shim]] · [[custom-provider-registration]] · [[model-catalog]] · [[mcp-integration]]
+[[credential-resolution]] · [[provider-identity-shim]] · [[custom-provider-registration]] · [[model-catalog]] · [[mcp-integration]] · [[subscription-usage-limits]]

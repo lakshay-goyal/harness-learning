@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: state
-tier: candidate
+tier: variant
 aliases: [Snapshot.track, Snapshot.capture, shadow git repo, "snapshot: false", "snapshots: false", patch part, SessionRevert, "/undo", "/redo", unrevert, workspace-snapshot-revert, transcript-file-revert]
 harnesses: [opencode]
 ---

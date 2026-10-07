@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: model-interface
-tier: candidate
-aliases: [configureHttpDispatcher, SESSION_WEBSOCKET_MAX_AGE_MS, zstd, http-dispatcher.ts, connection-pool-max-age, transport-fallback-sticky, request-body-compression, header-deletion-marker, signed-header-injection, templated-endpoint-placeholders, beta-header-management, provider-attribution-headers, getBetaFeatures, anthropic-beta, transport, headerTimeout, chunkTimeout, timeoutFetch, wrapSSE, ws-pool]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: [configureHttpDispatcher, SESSION_WEBSOCKET_MAX_AGE_MS, zstd, http-dispatcher.ts, connection-pool-max-age, transport-fallback-sticky, request-body-compression, header-deletion-marker, signed-header-injection, templated-endpoint-placeholders, beta-header-management, provider-attribution-headers, getBetaFeatures, anthropic-beta, transport, headerTimeout, chunkTimeout, timeoutFetch, wrapSSE, ws-pool, stream_idle_timeout_ms, websocket_connect_timeout_ms, force_http_fallback, codex-http-client]
+harnesses: [pi, opencode, codex]
 ---
 The harness owns its HTTP and WebSocket transport policy instead of inheriting runtime and SDK defaults. That policy covers:
 - proxies and tunnels, idle and header timeouts, connect attempt timeouts;
@@ -54,11 +54,21 @@ The harness owns its HTTP and WebSocket transport policy instead of inheriting r
   - Attribution headers only when telemetry is enabled.
 - **Body**
   - zstd compression where the runtime supports it.
+- **Server lifetime handling**
+  - Proactive rotation below the limit (55 min). ✔ pi
+  - Reactive: map `websocket_connection_limit_reached` (60 min) to a retryable error and reopen. ✔ codex
+- **Timeouts**
+  - A separate 15 s connect timeout, plus one 300 s idle timeout applied to every receive *and* send. ✔ codex (`codex-rs/model-provider-info/src/lib.rs:66,71`)
+- **Fallback trigger**
+  - WebSocket → HTTPS as the last retry after stream-retry exhaustion or `426`, sticky per session, still honoring server Retry-After. ✔ codex
+- **Offline tolerance**
+  - Unbounded network-wait retries (5 s doubling to 60 s) that don't consume the retry budget. ✔ codex (feature `UnboundedConnectionRetries`)
 - **Idle-timeout reversals**: SSE idle timeout 2 min → 5 min → off → 5 min default; header timeout 10 s OpenAI-only → 5 min for all providers (opencode, 2026-03…09).
 - **No timeouts by design**: provider watchdog deferred to a future configurable policy (opencode v2).
 
 ## Implementations
 - [[pi--http-transport-hardening|pi]] — coding-agent `http-dispatcher.ts` and `provider-attribution.ts`. Codex WS/SSE transport (connection cache, sticky fallback, zstd level 3), Anthropic `getBetaFeatures`, Bedrock Smithy build/deserialize middleware, Cloudflare endpoint placeholders.
+- [[codex--http-transport-hardening|codex]] — own `codex-http-client` and `codex-websocket-client`; 300 s idle and 15 s connect timeouts; reactive 60-min socket limit; sticky WebSocket→HTTPS fallback; zstd for ChatGPT auth; unbounded network wait.
 - [[opencode--http-transport-hardening|opencode]] — `timeoutFetch` header + SSE idle timeouts (5 min defaults), Codex-style WS pool with 5 stream retries then HTTP; none in v2.
 
 ## Failures
@@ -73,6 +83,9 @@ The harness owns its HTTP and WebSocket transport policy instead of inheriting r
 - [[placeholder-sent-as-api-key]]
 - [[bedrock-credential-and-endpoint-precedence]]
 - [[sse-framing-errors]]
+- [[server-side-state-missing-on-continuation]]
+- [[prewarm-blocks-turn-start]]
+- [[server-retry-advice-ignored]]
 
 ## Related
 [[unified-provider-api]] · [[credential-resolution]] · [[provider-identity-shim]] · [[install-telemetry]] · [[auto-retry-backoff]] · [[abort-propagation]] · [[extension-event-hooks]]

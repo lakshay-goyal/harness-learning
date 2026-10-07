@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: tool-design
-tier: candidate
+tier: variant
 aliases: [parseStreamingJson, repairJson, parseJsonWithRepair, partial-json, eager-tool-input-streaming, defensive-streaming-json, eager_input_streaming, fine-grained-tool-streaming]
 harnesses: [pi]
 ---
@@ -30,6 +30,7 @@ Parse streamed tool-argument JSON tolerantly. While the call is streaming, the p
   - Per-tool eager input streaming, gated by a compat flag.
 - **Scratch state**
   - Delete `partialJson` and `partialArgs` when the block finalizes and on error paths.
+- codex: absent. `response.function_call_arguments.delta` events are ignored, and tool calls are parsed only from the completed `response.output_item.done` item. A parse failure is logged and the event skipped (`codex-rs/codex-api/src/sse/responses.rs:353-358,480-491`). The patch tool avoids JSON entirely through a grammar-constrained freeform format ([[constrained-tool-sampling]]).
 - **No repair**: strict parse; malformed tool JSON or an undecodable frame fails the whole turn with no per-call error the model could correct (opencode v2 `packages/llm/src/protocols/shared.ts:97-101`).
 
 ## Implementations

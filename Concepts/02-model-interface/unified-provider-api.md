@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: model-interface
-tier: candidate
-aliases: [pi-ai, "stream()", AssistantMessageEventStream, StreamFunction, AssistantMessageEvent, unified-assistant-event-stream, owned-sse-decoder, output-index-slotting, lazy-provider-loading, harness-native-wire-protocol, pi-messages, mapStopReason, rawStopReason, LLMEvent, "@opencode-ai/llm", Route.make, OPENCODE_EXPERIMENTAL_NATIVE_LLM, ProviderTransform, patchedDependencies]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: [pi-ai, "stream()", AssistantMessageEventStream, StreamFunction, AssistantMessageEvent, unified-assistant-event-stream, owned-sse-decoder, output-index-slotting, lazy-provider-loading, harness-native-wire-protocol, pi-messages, mapStopReason, rawStopReason, LLMEvent, "@opencode-ai/llm", Route.make, OPENCODE_EXPERIMENTAL_NATIVE_LLM, ProviderTransform, patchedDependencies, WireApi::Responses, wire_api, ResponseItem, ResponsesApiRequest, codex-api]
+harnesses: [pi, opencode, codex]
 ---
 One provider-neutral streaming API and event protocol (start → text/thinking/toolcall start/delta/end → done|error, carrying a live partial message and a normalized stop reason) that sits on top of many vendor APIs, so the loop never sees vendor wire formats.
 
@@ -37,12 +37,16 @@ One provider-neutral streaming API and event protocol (start → text/thinking/t
 - **Extensibility**
   - Closed set of APIs.
   - Open `Api` string, so plugins can implement their own stream functions. *pi chose this.*
+- **Wire protocol scope**
+  - One vendor protocol used as the internal transcript format (`ResponseItem`), with no neutral layer. Third parties must expose a Responses-compatible endpoint. The second protocol, Chat Completions, was deleted after a long tail of quirks (`d2394a2494` 2026-02-03). ✔ codex (`codex-rs/model-provider-info/src/lib.rs:100-133`)
+  - Many native protocols normalized into one event protocol. ✔ pi
 - **Vendor SDK as substrate**: wrap Vercel AI SDK `streamText` and patch SDKs in place (`patches/*`) when they lag providers (opencode legacy) · own route-first protocols, Route = Protocol × Endpoint × Auth × Framing, one provider turn per call (opencode v2 `packages/llm`).
 - **Quirk placement**: one provider-transform middleware hotspot over the final prompt (opencode `ProviderTransform`, ~1900 lines).
 - **Unsupported routes**: fail loudly, never downgrade (opencode v2).
 
 ## Implementations
 - [[pi--unified-provider-api|pi]] — pi-ai `Models.stream/streamSimple` over 10 chat APIs and 42 providers. It has a typed event protocol, lazily loaded adapters, compat flags generated per model, and its own SSE/JSON parsing.
+- [[codex--unified-provider-api|codex]] — Responses-API-only. `WireApi::Responses` is the sole variant; Chat Completions was added 2025-05 and deleted 2026-02; the vendor `ResponseItem` is the transcript type; unknown SSE events are logged and skipped.
 - [[opencode--unified-provider-api|opencode]] — legacy AI SDK + `ProviderTransform` middleware + vendored SDK patches behind `LLMEvent`; v2 `packages/llm` own protocols, three routes accepted by the runner.
 
 ## Failures
@@ -60,7 +64,9 @@ One provider-neutral streaming API and event protocol (start → text/thinking/t
 - [[private-fields-break-duck-typed-streams]]
 - [[node-only-imports-break-browser-bundle]]
 - [[truncated-stream-accepted-as-success]]
+- [[provider-stream-ignores-abort]] (01-loop) — Esc did not interrupt during "Working…" (Gemini CLI stream ignored the signal; escape handler not restored);…
+- [[proxied-stream-option-loss]] (01-loop) — Model calls routed through an indirection layer behaved like a different agent: the agent-core streamProxy…
 - [[sdk-enum-lags-provider-options]]
 
 ## Related
-[[errors-as-stream-events]] · [[cross-provider-handoff]] · [[streaming-json-repair]] · [[model-catalog]] · [[http-transport-hardening]] · [[custom-provider-registration]] · [[terminal-event-required]] · [[truncated-tool-call-guard]] · [[agent-event-stream]] · [[extension-event-hooks]] · [[partial-message-persistence]]
+[[errors-as-stream-events]] · [[cross-provider-handoff]] · [[streaming-json-repair]] · [[model-catalog]] · [[http-transport-hardening]] · [[custom-provider-registration]] · [[terminal-event-required]] · [[truncated-tool-call-guard]] · [[agent-event-stream]] · [[extension-event-hooks]] · [[partial-message-persistence]] · [[provider-breadth]] · [[request-attribution-metadata]]

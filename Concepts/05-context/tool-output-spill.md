@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: context
-tier: candidate
+tier: must-have
 aliases: [fullOutputPath, "pi-bash-*.log", "pi-output-<uuid>.log", output-files.ts, writeOutputFile, full_output, output-spill-file, spill, ToolOutputStore, TRUNCATION_DIR, outputPath, outputPaths, "Managed Tool Output File", "tool-output"]
 harnesses: [pi, opencode]
 ---
@@ -24,6 +24,8 @@ When output is truncated for the model, persist the complete raw output to a pri
 - **One shared harness directory with retention** (`<data>/tool-output`, 7 days, hourly cleanup) whitelisted for read/grep in every agent's permissions (opencode) vs per-file private temp files (pi).
 - **Spill as a delegation trigger**: the hint tells task-capable agents to have the explore subagent grep the file, "Do NOT read the full file yourself" (opencode legacy).
 - **Durable record = bounded preview, not the file** (opencode v2); typed `outputPaths` alongside the preview.
+- Spill failure: kill the command ("Failed to preserve complete shell output") ✔ pi durable NodeExecutionEnv.
+- codex: absent — truncated output is not written to a model-readable file; the full payload survives only in the rollout JSONL, which the model is not pointed at (`codex-rs/core/src/context_manager/history.rs:514-515`); token-budget sessions instead expose server-side history search tools ([[no-tool-output-spill-file]], [[model-requested-context-reset]]).
 
 ## Implementations
 - [[pi--tool-output-spill|pi]] — `packages/coding-agent/src/utils/output-files.ts` centralized private temp files; bash/powershell/codemode/MCP spill; `OutputAccumulator` flushes buffered chunks into the file on first truncation; durable/env spill thresholds = truncation limits.

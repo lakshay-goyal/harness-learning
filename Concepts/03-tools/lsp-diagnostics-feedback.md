@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: tools
-tier: candidate
+tier: variant
 aliases: [LSP.Service, touchFile, "<diagnostics file=…>", "LSP errors detected in this file", lsp tool, OPENCODE_DISABLE_LSP_DOWNLOAD]
 harnesses: [opencode]
 ---

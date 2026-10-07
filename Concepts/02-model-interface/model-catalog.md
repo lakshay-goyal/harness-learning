@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: model-interface
-tier: candidate
-aliases: [models.generated.ts, generate-models.ts, models.dev, ModelRuntime, remote catalog, models.json, modelOverrides, withRemoteCatalog, generated-model-catalog, layered-model-catalog, remote-catalog-overlay, dynamic-model-refresh, compat-flag-matrix, conservative-capability-defaults, name-heuristic-capability-detection, model-prompt-cache-ttl-metadata, availability-snapshot, custom-model-id-fallback, ModelsDev.Service, OPENCODE_MODELS_URL, models.opencode.ai]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: [models.generated.ts, generate-models.ts, models.dev, ModelRuntime, remote catalog, models.json, modelOverrides, withRemoteCatalog, generated-model-catalog, layered-model-catalog, remote-catalog-overlay, dynamic-model-refresh, compat-flag-matrix, conservative-capability-defaults, name-heuristic-capability-detection, model-prompt-cache-ttl-metadata, availability-snapshot, custom-model-id-fallback, ModelsDev.Service, OPENCODE_MODELS_URL, models.opencode.ai, ModelsManager, ModelInfo, models_cache.json, x-models-etag, ModelFamily, model_info_from_slug]
+harnesses: [pi, opencode, codex]
 ---
 Typed metadata for every model: context window, output cap, costs, input modalities and limits, reasoning levels, cache lifetimes, and per-endpoint compatibility flags. It is generated at build time from public catalogs plus curated overrides, then layered at runtime:
 1. remote overlay,
@@ -48,10 +48,16 @@ On top sits an availability view that says which providers are authenticated.
 - **Availability**
   - Check per call.
   - A synchronous snapshot with generation and sequence counters, plus provisional marking at registration. *pi chose this.*
+- **Vendor-pushed control plane** (codex)
+  - Source: the provider's `/models?client_version=` per account, with the bundled `models.json` as fallback, a 300 s disk cache and etag-triggered refresh. ✔ codex
+  - Payload goes beyond metadata: per-model prompt text, truncation policy, tool wire types (`apply_patch_tool_type`, `shell_type`), auto-compact limit, compaction-compatibility hash. ✔ codex (`codex-rs/protocol/src/openai_models.rs:411-575`)
+  - Unknown ids: generic fallback metadata (272k window) plus a warning. ✔ codex
+  - No prices in the catalog (cost is server-side). ✔ codex
 - **Runtime fetch from the vendor's own catalog**: models.dev, 5-min file cache, hourly refresh, cross-process lock, build-time snapshot fallback (opencode).
 
 ## Implementations
 - [[pi--model-catalog|pi]] — `scripts/generate-models.ts` produces `models.generated.ts` and the typed shards. Coding-agent `ModelRuntime` composes builtin, pi.dev remote overlay, `models.json`, extension providers and `modelOverrides`, and keeps the availability snapshot.
+- [[codex--model-catalog|codex]] — `ModelsManager`: bundled + remote `/models` + disk cache (TTL 300 s, `x-models-etag`) + config overrides + fallback. `ModelInfo` drives window, compaction, truncation, tools and prompt.
 - [[opencode--model-catalog|opencode]] — `ModelsDev.Service` cache → snapshot → fetch, refresh every 60 min; alpha hidden, deprecated removed.
 
 ## Failures
@@ -63,6 +69,10 @@ On top sits an availability view that says which providers are authenticated.
 - [[availability-snapshot-races]]
 - [[catalog-hot-path-quadratic]]
 - [[credential-refresh-on-availability-path]]
+- [[compaction-pinned-to-unavailable-model]]
+- [[thinking-off-not-honored]]
+- [[error-diagnostics-echo-payload]]
+- [[auto-compact-threshold-exceeds-window]]
 
 ## Related
-[[model-resolution]] · [[custom-provider-registration]] · [[thinking-level-abstraction]] · [[usage-cost-accounting]] · [[cache-warming]] · [[image-normalization]] · [[virtual-model-router]] · [[layered-settings]]
+[[model-resolution]] · [[custom-provider-registration]] · [[thinking-level-abstraction]] · [[usage-cost-accounting]] · [[cache-warming]] · [[image-normalization]] · [[virtual-model-router]] · [[layered-settings]] · [[per-model-system-prompt]] · [[single-vs-per-model-system-prompt]] · [[provider-breadth]]

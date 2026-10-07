@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: architecture
-tier: candidate
-aliases: ["pi install", "pi packages", "\"pi\" manifest key", "pi-package keyword", "pi list/remove/update/config", skills.urls, engines.opencode, "~/.claude/skills (read by opencode)"]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: ["pi install", "pi packages", "\"pi\" manifest key", "pi-package keyword", "pi list/remove/update/config", skills.urls, engines.opencode, "~/.claude/skills (read by opencode)", "@openai/codex", codex-cli/bin/codex.js, .codex-plugin/plugin.json, .claude-plugin/plugin.json, marketplace.json, codex plugin, Agent Plugins 1.0]
+harnesses: [pi, opencode, codex]
 ---
 Bundling plugins, skills, prompt templates and themes as versioned npm/git/local packages with a manifest, install scopes, filters and pinning.
 
@@ -22,16 +22,22 @@ Bundling plugins, skills, prompt templates and themes as versioned npm/git/local
 - **Discovery**: registry keyword → gallery (pi `pi-package` → pi.dev/packages).
 - **Install scripts**: run lifecycle scripts (pi for third-party, unverified intent) vs `--ignore-scripts` (pi for own installs).
 - **Try-before-install**: one-run load (`pi -e npm:…`).
+- **Declarative bundles, no code** ✔ codex (skills + MCP servers + app connectors + hooks + `interface` metadata).
+- **Cross-harness manifest compatibility** ✔ codex (`.claude-plugin/plugin.json`, Agent Plugins 1.0 root `plugin.json` with vendor extension).
+- **Marketplace layer**: repo-local `.agents/plugins/marketplace.json`, remote catalog, sharing, managed policy, reserved-name protection ✔ codex.
+- **Harness binary distribution**: npm wrapper + per-platform optional packages execing a native binary ✔ codex.
 - **Install by config entry**: npm specs listed in `plugin` config, installed at start with scripts disabled, `engines.opencode` range checked (opencode).
 - **Remote skill index**: `index.json` with per-skill files and version, staged atomic swap (opencode `skills.urls`).
 - **Cross-harness reuse**: read Claude Code (`~/.claude/skills`) and `.agents/skills` dirs as-is (opencode).
 
 ## Implementations
 - [[pi--harness-package-distribution|pi]] — `pi install npm:|git:|https:|./path`, manifest + filters + pinning, peer-dep enforcement, gallery keyword.
+- [[codex--harness-package-distribution|codex]] — npm launcher shipping per-platform native binaries; declarative plugin bundles (skills, MCP, apps, hooks, UI metadata — no code) from repo/git/npm/remote marketplaces, accepting Codex, Claude Code and Agent Plugins 1.0 manifests.
 - [[opencode--harness-package-distribution|opencode]] — npm plugins from config via arborist (`ignoreScripts`); skills from `.claude`/`.agents`/config dirs/paths/remote `index.json` URLs.
 
 ## Failures
 - [[duplicate-host-module-instances]]
+- [[untrusted-repo-loads-executable-config]]
 
 ## Related
-[[runtime-plugin-loading]] · [[replaceable-builtin-extension]] · [[layered-settings]] · [[skill-progressive-disclosure]] · [[prompt-template-expansion]] · [[project-trust-gate]] · [[supply-chain-pinning]] · [[self-update]]
+[[runtime-plugin-loading]] · [[replaceable-builtin-extension]] · [[layered-settings]] · [[skill-progressive-disclosure]] · [[prompt-template-expansion]] · [[project-trust-gate]] · [[supply-chain-pinning]] · [[no-executable-plugins]] · [[external-agent-import]] · [[extensibility-model]] · [[self-update]]

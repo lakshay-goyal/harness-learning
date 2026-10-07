@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: context
-tier: candidate
+tier: variant
 aliases: [prune, "compaction.prune", SessionCompaction.prune, PRUNE_PROTECT, PRUNE_MINIMUM, PRUNE_PROTECTED_TOOLS, time.compacted, microcompact, "[Old tool result content cleared]", OPENCODE_DISABLE_PRUNE]
 harnesses: [opencode]
 ---

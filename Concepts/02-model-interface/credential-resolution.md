@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: model-interface
-tier: candidate
-aliases: [resolveProviderAuth, resolveConfigValue, getApiKey, RuntimeCredentials, credential-resolution-order, stored-credential-owns-provider, credential-chain-precedence, config-value-indirection, per-request-credentials, credential-derived-endpoint, byok-header-suppression, "!command", "$ENV", "<authenticated>", enabled_providers, disabled_providers]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: [resolveProviderAuth, resolveConfigValue, getApiKey, RuntimeCredentials, credential-resolution-order, stored-credential-owns-provider, credential-chain-precedence, config-value-indirection, per-request-credentials, credential-derived-endpoint, byok-header-suppression, "!command", "$ENV", "<authenticated>", enabled_providers, disabled_providers, CODEX_API_KEY, CODEX_ACCESS_TOKEN, env_key, ModelProviderAuthInfo]
+harnesses: [pi, opencode, codex]
 ---
 Decide which credential a request uses, and where it comes from. The sources in precedence order are:
 1. request override,
@@ -50,10 +50,14 @@ The resolved credential can also carry an endpoint, headers or provider-scoped e
 - **SDK chains**
   - Let the SDK resolve.
   - Disable the SDK's default credential chain and resolve in the harness, e.g. `PiAnthropic._shouldResolveDefaultCredentials → false`.
+- **Fixed chain for the vendor path** (codex)
+  - `CODEX_API_KEY` > ephemeral host tokens > `CODEX_ACCESS_TOKEN` > stored credential. `OPENAI_API_KEY` is used only for onboarding prefill and realtime. ✔ codex (`codex-rs/login/src/auth/manager.rs:1489-1565`)
+  - Custom providers name exactly one source: `env_key`, a literal bearer, command `auth` (5 s timeout, 300 s refresh, 0 = rerun only after a 401), AWS or gateway OAuth. Conflicting sources are rejected at config load. ✔ codex
 - **Config wins**: env → stored → plugin loaders → config re-applied last (opencode).
 
 ## Implementations
 - [[pi--credential-resolution|pi]] — pi-ai `resolveProviderAuth` (request override, then stored, then ambient), `envApiKeyAuth`, `getApiKeyEnvVars`, provider-scoped env with a `/proc/self/environ` fallback. Coding-agent `RuntimeCredentials`, the provider-composer chain, `resolveConfigValue`, and `getApiKey` per LLM call.
+- [[codex--credential-resolution|codex]] — env API key > host tokens > env access token > storage; per-provider `env_key` / command auth / SigV4; conflict validation.
 - [[opencode--credential-resolution|opencode]] — layered passes (env, `auth.json`, plugin loaders, config last) with allow/deny provider lists.
 
 ## Failures
@@ -66,6 +70,8 @@ The resolved credential can also carry an endpoint, headers or provider-scoped e
 - [[bedrock-credential-and-endpoint-precedence]]
 - [[credential-expires-mid-run]]
 - [[credential-file-lock-contention]]
+- [[harness-credential-leaks-to-tools]]
+- [[api-key-overrides-subscription-auth]] (02-model-interface) — Users logged in with a subscription (OAuth) were billed pay-as-you-go because an API key in settings.json…
 
 ## Related
 [[subscription-oauth-auth]] · [[http-transport-hardening]] · [[model-catalog]] · [[custom-provider-registration]] · [[layered-settings]] · [[no-sandbox]]

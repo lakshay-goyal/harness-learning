@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: tools
-tier: candidate
+tier: must-have
 aliases: [grep tool, find tool, ls tool, grep.ts, find.ts, ls.ts, ensureTool, tools-manager, PI_OFFLINE, gitignore-aware-search, managed-binary-bootstrap, argv-separator-hardening, "glob tool", Ripgrep.Service]
 harnesses: [pi, opencode]
 ---
@@ -22,6 +22,7 @@ Dedicated content/file/directory search tools built on fast external binaries (r
 - Result caps (matches/results/entries) + byte cap + per-line cap with actionable "use limit=N" notice (pi).
 - `--` end-of-options before untrusted positionals (pi).
 - Hierarchical gitignore incl. nested repos (pi delegates to fd/rg, `--no-require-git` only outside repos).
+- codex: absent — no grep/find/ls tools; the model runs `rg` / `rg --files` through `exec_command` (prompt `codex-rs/core/gpt_5_2_prompt.md:250`) and [[shell-command-intent-parsing]] recovers Search/ListFiles intents. Experimental `grep_files` (`f52320be86` 2025-10-08) and `list_dir` (`226215f36d` 2025-10-07) were removed `178c3b15b4` 2026-03-25 / `70807730f5` 2026-05-05 ("nothing in the current model catalog advertises it via `experimental_supported_tools`"). Axis: [[minimal-vs-rich-toolset]]. `codex-rs/file-search` (nucleo fuzzy filename finder, default limit 20, `codex-rs/file-search/src/lib.rs:130`) serves only the user's @-mention picker, not the model.
 - Dedicated tools on by default with shell-search discouraged in the shell description (opencode).
 - Directory listing folded into the read tool (opencode, `list` removed).
 - Hidden path segments excluded from broad search (opencode v2).
@@ -38,4 +39,4 @@ Dedicated content/file/directory search tools built on fast external binaries (r
 - [[search-binary-bootstrap-failures]]
 
 ## Related
-[[minimal-default-toolset]] · [[shell-execution]] · [[tool-output-truncation]] · [[path-normalization]] · [[supply-chain-pinning]]
+[[minimal-default-toolset]] · [[shell-execution]] · [[tool-output-truncation]] · [[path-normalization]] · [[supply-chain-pinning]] · [[shell-command-intent-parsing]] · [[minimal-vs-rich-toolset]] · [[no-file-read-write-tools]]

@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: compaction
-tier: candidate
+tier: must-have
 aliases: [UPDATE_SUMMARIZATION_PROMPT, UPDATE_SUMMARIZATION_INSTRUCTIONS, "<previous-summary>", previousSummary, "<prior-summary>", SUMMARY_UPDATE_INSTRUCTIONS, anchored summary, completedCompactions]
 harnesses: [pi, opencode]
 ---
@@ -18,6 +18,7 @@ On the Nth compaction, the previous summary is passed alongside only the *new* m
 - Permission to drop: pi allows "If something is no longer relevant, you may remove it" — trades bounded size against loss.
 - Range start: previous compaction marker (buggy) vs previous `firstKept` ✔ pi.
 - Split-turn interplay: if nothing new to summarize, pi reuses `previousSummary` verbatim ("No prior history." if none) and only adds the turn prefix.
+- codex: absent — "No special handling": previous summaries are recognized by `SUMMARY_PREFIX` and excluded from the kept user messages (`codex-rs/core/src/compact.rs:583-603`), but the summarizer only sees them as ordinary history; no merge template (`0b28e72b66`) → [[codex--auto-compaction]].
 - **Explicit loss warning + conflict rule**: "The <prior-summary> is discarded after this: anything you do not carry into the new summary is lost"; "Where they conflict, the conversation wins" (opencode `dab2637217`, aimed at small summarizer models).
 - **Previous kept tail re-fed as conversation**: the prior checkpoint's serialized `recent` text is summarized together with the new head (opencode v2).
 - **Hide prior compaction pairs from the input** and pass only the newest summary text (opencode legacy `completedCompactions`).
@@ -31,4 +32,4 @@ On the Nth compaction, the previous summary is passed alongside only the *new* m
 - [[summary-template-drops-goals]] (opencode: small models dropped prior-summary content)
 
 ## Related
-[[structured-compaction-summary]] · [[auto-compaction]] · [[compaction-cut-point]] · [[file-op-tracking]] · [[transcript-serialization-for-summary]]
+[[structured-compaction-summary]] · [[auto-compaction]] · [[compaction-cut-point]] · [[file-op-tracking]] · [[transcript-serialization-for-summary]] · [[compaction-design]]

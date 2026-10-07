@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: messages
-tier: candidate
+tier: variant
 aliases: ["<system-reminder>", SessionReminders.apply, PROMPT_PLAN, BUILD_SWITCH, PLAN_MODE, "synthetic: true", system-reminder-injection]
 harnesses: [opencode]
 ---

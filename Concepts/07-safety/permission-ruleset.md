@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: permissions
-tier: candidate
+tier: variant
 aliases: [permission, PermissionV1, PermissionV2, Permission.evaluate, Permission.ask, "once/always/reject", "allow/ask/deny", last-match-wins, OPENCODE_PERMISSION, permission.asked, DeniedError, BlockedError, CorrectedError, "--auto", "--dangerously-skip-permissions", PermissionSaved]
 harnesses: [opencode]
 ---

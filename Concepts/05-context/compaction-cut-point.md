@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: compaction
-tier: candidate
-aliases: [findCutPoint, findProjectedCutPoint, isCutPointMessage, isTurnStartMessage, selectCut, firstKeptEntryId, "keep-recent window", tail_start_id, preserve_recent_tokens, tail_turns, splitTurn, MIN_PRESERVE_RECENT_TOKENS, DEFAULT_KEEP_TOKENS]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: [findCutPoint, findProjectedCutPoint, isCutPointMessage, isTurnStartMessage, selectCut, firstKeptEntryId, "keep-recent window", tail_start_id, preserve_recent_tokens, tail_turns, splitTurn, MIN_PRESERVE_RECENT_TOKENS, DEFAULT_KEEP_TOKENS, COMPACT_USER_MESSAGE_MAX_TOKENS, RETAINED_MESSAGE_TOKEN_BUDGET, build_v2_compacted_history, retained-messages]
+harnesses: [pi, opencode, codex]
 ---
 Rules choosing where history splits into "summarize" vs "keep verbatim": walk back from newest until the keep budget is reached, then snap to a legal boundary that never separates a tool call from its result.
 
@@ -13,7 +13,10 @@ Rules choosing where history splits into "summarize" vs "keep verbatim": walk ba
 - The budget estimator must count every message kind the context contains, otherwise the kept window is bigger than intended (pi: custom messages uncounted, [[estimator-undercounts-context]]).
 
 ## Design space
-- **Budget walk**: tokens from newest backwards until ≥ keepRecent ✔ pi (20000) vs fixed message count vs "last N user turns" (Codex keeps recent *user* messages).
+- **Budget walk**: tokens from newest backwards until ≥ keepRecent ✔ pi (20000) vs fixed message count vs **recent *user* messages only, newest-first up to a token budget; the boundary message truncated to the remainder** ✔ codex (local 20,000; remote 64,000).
+- **Filter instead of cut** ✔ codex: no position-based cut at all — assistant messages, reasoning, tool calls and outputs are dropped wholesale, so the call/result adjacency problem disappears; kept = real user messages (+ hook prompts, selected inter-agent messages, optionally client developer messages on remote).
+- **Modality in the keep budget**: text only, media dropped from the truncated boundary message ✔ codex local; images charged at their estimate and kept atomic with their label tags, no older backfill after a boundary image doesn't fit ✔ codex remote (`CompactionImageBudget`).
+- **Exclude prior summaries / huge or progress-only agent messages from the kept set** ✔ codex.
 - **Legal cut entries**: user/assistant/custom/summary messages, never tool results ✔ pi; durable variant additionally rejects a user entry while a result of the preceding assistant's calls still follows it (late/interleaved results).
 - **Snap direction**: first legal point at/after the budget boundary ✔ pi (keeps ≤ budget… plus the turn) vs before (keeps ≥ budget).
 - **Fallback when no legal point after boundary**: keep everything (pi before `8bdcd4498`) vs **last legal point** ✔ pi now.
@@ -29,17 +32,20 @@ Rules choosing where history splits into "summarize" vs "keep verbatim": walk ba
 
 ## Implementations
 - [[pi--compaction-cut-point|pi]] — backward token walk over projected entries, legal cut = non-toolResult message entry, fallback to last cut point, split-turn detection, recovery-omission suffix advance; durable `selectCut` with interleaved-result rule.
+- [[codex--compaction-cut-point|codex]] — keep-set filter, not a cut: newest-first user messages within 20k (local) / 64k (remote) tokens; everything assistant/tool dropped.
 - [[opencode--compaction-cut-point|opencode]] — legacy: newest-first whole user turns within a window-scaled budget, first non-fitting turn split by suffix, tail start persisted as `tail_start_id`; v2: newest serialized lines within 8k tokens kept as `recent` text.
 
 ## Failures
 - [[oversized-trailing-tool-results-uncompactable]]
 - [[estimator-undercounts-context]]
 - [[repeated-compaction-drops-kept-messages]]
+- [[compaction-loses-modality-or-structure]]
+- [[summarization-request-overflows]]
 - [[reordered-context-misidentifies-latest-turn]] (08-state)
 - Cross-group: [[fork-boundary-loss]] (08-state)
 
+## Related
+[[auto-compaction]] · [[split-turn-summary]] · [[token-estimation]] · [[context-projection]] · [[context-edit-overlay]] · [[transcript-replay-repair]] · [[overflow-recovery]] · [[compaction-design]]
+
 ## Tradeoffs
 - [[compaction-design]]
-
-## Related
-[[auto-compaction]] · [[split-turn-summary]] · [[token-estimation]] · [[context-projection]] · [[context-edit-overlay]] · [[transcript-replay-repair]] · [[overflow-recovery]]

@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: compaction
-tier: candidate
-aliases: [CompactionDetails, "<read-files>", "<modified-files>", extractFileOpsFromMessage, computeFileLists, FileOperations]
-harnesses: [pi]
+tier: must-have
+aliases: [CompactionDetails, "<read-files>", "<modified-files>", extractFileOpsFromMessage, computeFileLists, FileOperations, TurnDiffTracker, AppliedPatchDelta, "turn/diff/updated"]
+harnesses: [pi, codex]
 ---
 Mechanically extract which files were read and modified from tool calls, carry the cumulative lists across compactions in entry metadata, and append them to the summary so the model still knows its working set.
 
@@ -19,13 +19,18 @@ Mechanically extract which files were read and modified from tool calls, carry t
 - Rendering: XML tags appended after summary ✔ pi vs a section inside the LLM template vs separate system note.
 - Branch summaries carry their own lists from nested branch summaries (not from compaction details).
 - Dropped entirely in pi durable (no file-op tracking).
+- **Per-turn unified diff for the UI, built from committed patch deltas (operation-backed, never re-reading the filesystem); not carried into model context or compaction** ✔ codex (partial match) — shell-made changes invisible, like pi's gap.
+- Partial operations: track exact deltas of a partially failed multi-file patch instead of declaring the whole call unknowable ✔ codex (`9b6c6f7a01`).
 - **LLM-written mandatory section instead of mechanical lists**: `## Relevant Files` in the summary template, added after paths kept vanishing across compactions (opencode `78f85b1cd6`; not an implementation of this concept) → [[summary-template-drops-goals]].
 
 ## Implementations
 - [[pi--file-op-tracking|pi]] — `FileOperations{read,written,edited}` from tool calls + nested calls; `CompactionDetails{readFiles,modifiedFiles}` carried if not extension-generated; appended as `<read-files>`/`<modified-files>`.
+- [[codex--file-op-tracking|codex]] — partial: `TurnDiffTracker` accumulates apply_patch deltas per (environment, path) into a git-style turn diff for clients; nothing carried across compaction.
 
 ## Failures
-- (none mined; gap: bash-driven file edits invisible — unverified impact)
+- [[turn-diff-drops-known-change]]
+- Cross-group: [[partial-multi-file-patch-untracked]] (03-tools) · [[undo-clobbers-user-git-state]] (08-state)
+- (gap: bash-driven file edits invisible in both harnesses — unverified impact)
 
 ## Related
-[[auto-compaction]] · [[structured-compaction-summary]] · [[iterative-summary-update]] · [[branch-summary]] · [[code-mode]] · [[nested-tool-calls]]
+[[auto-compaction]] · [[structured-compaction-summary]] · [[iterative-summary-update]] · [[branch-summary]] · [[code-mode]] · [[nested-tool-calls]] · [[patch-envelope-edit]]

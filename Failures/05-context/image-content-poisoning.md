@@ -1,7 +1,7 @@
 ---
 type: failure
-concepts: [image-normalization, token-estimation]
-harnesses: [pi, opencode]
+concepts: [image-normalization, token-estimation, transcript-replay-repair]
+harnesses: [pi, opencode, codex]
 ---
 **Symptom** — One bad image block in history bricked the session: every later request was rejected (HTTP 400 / size errors) and switching models didn't help. Variants:
 - Oversized images exceeded Anthropic's 5 MB / per-image dimension limits (the per-image cap drops from 8000px to 2000px once a request carries many images).
@@ -23,8 +23,13 @@ harnesses: [pi, opencode]
 - `b30a6dd77` 2026-10-07 (#10527, HEAD) worker replies tagged `pi:image-resize-response`; untagged messages ignored (`packages/coding-agent/src/utils/image-resize-core.ts:21-29`).
 - Related: `39b1bf7b6` (#2734) Anthropic 413 `request_too_large` recognized as overflow (see [[overflow-message-not-recognized]]); `96f0edd02` (#4983) image tokens counted.
 
+**Fix · [[codex]]**
+- Symptom variant (model switch): switching from a multimodal to a text-only model sent historic `input_image` parts and every request failed.
+- `5e01450963` 2026-02-10 "Strip unsupported images from prompt history to guard against model switch (#11349)": modality-aware `for_prompt` replaces images with "image content omitted because you do not support image input" (`codex-rs/core/src/context_manager/normalize.rs:330-380`); `6eecd04fc1` 2026-09-09 downgrade `detail: original` for receiving models that lack it ([[model-switch-replays-unsupported-content]]).
+- All user/tool images prepared centrally before entering history; remote URLs replaced by model-visible text (`7153affa0f`); oversize/failed → placeholders (`codex-rs/core/src/image_preparation.rs:31-37`, `:338-342`).
+- Provider-rejected image: `8431dc590a` 2026-07-20 removed the "replace with 'Invalid image' and retry" path; the turn now ends with "Invalid image in your last message. Please remove it and try again." (`codex-rs/core/src/session/turn.rs:793-815`) — the bad block stays in history (no auto-removal).
 **Fix · [[opencode]]** `9eefcd1b41` 2025-12-15 (#5521) reading an empty image file produced an Anthropic error on every request → replaced by a text error; `563177c6ac` 2026-05-01 (#25241) tool result with image + empty text caused API errors; `85ce6a5f95` 2026-05-10 (#26401) auto-resize to 2000×2000 / 5 MB with a JPEG quality ladder, un-resizable images dropped with "[N images omitted: could not be resized below the image size limit.]" (`packages/opencode/src/image/image.ts:10-14`; `packages/opencode/src/session/processor.ts:390-412`).
 
-**Lesson** — One bad content block persisted in history bricks the session: validate and normalize media at *every* door before it enters the transcript, and tag cross-thread protocol messages.
+**Lesson** — One bad content block persisted in history bricks the session: validate and normalize media at every door before it enters the transcript, re-project history for the *receiving* model's capabilities on every request, and tag cross-thread protocol messages.
 
-Related: [[image-normalization]] · [[tool-result-image-routing]] · [[placeholder-text-misleads-model]] · [[code-mode]] · [[estimator-undercounts-context]]
+Related: [[image-normalization]] · [[tool-result-image-routing]] · [[placeholder-text-misleads-model]] · [[code-mode]] · [[estimator-undercounts-context]] · [[codex--image-normalization|codex]]

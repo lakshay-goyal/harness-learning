@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: model-interface
-tier: candidate
+tier: variant
 aliases: [DeferredHandle, streamDeferred, fetchDeferred, cancelDeferred, "stopReason: deferred", durable poll phase, deferred-response-polling, pollAfterMs]
 harnesses: [pi]
 ---
@@ -23,12 +23,14 @@ A provider generation that runs in the background or as a batch job. The harness
   - Capability flags on lazily loaded adapters. Only some APIs implement it: in pi, Anthropic and the faux test provider.
 - **Replay**
   - Deferred assistant messages are excluded from requests until they resolve (durable context derivation).
+- codex: absent. `ResponsesApiRequest` has no `background` field (`codex-rs/codex-api/src/common.rs:279-304`). The nearest analogue is server-held continuation state over one WebSocket (`previous_response_id`). It is per connection and needs a full-resend fallback ([[server-side-state-missing-on-continuation]], [[session-affinity-cache-routing]]).
 
 ## Implementations
 - [[pi--deferred-responses|pi]] — pi-ai `SimpleStreamOptions.deferred`, `DeferredHandle`, and `streamDeferred`/`fetchDeferred`/`cancelDeferred`. The durable `pi.generation` `poll` phase uses `pollAfterMs ?? 5000`.
 
 ## Failures
 - None recorded for pi.
+- [[server-side-state-missing-on-continuation]]
 
 ## Related
 [[durable-execution]] · [[unified-provider-api]] · [[transcript-replay-repair]] · [[turn-loop]]

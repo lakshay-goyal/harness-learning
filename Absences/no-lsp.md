@@ -1,6 +1,6 @@
 ---
 type: absence
-harnesses: [pi]
+harnesses: [pi, codex]
 ---
 # no-lsp
 
@@ -25,6 +25,7 @@ harnesses: [pi]
 - Feedback about correctness comes only from what the model chooses to run: bash, tests, builds. Edits can leave a broken build until the model or user checks.
 - Avoids per-language server lifecycle, indexing latency and process management. That fits [[no-background-bash]] (no long-lived helper processes).
 
+**codex** — *absent too*: no `lsp` / `language server` identifiers in any `codex-rs/**/*.rs` (`git grep -l -iE '\blsp\b|language.?server'` → no hits at `622e9e3696`). Diagnostics come from the model running compilers/tests through the shell.
 **opencode contrast**: implements it, opt-in since `220e3e9a2b` (2026-04-16): ERROR diagnostics (≤20/file) appended to edit/write/apply_patch results, ~30 servers auto-downloaded, experimental `lsp` tool (`packages/opencode/src/lsp/lsp.ts:151`; `packages/opencode/src/lsp/diagnostic.ts:3`) — see [[lsp-diagnostics-feedback]] / [[lsp-feedback-vs-none]].
 
 Related: [[minimal-default-toolset]] · [[tool-result-rewriting]] · [[plugin-tools]] · [[mcp-integration]] · [[no-codebase-index]] · [[Absences]]

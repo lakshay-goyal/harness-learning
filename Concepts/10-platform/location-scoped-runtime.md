@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: architecture
-tier: candidate
+tier: variant
 aliases: [Location, "Location.Ref", LocationServiceMap, locationServices, InstanceState, "?directory=", x-opencode-directory, "Instance (opencode legacy)"]
 harnesses: [opencode]
 ---

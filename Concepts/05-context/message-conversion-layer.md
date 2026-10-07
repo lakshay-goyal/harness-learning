@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: context
-tier: candidate
+tier: must-have
 aliases: [AgentMessage, convertToLlm, CustomAgentMessages, "custom roles", bashExecution, compactionSummary, branchSummary, toModelMessages, MessageV2, toLLMMessages, SessionMessage]
 harnesses: [pi, opencode]
 ---
@@ -19,6 +19,7 @@ Harness keeps its own richer message union (shell runs, plugin notes, summaries,
 - Where custom roles land: pi maps all custom roles to `user` messages (shell output, plugin text, summaries); alternative = system messages or tool results.
 - Filtering vs placeholder: drop unconvertible messages (pi default converter keeps only system/user/assistant/toolResult) vs replace with text.
 - Wrapping converter for policy (pi `blockImages`, checked per request so mid-session toggles apply).
+- codex: absent — history *is* the wire type (Responses `ResponseItem` in a harness-metadata envelope, `codex-rs/history/src/lib.rs:210-226`); harness content is pre-rendered at record time into user/developer fragments tagged with `ContentItemKind` so it can still be recognized (`codex-rs/context-fragments/src/fragment.rs:30-64`); only a request-time normalization pass runs on a clone (`codex-rs/core/src/context_manager/history.rs:600-615`) → [[transcript-replay-repair]], [[message-role-layering]].
 - **Stored message + typed parts** (text/reasoning/tool state machine/file/step-start/step-finish/patch/compaction/subtask) rendered with placeholders at conversion: compaction part → "What did we do so far?", pruned tool output → "[Old tool result content cleared]", pending tool → "[Tool execution was interrupted]" (opencode legacy, two-stage via AI SDK `UIMessage`).
 - **Projected session message variants** lowered to a canonical provider-neutral request, with per-protocol lowering of chronological system updates (opencode v2: `user`, `synthetic`, `system`, `shell`, `assistant`, `compaction`; switch markers dropped).
 

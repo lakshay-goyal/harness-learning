@@ -4,7 +4,7 @@ group: absences
 ---
 # Absences
 
-Deliberate non-features and removed designs, with the rationale and the opt-in path. pi ([[pi]], `b30a6dd77`) is the reference harness; opencode ([[opencode]], `ecc4916b5a`) is compared in [[#opencode stance]]. Design axes where the two diverge → [[Tradeoffs]].
+Deliberate non-features and removed designs, with the rationale and the opt-in path. pi ([[pi]], `b30a6dd77`) is the reference harness; opencode ([[opencode]], `ecc4916b5a`) is compared in [[#opencode stance]]; codex ([[codex]], `622e9e3696`) in the codex column/sections. A note's `harnesses:` lists only harnesses where the absence holds; other harnesses are discussed in a `**codex**` / pi / opencode block inside the note. Design axes where harnesses diverge → [[Tradeoffs]].
 
 **Stance at HEAD**
 - "Pi ships with powerful defaults but skips features like sub-agents and plan mode. Ask Pi to build what you want, or install a package that does it your way." (`README.md:19`, wording `de7e675de`, 2026-10-02).
@@ -17,26 +17,26 @@ Deliberate non-features and removed designs, with the rationale and the opt-in p
 4. **2026-09-22**: the section was **deleted** in docs refresh `25cc5c7bf` (#9898, Christian Klotz), one week before MCP shipped (`8562bcf66`). Whether the deletion was editorial or a softening of stance is unverified.
 
 ## Notes
-| Absence | Status at HEAD | Opt-in path |
-|---|---|---|
-| [[no-subagents-core]] | absent in stable; **present in experimental durable** (`2532a0bef`) | `examples/extensions/subagent/` |
-| [[no-plan-mode]] | absent | `examples/extensions/plan-mode/` |
-| [[no-permission-prompts]] | absent (YOLO) | `tool_call` gate + `permission-gate.ts`, `protected-paths.ts` |
-| [[no-sandbox]] | absent | Docker / Docker Sandboxes / gondolin / `sandbox/` / `ssh.ts` |
-| [[no-todo-tool]] | absent | `todo.ts`, TODO.md |
-| [[no-background-bash]] | absent | tmux, `interactive-shell.ts` |
-| [[no-web-tools]] | absent | CLI + README skills, MCP |
-| [[no-turn-cap]] | absent | `finishTurn` / `turn_end` hook |
-| [[no-cwd-confinement]] | absent | `protected-paths.ts`, container |
-| [[no-date-in-prompt]] | absent (removed `f4e9ca746`) | `APPEND_SYSTEM.md`, bash `date` |
-| [[no-builtin-mcp-reversed]] | **reversed**: replaceable built-in since `8562bcf66` | `-builtin:mcp` to opt out |
-| [[no-lsp]] | absent (omission) | none shipped |
-| [[no-codebase-index]] | absent (omission) | context files, `claude-rules.ts`, MCP |
-| [[no-checkpoints-undo]] | absent | `git-checkpoint.ts`, `auto-commit-on-exit.ts` |
-| [[no-prompt-injection-defense]] | out of scope (`SECURITY.md:19-22`) | containment, gates |
-| [[no-bash-default-timeout]] | absent (removed `29900ce64`) | model-passed `timeout`, spawn hook |
-| [[no-auto-hot-reload]] | absent (manual `/reload`) | `reload-runtime.ts` |
-| [[no-binary-detection-in-read]] | observed gap | `tool-override.ts` |
+| Absence | pi status at HEAD | pi opt-in path | codex (`622e9e3696`) |
+|---|---|---|---|
+| [[no-subagents-core]] | absent in stable; **present in experimental durable** (`2532a0bef`) | `examples/extensions/subagent/` | present — in-process threads, `multi_agent` Stable default on |
+| [[no-plan-mode]] | absent | `examples/extensions/plan-mode/` | present — Plan collaboration mode + `update_plan` |
+| [[no-permission-prompts]] | absent (YOLO) | `tool_call` gate + `permission-gate.ts`, `protected-paths.ts` | present — approval policies, execpolicy, Guardian reviewer |
+| [[no-sandbox]] | absent | Docker / Docker Sandboxes / gondolin / `sandbox/` / `ssh.ts` | present — OS sandbox (Seatbelt/Landlock+bwrap/Windows) |
+| [[no-todo-tool]] | absent | `todo.ts`, TODO.md | present, opt-in since `a9519cbcdd` 2026-08-31 |
+| [[no-background-bash]] | absent | tmux, `interactive-shell.ts` | present — unified exec PTY sessions (reversed) |
+| [[no-web-tools]] | absent | CLI + README skills, MCP | partial — `web_search`; no URL fetch (unverified) |
+| [[no-turn-cap]] | absent | `finishTurn` / `turn_end` hook | **absent** — token budgets / goal breakers instead |
+| [[no-cwd-confinement]] | absent | `protected-paths.ts`, container | present — writable roots + protected metadata |
+| [[no-date-in-prompt]] | absent (removed `f4e9ca746`) | `APPEND_SYSTEM.md`, bash `date` | present since `90cc4e79a2` (world state, not base prompt) |
+| [[no-builtin-mcp-reversed]] | **reversed**: replaceable built-in since `8562bcf66` | `-builtin:mcp` to opt out | present since 2025-05; built-in MCPs dropped `32b1ae7099` |
+| [[no-lsp]] | absent (omission) | none shipped | **absent** |
+| [[no-codebase-index]] | absent (omission) | context files, `claude-rules.ts`, MCP | **absent** |
+| [[no-checkpoints-undo]] | absent | `git-checkpoint.ts`, `auto-commit-on-exit.ts` | **absent by removal** (`/undo` un-shipped `7a8407bbb6`) |
+| [[no-prompt-injection-defense]] | out of scope (`SECURITY.md:19-22`) | containment, gates | partial — Guardian + authorization provenance |
+| [[no-bash-default-timeout]] | absent (removed `29900ce64`) | model-passed `timeout`, spawn hook | **partial** — 10 s one-shot exec; no kill timeout in unified exec |
+| [[no-auto-hot-reload]] | absent (manual `/reload`) | `reload-runtime.ts` | partial — watches skills/fs, reloads config (data only) |
+| [[no-binary-detection-in-read]] | observed gap | `tool-override.ts` | n/a — no read tool |
 
 Reading the table:
 - **Stated** (manifesto): subagents, plan mode, permission prompts, sandbox, todos, background bash, MCP (reversed), web tools.
@@ -104,6 +104,103 @@ All under `packages/coding-agent/examples/extensions/`. **No example** for web s
 - Model routing/fallback: core has the virtual-model mechanism (`docs/virtual-models.md:3-5`, `540e174c7` #10035); the router exists only as the `jev-router.ts` example. There is no client-side cross-provider failover, only agent retry ([[auto-retry-backoff]]) and Anthropic server-side fallback metadata `compat.allowedFallbackModels` (`b03a367a4`; `packages/ai/src/types.ts:975`) → [[server-side-refusal-fallback]].
 - Ask-user tool (AskUserQuestion analogue): only the `question.ts` / `questionnaire.ts` examples.
 
+## codex
+
+**Stance at HEAD** — no manifesto of non-features; absences are mostly *removals* recorded as `Stage::Removed` no-op flags (41 of 167 flags, `codex-rs/features/src/lib.rs`; [[feature-flag-stages]]) and as deleted crates. Governance: "**We do not accept external code contributions or pull requests.**" (`docs/contributing.md:5`) → [[no-external-code-contributions]]. Inverse of pi: safety, sub-agents, plan mode, background processes are core; *third-party code* is what is absent ([[no-executable-plugins]], [[extensibility-model]]).
+
+### codex absence notes
+| Absence | Group | Kind | Key evidence |
+|---|---|---|---|
+| [[no-prompt-and-agent-hooks]] | loop / platform | not yet (schema only) | `codex-rs/hooks/src/engine/discovery.rs:637-656` |
+| [[no-steer-into-review-or-compact]] | loop | design | `codex-rs/core/src/session/turn_input.rs:824-835` |
+| [[no-chat-completions-wire]] | model | removed `d2394a2494` 2026-02-03 | `codex-rs/model-provider-info/src/lib.rs:100-133` |
+| [[no-server-stored-conversation]] | model / state | design `591cb6149a` | `codex-rs/core/src/client.rs:961` |
+| [[no-output-token-cap]] | model | reverted attempt `c9e149fd5c`/`bce030ddb5` | `codex-rs/codex-api/src/common.rs:279-304` |
+| [[no-client-price-table]] | model / cost | design | `codex-rs/app-server/src/turn_cost_worker.rs` |
+| [[no-cache-miss-detection]] | caching | omission (unverified) | `codex-rs/otel/src/events/session_telemetry.rs:1139` |
+| [[no-plugin-providers]] | model | stated | `codex-rs/model-provider-info/src/lib.rs:667-670` |
+| [[no-file-read-write-tools]] | tools | removed `14c35a16a8`, `178c3b15b4`, `70807730f5` | `codex-rs/core/src/tools/spec_plan.rs:1082-1372` |
+| [[removed-legacy-shell-tools]] | tools | removed `83decfa300`, `e783341b70`, `8a40095ea3` | unified exec only |
+| [[no-kill-timeout-in-unified-exec]] | tools | design; experiment reverted `9719dc502c` | `codex-rs/core/src/session/handlers.rs:305-312` |
+| [[no-transactional-multi-file-patch]] | tools | observed (weak) | `codex-rs/apply-patch/src/lib.rs:438-465` |
+| [[no-per-file-mutation-queue]] | tools | removed gating `862b2122ee` | `e95abcdf49:codex-rs/core/src/tools/parallel.rs:207-217` |
+| [[no-safe-command-allowlist]] | safety | removed `942af8447b` 2026-08-19 | 536 + 503 lines deleted |
+| [[no-on-failure-approval-mode]] | safety | removed `2cf2a6a844` 2026-06-23 | `codex-rs/protocol/src/protocol.rs:1036` |
+| [[no-cli-process-hardening]] | safety | removed `d3ff668f68` 2026-01-08 | `codex-rs/process-hardening/src/lib.rs:12-130` |
+| [[no-user-selectable-personality]] | prompting | retired `132c739171` 2026-09-12 | `d63a9b8344` |
+| [[no-offline-per-model-prompts]] | prompting | removed `a1abd53b6a` 2026-02-09 | orphaned `codex-rs/core/gpt*_prompt.md` |
+| [[no-collaboration-styles]] | prompting | removed `31415ebfcf`, `d509df676b` | Default + Plan only |
+| [[no-top-level-instructions-field]] | prompting / caching | changed `c9253c4977` 2026-10-05 | `codex-rs/core/src/client.rs:996-1011` |
+| [[no-per-file-context-labels]] | prompting / context | design | `codex-rs/core/src/agents_md.rs:386-419` |
+| [[no-structured-compaction-template]] | context | dropped `ea225df22e` 2025-09-12 | `codex-rs/prompts/templates/compact/prompt.md:1-9` |
+| [[no-standalone-patch-format-doc]] | tools / prompting | deleted `8d637ae398` 2026-08-13 | grammar only |
+| [[no-in-turn-overflow-retry]] | context | hardening reverted `15e79f3c26`→`69f3183a8e` | `codex-rs/core/src/session/turn.rs:1688-1691` |
+| [[no-summary-validation-local]] | context | design | `codex-rs/core/src/compact.rs:752-756` |
+| [[no-tool-output-spill-file]] | context | design | `codex-rs/core/src/context_manager/history.rs:514-515` |
+| [[no-partial-history-fork]] | state / subagents | removed `6221a217e2` 2026-10-06 | `codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs:279-302` |
+| [[no-subagent-depth-limit-v2]] | subagents | design `70ac0f123c` | `codex-rs/core/src/tools/spec_plan.rs:726-729` |
+| [[no-subagent-workspace-isolation]] | subagents | design | `codex-rs/core/src/agent/child_config.rs` |
+| [[no-csv-fanout-jobs]] | subagents | removed `687f05cb94` 2026-07-20 | `codex-rs/features/src/lib.rs:1466` |
+| [[no-awaiter-role]] | subagents | temp removed `fe439afb81` | `codex-rs/core/src/agent/role.rs:386` |
+| [[no-delegate-approvals]] | subagents / safety | design | `codex-rs/core/src/codex_delegate.rs:64-73` |
+| [[no-executable-plugins]] | platform | design | `codex-rs/plugin/src/manifest.rs:8-58` |
+| [[no-strict-jsonrpc]] | platform | inherited from MCP | `codex-rs/app-server-protocol/src/rpc.rs:1-2` |
+| [[no-typescript-cli]] | platform | removed `408c7ca142` 2025-08-08 | `codex-cli/` = launcher only |
+| [[no-local-tokenizer]] | context | removed `52d0ec4cd8` 2025-11-20 | `codex-rs/utils/string/src/truncate.rs:4` |
+| [[no-in-repo-user-docs]] | platform | design | `docs/*.md` ≈ 206 lines of pointers |
+| [[no-external-code-contributions]] | governance | stated `31f23b6022` | `docs/contributing.md:5-11` |
+
+Shared with pi (absent in both): [[no-turn-cap]] · [[no-lsp]] · [[no-codebase-index]] · [[no-checkpoints-undo]] (codex by removal) · [[no-bash-default-timeout]] (codex partial).
+
+Folded (no separate note): general URL fetch — only `open_page` as a web-search action, no `web_fetch` handler (unverified beyond grep) → [[no-web-tools]].
+
+### codex removed designs (no separate note)
+| Hash | Date | What | Why (from commit) |
+|---|---|---|---|
+| `cca1122ddc` / `c432d9ef81` | 2025-04-28 / 04-30 | `interactive` crate and REPL subcommand | Rust TUI became the default |
+| `c4af707e09` | 2025-12-10 | LLM command risk assessment (40 files, 703 deletions) | "received lukewarm reception during internal testing"; successor Guardian `e84ee33cc0` 2026-03-07 → [[llm-approval-reviewer]] |
+| `7a8407bbb6` | 2025-12-22 | ghost-commit `/undo` | after `--staged` data-loss bug → [[no-checkpoints-undo]] |
+| `a489b64cb5` | 2026-01-21 | tui2 alternative frontend (`0c8828c5e2` 2025-12-09) | retired; TUI rebuilt on app-server `db89b73a9c` → [[terminal-scrollback-tui]] |
+| `38c442ca7f` → `ba5b94287e` / `77b0c75267` | 2026-02-13 → 03-11 | Apps-only `search_tool_bm25` | replaced by `tool_suggest` + Responses "bring your own" tool search → [[deferred-tool-loading]] |
+| `58ac2a8773` | 2026-03-18 | live memory editing | "nit: disable live memory edition" → [[cross-session-memory]] |
+| `2322e49549` / `b00a05c785` / `6dcac41d53` | 2026-03-04 → 03-26 | artifacts (presentation/spreadsheet tools, crates born 2026-03-03) | dropped |
+| `930e5adb7e` | 2026-04-10 | usage-limit "notify workspace owner" (`account` crate) | reverted next day |
+| `05c5829923` → `e3c2acb9cd` | 2026-04-13 → 04-18 | mailbox delivered only at request boundaries | reverted (#18325); re-offered opt-in `DeferMailboxPreemption` `766d2377a8` 2026-09-24 (`codex-rs/features/src/lib.rs:1446-1451`, default off) → [[subagent-result-mailbox]] |
+| `8a559e7938` | 2026-04-24 | js_repl persistent Node REPL tool (`42e22f3bde` 2026-02-11; 63 files, 9,261 deletions) | superseded by V8 code mode `e4eedd6170`; `JsRepl` no-op flag (`codex-rs/features/src/lib.rs:429-430`) → [[code-mode]] |
+| `4e05f3053c` | 2026-04-27 | ghost snapshots in Responses API surface | "make undo a no-op that reports the feature is unavailable" |
+| `32b1ae7099` / `d579dafb70` | 2026-05-11 / 05-26 | built-in MCPs (`ca257b6ce5` 2026-05-06) / memories MCP | "Drop something that was never used" → [[no-builtin-mcp-reversed]] |
+| `fd72e99384` | 2026-05-22 | legacy `[profiles.*]` config tables | profiles v2 = separate files → [[layered-settings]] |
+| `656a2d0905` | 2026-07-10 | legacy execpolicy engine | v2 rules → [[command-rule-policy]] |
+| `8431dc590a` | 2026-07-20 | invalid-image auto-repair retry ("Invalid image" text + retry) | now a hard bad-request error (`codex-rs/core/src/session/turn.rs:793-816`) → [[image-normalization]] |
+| `86b1123ff6` | 2026-08-14 | per-model `supports_parallel_tool_calls` | parallelism always requested; harness lock constrains → [[parallel-tool-execution]] |
+| `3052bbcf8c` | 2026-09-11 | `thread/rollback` in-place `ThreadRolledBack` markers (`8b7ec31ba7` 2026-01-06) | replaced by `thread/revert` (new rollout file per revert); markers still replayed → [[session-fork]] |
+| `531f3836a1` | 2026-09-05 | `codex mcp-server` (Codex as an MCP server) | superseded by app-server → [[client-server-session-split]] |
+| side branch `edd46c6347` `99b78c9bb2` `e39e0c4332` `e67726a994` `71163530a4` | — | compaction-prompt experiments (incl. strict-JSON summary) | never merged to mainline (rejected experiments) → [[no-structured-compaction-template]] |
+
+Crate deaths (complete, `--diff-filter=D` on Cargo.toml, M8): interactive, repl, mcp-client (legacy stdio), git-apply (merged), protocol-ts, utils/tokenizer, tui2, mcp-types, network-proxy-cli, common (split), exec-server v1 (reborn `81996fcde6`), artifacts ×3 + package-manager, legacy tui `d65deec617`, account, instructions `4c2e730488`, device-key `e64a8979b0`, builtin-mcps, memories/mcp, debug-client `fc8c723553`, execpolicy-legacy, realtime-webrtc (first, `b93dcf341c`), core-skills `45f8cafa4e`, ext/guardian `e741cd9ace`, mcp-server.
+
+### codex reversals
+| Feature | First | Then | Note |
+|---|---|---|---|
+| Chat Completions | added `e924070cee` 2025-05-08 | removed `d2394a2494` 2026-02-03 | → [[no-chat-completions-wire]] |
+| `/undo` checkpoints | default-on `052b052832` 2025-11-11 | un-shipped `7a8407bbb6` 2025-12-22 | → [[no-checkpoints-undo]] |
+| read/grep/list tools | experimental 2025-10 | deleted 2026-03 / 2026-05 | → [[no-file-read-write-tools]] |
+| personality selection | `714151eb4e` 2026-01-20 | retired `132c739171` 2026-09-12 | → [[no-user-selectable-personality]] |
+| `update_plan` default | prompted heavily 2025-07-31 | opt-in `a9519cbcdd` 2026-08-31 | → [[no-todo-tool]] |
+| date in context | absent | added `90cc4e79a2` 2026-02-26 | → [[no-date-in-prompt]] |
+| auto-trust of undecided projects | `1e59dc5bda` 2026-08-04 | explicit prompt `17801b4206` same day | → [[project-trust-gate]] |
+| CLI process hardening | `d61dea6fe6` 2025-09-25 | removed `d3ff668f68` 2026-01-08 | → [[no-cli-process-hardening]] |
+
+## Open questions
+- Why opencode deleted the batch tool and the read-before-write guard (no commit bodies).
+- Why prune and LSP/formatters went default-off in April 2026 (cache stability and process cost are plausible, unverified).
+- Why MCP flipped (issue #10040 not fetched; the author changed from Mario Zechner to Armin Ronacher).
+- Whether durable subagents will reach stable pi (`5609b0d6c` experimental TUI on pi-durable).
+- The `sandbox/` example reads `.pi/sandbox.json` without a trust check (see [[no-sandbox]]).
+- Third-party `pi install` runs lifecycle scripts (`packages/coding-agent/src/core/package-manager.ts:1844-1865`, no `--ignore-scripts`), while pi's own installs forbid them → [[supply-chain-pinning]].
+
+Related: [[replaceable-builtin-extension]] · [[extension-event-hooks]] · [[minimal-default-toolset]] · [[feature-flag-stages]] · [[extensibility-model]] · [[Constants]]
+
 ## opencode stance
 
 **Stance at HEAD** ([[opencode]], `ecc4916b5a`)
@@ -154,13 +251,3 @@ All under `packages/coding-agent/examples/extensions/`. **No example** for web s
 - Reverted then re-added at HEAD: MCP OAuth redirect URI (`33290c54cd` 2026-01-16; `redirectUri` at `packages/opencode/src/mcp/oauth-provider.ts:19`), optional mDNS (`505068d5a6` 2025-12-26; `packages/opencode/src/server/mdns.ts`), global `~/.claude/skills` (`ef8388f0ee` 2025-12-29; `packages/opencode/src/skill/index.ts:186-193`), Trinity prompt (`b5a4671c64` 2026-02-03; `trinity.txt` present).
 - Reverted and still absent: provider-level `store` option (`16cac69a72` 2026-01-14), signed-thinking reorder (`a763a14d44` 2026-06-02), git-backed review modes (`1b028d0632` 2026-03-26, 308 lines).
 - Same-day revert of experimental code mode (`cb93114424` → `379adee35c` 2026-07-02), re-landed `2409c7a3d5` the next day.
-
-## Open questions
-- Why opencode deleted the batch tool and the read-before-write guard (no commit bodies).
-- Why prune and LSP/formatters went default-off in April 2026 (cache stability and process cost are plausible, unverified).
-- Why MCP flipped (issue #10040 not fetched; the author changed from Mario Zechner to Armin Ronacher).
-- Whether durable subagents will reach stable pi (`5609b0d6c` experimental TUI on pi-durable).
-- The `sandbox/` example reads `.pi/sandbox.json` without a trust check (see [[no-sandbox]]).
-- Third-party `pi install` runs lifecycle scripts (`packages/coding-agent/src/core/package-manager.ts:1844-1865`, no `--ignore-scripts`), while pi's own installs forbid them → [[supply-chain-pinning]].
-
-Related: [[replaceable-builtin-extension]] · [[extension-event-hooks]] · [[minimal-default-toolset]] · [[Constants]]

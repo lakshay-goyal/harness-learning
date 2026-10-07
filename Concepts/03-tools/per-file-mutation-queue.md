@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: tools
-tier: candidate
+tier: must-have
 aliases: [withFileMutationQueue, file-mutation-queue, fileMutationQueues, registrationQueue, writeIfUnchanged, StaleContentError]
 harnesses: [pi, opencode]
 ---
@@ -18,6 +18,7 @@ Serialize mutating file tools per canonical file path (wrapping the whole read-m
 - Missing-file key = canonical parent + name (pi durable) vs unresolved path (pi coding-agent).
 - OS file locks / lockfiles to cover other processes and the shell (not in pi — explicitly "not a lock against bash").
 - Optimistic concurrency: re-read and compare before write (not in pi; durable read has a related concurrent-writer guard → [[file-read-tool]]).
+- codex: absent — only a per-turn `RwLock` (parallel-safe vs exclusive) (`e95abcdf49:codex-rs/core/src/tools/parallel.rs:207-217`); `apply_patch` is exclusive, but parallel `exec_command`s may write the same files; `is_mutating` dispatch gating removed 2026-05-12 `862b2122ee` ("That second hook no longer carried its weight"). See [[codex--parallel-tool-execution]].
 - Lock only the string-replace tool (opencode legacy: `write`/`apply_patch` unlocked).
 - Optimistic stale check between permission approval and commit (opencode v2 `StaleContentError`).
 
@@ -29,8 +30,8 @@ Serialize mutating file tools per canonical file path (wrapping the whole read-m
 - [[concurrent-file-mutation-interleave]]
 - [[alternate-edit-tool-skips-edit-pipeline]]
 
+## Related
+[[parallel-tool-execution]] · [[search-replace-edit]] · [[pluggable-tool-backends]] · [[plugin-tools]] · [[patch-envelope-edit]] · [[no-per-file-mutation-queue]]
+
 ## Tradeoffs
 - [[edit-tool-variants]]
-
-## Related
-[[parallel-tool-execution]] · [[search-replace-edit]] · [[pluggable-tool-backends]] · [[plugin-tools]]

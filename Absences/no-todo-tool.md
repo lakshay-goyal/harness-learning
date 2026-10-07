@@ -29,6 +29,7 @@ harnesses: [pi]
 - File-based plans survive compaction verbatim. A todo tool's state would need its own re-injection after compaction (unverified as a stated reason).
 - The claim "todos confuse models" is anecdotal ("In my experience"). There is no eval in `packages/evals` backing it (unverified beyond grep).
 
+**codex** — *present, now opt-in*: `update_plan` since `8828f6f082` 2025-07-29 ("experimental plan tool"), prompted heavily from 2025-07-31 (`6ce0a5875b` "Initial planning tool"); handler `codex-rs/core/src/tools/handlers/plan_spec.rs:43` → [[task-list-tool]]. 2026-08-31 `a9519cbcdd` "Make the update_plan tool opt-in (#41744)": default-off with all bundled guidance stripped when disabled — a move toward pi's stance. Exec JSONL still has a `todo_list` item kind (`codex-rs/exec/src/exec_events.rs:13-36`).
 **opencode contrast**: implements it: write-only `todowrite` (`todoread` removed `77fc88c8ad`), denied to subagents by default (`packages/opencode/src/tool/todo.ts:1-46`) — see [[task-list-tool]] / [[todo-tool-vs-none]].
 
-Related: [[branch-scoped-extension-state]] · [[plugin-tools]] · [[provider-identity-shim]] · [[no-plan-mode]] · [[minimal-default-toolset]] · [[Absences]]
+Related: [[branch-scoped-extension-state]] · [[plugin-tools]] · [[provider-identity-shim]] · [[no-plan-mode]] · [[minimal-default-toolset]] · [[Absences]] · [[task-list-tool]]

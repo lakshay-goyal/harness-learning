@@ -1,9 +1,9 @@
 ---
 type: concept
 stage: failure-handling
-tier: candidate
-aliases: [_overflowRecoveryAttempted, overflow-compact-and-retry, "reason: overflow", compactAfterOverflow, ContinueAfterOverflowCompaction, runAfterOverflowCompaction, "Session too large to compact"]
-harnesses: [pi, opencode]
+tier: must-have
+aliases: [_overflowRecoveryAttempted, overflow-compact-and-retry, "reason: overflow", compactAfterOverflow, ContinueAfterOverflowCompaction, runAfterOverflowCompaction, "Session too large to compact", set_total_tokens_full, remove_first_item, guardian_budget_compacted]
+harnesses: [pi, opencode, codex]
 ---
 When a request overflows (explicit provider error, silent usage > window, or early length stop), hide the failed attempt, compact, and retry exactly once; a second overflow in the same user turn surfaces an error.
 
@@ -16,7 +16,9 @@ When a request overflows (explicit provider error, silent usage > window, or ear
 
 ## Design space
 - **Classifier input**: error regexes + silent overflow + length heuristics → [[context-overflow-detection]].
-- **Attempts**: one per user turn (latch reset on user message / clean response) ✔ pi; durable: one compaction per generation (`compacted` checkpoint).
+- **Attempts**: one per user turn (latch reset on user message / clean response) ✔ pi; durable: one compaction per generation (`compacted` checkpoint); **zero in-turn for normal sessions: fail the turn, pin usage to the full window so the *next* turn compacts first** ✔ codex ([[no-in-turn-overflow-retry]]; hardening attempt reverted same day `69f3183a8e`); once per model step for approval-review sessions ✔ codex.
+- **Overflow of the compaction request itself**: drop the oldest history item (and its paired call/output) and retry — "Trim from the beginning to preserve cache (prefix-based)" ✔ codex; pi caps serialized tool results instead ([[transcript-serialization-for-summary]]).
+- **Prevention over recovery**: proactive 90 % trigger + 95 % effective window + post-turn and model-downshift compaction ✔ codex.
 - **Retry vs compact separation**: overflow excluded from transient-retry classifier ("handled by compaction, not retry") ✔ pi.
 - **Failed attempt handling**: keep in raw log but omit from projection via `context_edit` ✔ pi; durable appends the overflowed assistant then compacts.
 - **Successful-but-overflowing**: compact without retry ✔ pi.
@@ -29,6 +31,7 @@ When a request overflows (explicit provider error, silent usage > window, or ear
 
 ## Implementations
 - [[pi--overflow-recovery|pi]] — `_checkCompaction` cases 1/2: omit failed attempt via `context_edit`, `_runAutoCompaction("overflow", true)`, `agent.continue()`; latch `_overflowRecoveryAttempted`; durable generation compacts once then re-prepares.
+- [[codex--overflow-recovery|codex]] — deferred recovery: error + `set_total_tokens_full` → next turn's pre-sampling compaction; compaction-request overflow trims oldest-first; guardian reviews compact-and-retry once.
 - [[opencode--overflow-recovery|opencode]] — legacy: overflow compaction holds out and replays the last user turn, compaction-overflow is terminal; v2: unpublished overflow → `compactAfterOverflow` → one retry through a recovery-free path.
 
 ## Failures
@@ -37,10 +40,12 @@ When a request overflows (explicit provider error, silent usage > window, or ear
 - [[overflow-judged-against-wrong-model]]
 - [[overflow-ignores-autocompact-optout]]
 - [[length-stop-recovery]]
+- [[summarization-request-overflows]]
+- Cross-group: [[compaction-pinned-to-unavailable-model]] (02-model-interface)
 - Cross-group: [[rate-limit-misread-as-overflow]], [[overflow-message-not-recognized]] (02-model-interface)
+
+## Related
+[[context-overflow-detection]] · [[auto-compaction]] · [[auto-retry-backoff]] · [[context-edit-overlay]] · [[run-settlement]] · [[max-tokens-context-clamp]] · [[token-estimation]] · [[compaction-design]]
 
 ## Tradeoffs
 - [[compaction-design]]
-
-## Related
-[[context-overflow-detection]] · [[auto-compaction]] · [[auto-retry-backoff]] · [[context-edit-overlay]] · [[run-settlement]] · [[max-tokens-context-clamp]] · [[token-estimation]]

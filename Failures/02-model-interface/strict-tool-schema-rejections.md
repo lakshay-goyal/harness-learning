@@ -1,7 +1,7 @@
 ---
 type: failure
-concepts: [constrained-tool-sampling, tool-schema-lowering]
-harnesses: [pi, opencode]
+concepts: [constrained-tool-sampling, tool-schema-lowering, tool-schema-lowering, mcp-integration]
+harnesses: [pi, opencode, codex]
 ---
 **Symptom** — Provider 400s on tool declarations:
 - `strict` was sent to OpenAI-compatible servers that don't support it.
@@ -27,8 +27,13 @@ harnesses: [pi, opencode]
 - `295cc72b0` 2026-09-30 — per-provider keyword veto (`packages/ai/src/api/anthropic-messages.ts:1541-1574`) (#9953):
   - `prefer` falls back silently to non-strict, and `require` throws (`constrained-sampling.ts:225-249`).
 
+**Fix · [[codex]]** — the schema sanitizer invented constraints or kept them.
+- Untyped nodes: MCP and dynamic tool schema nodes without `type` were filled in as `string` by `sanitize_json_schema`. This invented a scalar constraint that "could incorrectly steer tool arguments away from the provider's actual accepted shape". `4dbca61e20` 2026-05-18 defaults them to `{}` (`codex-rs/tools/src/json_schema.rs:71-206`; [[invented-schema-constraint]]).
+- Bounds: `minimum`/`maximum`/`maxLength` were kept in generated declarations. `ac644ed112` 2026-08-26 stopped preserving them.
+- Oversized schemas: client tool schemas over 4k bytes are compacted, which stripped field guidance from the web-search tool. `9fe55d68e6` 2026-05-26 added a bypass.
 **Fix · [[opencode]]** Gemini, incident by incident: `ee91f31313` 2025-06-17 integer enums, `ee946d8128` 2025-11-26 MCP schemas, `0331931f56` 2025-12-01, `d89b567b47` 2025-12-21 arrays without `items`, `3741516fe3` / `3adeed8f97` 2026-02-03, `7e3e85ba59` 2026-03-03 sibling injection next to combiners, `2e71292f2f` 2026-06-11 nullable type arrays. OpenAI: `213ff3f2d7` 2026-06-16 port of Codex's schema lowering plus `strict: false`; v2 `f011d77128` 2026-06-04. MCP: `25cb2be619` 2026-06-16 missing `properties`; `79d6b10d7c` 2026-05-09 unresolved `$ref` in `outputSchema` crashed listing. See [[tool-schema-lowering]].
 
-**Lesson** — Constrained sampling needs per-provider schema-subset validation with a graceful "prefer" fallback. Default unknown endpoints to the lenient wire subset.
-
+**Lesson** — Constrained sampling needs per-provider schema-subset validation with a graceful "prefer" fallback, and unknown endpoints should default to the lenient wire subset. Schema normalization must not change meaning: never invent types, and never drop field guidance.
 Related: [[constrained-tool-sampling]] · [[pi--constrained-tool-sampling|pi]] · [[model-catalog]] · [[opencode--tool-schema-lowering|opencode]]
+
+Related: [[constrained-tool-sampling]] · [[pi--constrained-tool-sampling|pi]] · [[model-catalog]] · [[tool-schema-lowering]] · [[codex--constrained-tool-sampling|codex]]

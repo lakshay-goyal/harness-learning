@@ -1,7 +1,7 @@
 ---
 type: concept
 stage: permissions
-tier: candidate
+tier: variant
 aliases: [BashArity, arity dictionary, web-tree-sitter, tree-sitter-bash, tree-sitter-powershell, "ShellTool.ask", "Scan{dirs,patterns,always}", redirected_statement]
 harnesses: [opencode]
 ---

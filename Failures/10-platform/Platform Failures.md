@@ -5,8 +5,8 @@ group: 10-platform
 Failures whose primary concept is in [[Platform]].
 
 ## Plugin hooks
-- [[plugin-hook-wall-clock-timeout]] — hook timeouts killed hooks legitimately waiting on humans/LLMs.
-- [[unbounded-hook-continuation-loop]] — unconditional `continue:true` at the settle boundary loops forever (documented hazard).
+- [[plugin-hook-wall-clock-timeout]] — hook timeouts killed hooks legitimately waiting on humans/LLMs (pi); hook stdin deadlock outside the timeout hung turns (codex).
+- [[unbounded-hook-continuation-loop]] — unconditional `continue:true` at the settle boundary loops forever (pi, documented hazard); uncapped Stop-hook / goal continuations (codex).
 - [[dead-hook-in-public-api]] — opencode `permission.ask` hook still declared, never triggered since 2026-03.
 
 ## Plugin loading / distribution
