@@ -5,8 +5,23 @@
   "showAttachments": false,
   "hideUnresolved": false,
   "showOrphans": true,
-  "collapse-color-groups": true,
-  "colorGroups": [],
+  "collapse-color-groups": false,
+  "colorGroups": [
+    {
+      "query": "path:\"Harnesses\"",
+      "color": {
+        "a": 1,
+        "rgb": 13706287
+      }
+    },
+    {
+      "query": "path:\"Concepts\"",
+      "color": {
+        "a": 1,
+        "rgb": 616922
+      }
+    }
+  ],
   "collapse-display": true,
   "showArrow": false,
   "textFadeMultiplier": 0,
@@ -17,6 +32,6 @@
   "repelStrength": 10,
   "linkStrength": 1,
   "linkDistance": 250,
-  "scale": 1.830793406823483,
+  "scale": 0.33095677999717743,
   "close": false
 }

@@ -24,6 +24,25 @@ New concept → put in the best-fitting group folder and add a line `- [[slug]] 
 Links: concept → `[[<harness>--<concept>|<harness>]]`; implementation → `[[<concept>]]` + `[[<harness>]]`.
 Merging a harness into an existing concept: add to `harnesses:`, append its link to **Implementations**, extend **Design space** only if it adds an option.
 
+## Color convention
+
+Rendering only, driven by link targets. Notes stay plain markdown — no inline HTML,
+no color spans, ever. Write `[[wikilinks]]` per the rules above and colors follow.
+
+| Kind | Inside notes | Graph node |
+|---|---|---|
+| Harness topic `[[pi]]` | red | red (`path:"Harnesses"` group) |
+| Harness implementation `[[pi--turn-loop\|pi]]` | red | default |
+| Concept / group overview `[[turn-loop]]`, `[[Loop]]` | blue | blue (`path:"Concepts"` group) |
+| Failure, tradeoff, absence, digest | default | default |
+
+Mechanisms are separate and neither covers the other:
+- notes → `.obsidian/snippets/harness-colors.css`, regenerate with
+  `python3 .meta/generate-link-colors.py`
+- graph → `colorGroups` in `.obsidian/graph.json` (CSS cannot target SVG graph nodes)
+
+Re-run the generator after any note is added or renamed.
+
 ## Concept
 ```yaml
 ---
