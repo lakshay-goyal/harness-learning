@@ -1,0 +1,191 @@
+#!/usr/bin/env python3
+"""Regenerate .obsidian/snippets/harness-colors.css from the vault contents.
+
+Vault color convention (see .agents/AGENTS.md "Color convention"):
+
+  red  = harness topic notes       ([[pi]], [[opencode]], [[codex]], and the
+                                     implementation notes that belong to them,
+                                     e.g. [[pi--turn-loop|pi]])
+  blue = concept notes             ([[turn-loop]], [[os-level-sandbox]], group
+                                     overviews like [[Loop]], plus any concept
+                                     alias that is used as a link target)
+
+Everything else (failures, tradeoffs, absences, digests, constants) is left at
+Obsidian's default link color on purpose.
+
+Scope: this only colors links *inside notes*. The graph view draws nodes as SVG
+circles with no .internal-link class and no data-href attribute, so no selector
+here can ever match a graph node. Graph node color is handled separately by
+colorGroups in .obsidian/graph.json.
+
+Run after adding or renaming notes:
+
+    python3 .meta/generate-link-colors.py
+
+The generated file is committed, so Obsidian picks the colors up on restart
+without needing the script. Re-run the script whenever the note set changes.
+"""
+
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+VAULT = Path(__file__).resolve().parent.parent
+OUT = VAULT / ".obsidian" / "snippets" / "harness-colors.css"
+
+# Top-level note folders. Dot-folders (.git, .obsidian, .agents, ...) are skipped
+# so the scan stays fast and never reads vendored or plugin files.
+NOTE_DIRS = (
+    "Concepts",
+    "Failures",
+    "Harnesses",
+    "Implementations",
+    "Tradeoffs",
+    "Absences",
+    "Digests",
+)
+
+# Edit the hex values in render() to change the palette; nothing else.
+HARNESS_VAR = "--harness-topic-color"
+CONCEPT_VAR = "--harness-concept-color"
+
+FRONTMATTER = re.compile(r"^---\s*\n(.*?)\n---", re.S)
+TYPE = re.compile(r"^type:\s*(\S+)\s*$", re.M)
+ALIASES = re.compile(r"^aliases:\s*\[(.*?)\]", re.M | re.S)
+
+
+def frontmatter(text: str) -> str:
+    match = FRONTMATTER.match(text)
+    return match.group(1) if match else ""
+
+
+def note_type(text: str) -> str:
+    match = TYPE.search(frontmatter(text))
+    return match.group(1) if match else ""
+
+
+def alias_list(text: str) -> list[str]:
+    match = ALIASES.search(frontmatter(text))
+    if not match:
+        return []
+    return [a.strip().strip("\"'") for a in match.group(1).split(",") if a.strip()]
+
+
+def notes() -> list[Path]:
+    """Every note in the vault, ignoring dot-folders and vendored plugin files."""
+    found: list[Path] = []
+    for d in NOTE_DIRS:
+        found.extend(sorted((VAULT / d).rglob("*.md")))
+    for name in ("Home.md", "Constants.md"):
+        path = VAULT / name
+        if path.exists():
+            found.append(path)
+    return found
+
+
+def scan() -> tuple[list[str], list[str], list[str]]:
+    """Return (harness_slugs, concept_slugs, concept_aliases) for the vault."""
+    harnesses: list[str] = []
+    concepts: list[str] = []
+    aliases: list[str] = []
+
+    for path in notes():
+        rel = path.relative_to(VAULT)
+        text = path.read_text(encoding="utf-8")
+        kind = note_type(text)
+        if kind == "harness":
+            harnesses.append(path.stem)
+        elif kind in {"concept", "group"} and rel.parts[0] == "Concepts":
+            concepts.append(path.stem)
+            # A couple of notes list their own slug in aliases; harmless but redundant.
+            aliases.extend(a for a in alias_list(text) if a != path.stem)
+
+    return sorted(set(harnesses)), sorted(set(concepts)), sorted(set(aliases))
+
+
+def link_targets() -> set[str]:
+    """Every wikilink target actually used in the vault.
+
+    Strips the trailing backslash of table-escaped links: Obsidian resolves
+    [[concept\\|display]] inside a table the same as [[concept|display]].
+    """
+    targets: set[str] = set()
+    for path in notes():
+        text = path.read_text(encoding="utf-8")
+        targets.update(t.rstrip("\\") for t in re.findall(r"\[\[([^]|#]+)", text))
+    return targets
+
+
+def selector(values: list[str], *, prefix: bool = False) -> list[str]:
+    op = "^=" if prefix else "="
+    return [f'[data-href{op}"{v}"]' for v in values]
+
+
+def rule(attrs: list[str]) -> str:
+    """Build a selector list with the .internal-link base repeated per attribute."""
+    return ",\n".join(f".internal-link{a}" for a in attrs)
+
+
+def render(
+    harnesses: list[str], concepts: list[str], aliases: list[str], used: set[str]
+) -> tuple[str, list[str]]:
+    live_aliases = [a for a in aliases if a in used]
+    harness_attrs = selector(harnesses) + selector(
+        [f"{h}--" for h in harnesses], prefix=True
+    )
+    concept_attrs = selector(concepts + live_aliases)
+    harness_list = ", ".join(harnesses)
+
+    lines = [
+        "/* GENERATED by .meta/generate-link-colors.py -- do not hand-edit. */",
+        "/* Harness topics are red, concepts are blue. Everything else stays default. */",
+        "/* Palette: edit the four hex values below, nothing else. */",
+        "/* NOTE: links inside notes only. Graph nodes are colored via colorGroups",
+        "   in .obsidian/graph.json, because SVG graph nodes carry no data-href. */",
+        "",
+        ":root,",
+        "body.theme-light {",
+        f"  {HARNESS_VAR}: #d1242f; /* harness topics: {harness_list} */",
+        f"  {CONCEPT_VAR}: #0969da; /* cross-harness concepts */",
+        "}",
+        "",
+        "body.theme-dark {",
+        f"  {HARNESS_VAR}: #f85149;",
+        f"  {CONCEPT_VAR}: #58a6ff;",
+        "}",
+        "",
+        "/* --- harness topics: red --- */",
+        f"{rule(harness_attrs)} {{",
+        f"  color: var({HARNESS_VAR}) !important;",
+        "}",
+        "",
+        "/* --- concepts: blue --- */",
+        f"{rule(concept_attrs)} {{",
+        f"  color: var({CONCEPT_VAR}) !important;",
+        "}",
+        "",
+    ]
+    return "\n".join(lines), live_aliases
+
+
+def main() -> int:
+    harnesses, concepts, aliases = scan()
+    used = link_targets()
+    if not harnesses or not concepts:
+        print("error: no harness or concept notes found; vault path wrong?", file=sys.stderr)
+        return 1
+    css, live_aliases = render(harnesses, concepts, aliases, used)
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    OUT.write_text(css, encoding="utf-8")
+    print(
+        f"wrote {OUT.relative_to(VAULT)}: "
+        f"{len(harnesses)} harness topics, {len(concepts)} concepts, "
+        f"{len(live_aliases)} live aliases"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
